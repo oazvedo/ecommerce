@@ -1,0 +1,13 @@
+bin/
+obj/
+.vs/
+.vscode/
+.claude/
+*.user
+*.suo
+**/*.md
+.env
+.env.*
+!.env.example
+docker-compose*.yml
+Dockerfile

@@ -5,8 +5,8 @@ namespace api.infra
 {
     public static class UsuarioSeed
     {
-        public const string AdminEmail = "admin@email.com";
-        public const string AdminPassword = "123";
+        public const string AdminEmail = "admin";
+        public const string AdminPassword = "admin";
 
         public static async Task SeedAsync(DatabaseContext context)
         {
