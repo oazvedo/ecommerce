@@ -139,7 +139,7 @@ namespace api.Application.Services
             return updated == null ? null : ToDto(updated);
         }
 
-        public async Task<PedidoDto> CancelarPedido(Guid pedidoId)
+        public async Task<PedidoDto?> CancelarPedido(Guid pedidoId)
         {
             var pedido = await _repository.GetPedidoById(pedidoId);
             if (pedido == null) throw new KeyNotFoundException("Pedido não encontrado.");

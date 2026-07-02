@@ -16,6 +16,6 @@ namespace api.Application.Services.Interfaces
         Task<PedidoDto?> UpdatePedidoContratacao(Guid id, PedidoTipoContratacaoEnum novaContratacao);
         Task<bool> DeleteAsync(Guid id);
         Task<IEnumerable<PedidoDto>> GetPedidosByPeriodo(DateTime dataInicio, DateTime dataFim);
-        Task<PedidoDto> CancelarPedido(Guid pedidoId);
+        Task<PedidoDto?> CancelarPedido(Guid pedidoId);
     }
 }

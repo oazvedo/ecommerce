@@ -99,6 +99,10 @@ builder.Services.AddMcpServer()
     .WithHttpTransport()
     .WithTools<PedidoMcpTools>();
 
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<UsuarioMcpTools>();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

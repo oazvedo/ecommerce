@@ -1,5 +1,4 @@
 using api.Application.DTOs.Common;
-using api.Application.DTOs.Common;
 using api.Application.DTOs.Produto;
 using api.Application.Services.Interfaces;
 using api.Domain;
