@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using api.application.dtos.usuario;
+using api.Application.DTOs.Common;
 using api.Application.DTOs.Usuario;
 using api.application.services.interfaces;
 using api.domain;
@@ -25,9 +26,12 @@ namespace api.controllers
 
         [HttpGet]
         [Authorize(Policy = "Usuario.Read")]
-        public async Task<ActionResult<IEnumerable<UsuarioDto>>> GetUsuarios()
+        public async Task<ActionResult<PagedResult<UsuarioDto>>> GetUsuarios([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var usuarios = await _service.GetAllAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            var usuarios = await _service.GetAllAsync(page, pageSize);
             return Ok(usuarios);
         }
 

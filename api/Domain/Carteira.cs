@@ -40,6 +40,30 @@ namespace api.Domain
             AtualizadoEm = DateTime.UtcNow;
         }
 
+        public void ApplyBonus(double input, string cupom)
+        {
+            if (cupom == "BONUS10")
+            {
+                var bonus = input * 0.10;
+                Saldo += input + bonus;
+                AtualizadoEm = DateTime.UtcNow;
+            }
+
+            if (cupom == "BONUS20")
+            {
+                var bonus = input * 0.20;
+                Saldo += input + bonus;
+                AtualizadoEm = DateTime.UtcNow;
+            }
+
+            if (cupom == "BONUS35")
+            {
+                var bonus = input * 0.35;
+                Saldo += input + bonus;
+                AtualizadoEm = DateTime.UtcNow;
+            }
+        }
+
 
     }
 }

@@ -1,3 +1,4 @@
+using api.Application.DTOs.Common;
 using api.Application.DTOs.Pedido;
 using api.Application.Services.Interfaces;
 using api.domain;
@@ -21,16 +22,37 @@ namespace api.Application.Services
             _carteiraService = carteiraService;
         }
 
-        public async Task<IEnumerable<PedidoDto>> GetAllPedidos()
+        public async Task<PagedResult<PedidoDto>> GetAllPedidos(PedidoFiltroRequest filtro)
         {
-            var pedidos = await _repository.GetPedidosAsync();
-            return pedidos.Select(ToDto);
+            var (pedidos, totalCount) = await _repository.GetPedidosPagedAsync(filtro);
+            return new PagedResult<PedidoDto>
+            {
+                Page = filtro.Page,
+                PageSize = filtro.PageSize,
+                TotalCount = totalCount,
+                Items = pedidos.Select(ToDto)
+            };
         }
 
         public async Task<IEnumerable<PedidoDto>> GetPedidosByUsuarioId(Guid usuarioId)
         {
             var pedidos = await _repository.GetPedidosByUsuarioIdAsync(usuarioId);
             return pedidos.Select(ToDto);
+        }
+
+        public async Task<PagedResult<PedidoDto>> GetPedidosByUsuarioId(Guid usuarioId, int page, int pageSize)
+        {
+            var pedidos = await _repository.GetPedidosByUsuarioIdAsync(usuarioId);
+            var totalCount = pedidos.Count();
+            var items = pedidos.Skip((page - 1) * pageSize).Take(pageSize);
+
+            return new PagedResult<PedidoDto>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Items = items.Select(ToDto)
+            };
         }
 
         public async Task<PedidoDto?> GetPedidoById(Guid id)
@@ -88,6 +110,14 @@ namespace api.Application.Services
         public Task<bool> DeleteAsync(Guid id)
             => _repository.RemoverPedido(id);
 
+        public async Task<IEnumerable<PedidoDto>> GetPedidosByPeriodo(DateTime dataInicio, DateTime dataFim)
+        {
+            var pedidos = await _repository.GetPedidosAsync();
+            return pedidos
+                .Where(p => p.CriadoEm >= dataInicio && p.CriadoEm <= dataFim.Date.AddDays(1).AddTicks(-1))
+                .Select(ToDto);
+        }
+
        
 
         public async Task<PedidoDto?> UpdatePedido(Guid pedidoId, UpdatePedidoRequest request)
@@ -109,6 +139,15 @@ namespace api.Application.Services
             return updated == null ? null : ToDto(updated);
         }
 
+        public async Task<PedidoDto?> CancelarPedido(Guid pedidoId)
+        {
+            var pedido = await _repository.GetPedidoById(pedidoId);
+            if (pedido == null) throw new KeyNotFoundException("Pedido não encontrado.");
+
+            pedido.CancelarPedido();
+            var updated = await _repository.AtualizarPedido(pedidoId, pedido);
+            return updated == null ? null : ToDto(updated);
+        }
 
          private static PedidoDto ToDto(Pedido p) => new()
         {

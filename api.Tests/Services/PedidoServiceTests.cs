@@ -1,5 +1,7 @@
+using api.Application.DTOs.Common;
 using api.Application.DTOs.Pedido;
 using api.Application.Services;
+using api.domain.interfaces;
 using api.Domain;
 using api.Domain.Enums;
 using api.Domain.Interfaces;
@@ -11,12 +13,16 @@ namespace api.Tests.Services
     public class PedidoServiceTests
     {
         private readonly Mock<IPedidoRepository> _repoMock;
+        private readonly Mock<IRepositoryBase<Produto>> _produtoRepoMock;
+        private readonly Mock<ICarteiraRepository> _carteiraRepoMock;
         private readonly PedidoService _service;
 
         public PedidoServiceTests()
         {
             _repoMock = new Mock<IPedidoRepository>();
-            _service = new PedidoService(_repoMock.Object);
+            _produtoRepoMock = new Mock<IRepositoryBase<Produto>>();
+            _carteiraRepoMock = new Mock<ICarteiraRepository>();
+            _service = new PedidoService(_repoMock.Object, _produtoRepoMock.Object, _carteiraRepoMock.Object);
         }
 
         [Fact]
@@ -32,6 +38,25 @@ namespace api.Tests.Services
             var result = await _service.GetAllPedidos();
 
             Assert.Equal(2, result.Count());
+        }
+
+        [Fact]
+        public async Task GetAllPedidos_ComPaginacao_DeveRetornarResultadoPaginado()
+        {
+            var pedidos = new List<Pedido>
+            {
+                new(Guid.NewGuid(), PedidoTipoContratacaoEnum.Mensal),
+                new(Guid.NewGuid(), PedidoTipoContratacaoEnum.Anual),
+                new(Guid.NewGuid(), PedidoTipoContratacaoEnum.Mensal)
+            };
+            _repoMock.Setup(r => r.GetPedidosPagedAsync(2, 2)).ReturnsAsync((pedidos.Skip(2).Take(2), 3));
+
+            var result = await _service.GetAllPedidos(2, 2);
+
+            Assert.Equal(2, result.Page);
+            Assert.Equal(2, result.PageSize);
+            Assert.Equal(3, result.TotalCount);
+            Assert.Single(result.Items);
         }
 
         [Fact]

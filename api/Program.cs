@@ -15,6 +15,8 @@ using System.Text;
 using Microsoft.OpenApi;
 using api.Domain;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
+using api.Application.Handlers.Relatorio;
+using api.Mcp;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +41,9 @@ builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<IRepositoryBase<Produto>, ProdutoRepository>();
 builder.Services.AddScoped<ICarteiraRepository, CarteiraRepository>();
+
+// handlers
+builder.Services.AddScoped<RelatorioPedidosHandler>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -90,6 +95,14 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<PedidoMcpTools>();
+
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<UsuarioMcpTools>();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -113,16 +126,15 @@ using (var scope = app.Services.CreateScope())
     await DatabaseSeeder.SeedAsync(scope.ServiceProvider);
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// swager ui 
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapMcp("/mcp");
 
 app.Run();

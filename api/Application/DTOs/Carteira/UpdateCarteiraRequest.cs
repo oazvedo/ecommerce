@@ -10,5 +10,7 @@ namespace api.Application.DTOs.Carteira
     {
         [JsonPropertyName("saldo")]
         public double Saldo {get; set;}
+        [JsonPropertyName("cupom")]
+        public string? Cupom {get; set;}
     }
 }

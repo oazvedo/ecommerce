@@ -1,3 +1,4 @@
+using api.Application.DTOs.Common;
 using api.Application.DTOs.Permissao;
 using api.application.services.interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -18,9 +19,12 @@ namespace api.Controllers
 
         [HttpGet]
         [Authorize(Policy = "Permissao.Read")]
-        public async Task<ActionResult<IEnumerable<PermissaoDto>>> GetAll()
+        public async Task<ActionResult<PagedResult<PermissaoDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var permissoes = await _service.GetAllAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            var permissoes = await _service.GetAllAsync(page, pageSize);
             return Ok(permissoes);
         }
 

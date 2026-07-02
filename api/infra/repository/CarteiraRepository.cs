@@ -10,7 +10,9 @@ namespace api.infra.repository
 
         public async Task <Carteira?> GetCarteiraByUsuarioId(Guid id)
         {
-            return await _context.Carteiras.FirstOrDefaultAsync(u => u.UsuarioId == id);
+            return await _context.Carteiras
+                .Include(c => c.Usuario)
+                .FirstOrDefaultAsync(u => u.UsuarioId == id);
         }
         public override async Task<IEnumerable<Carteira>> GetAllAsync()
             => await _dbSet.Include(c => c.Usuario).ToListAsync();

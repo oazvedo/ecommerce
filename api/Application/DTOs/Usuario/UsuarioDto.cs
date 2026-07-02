@@ -25,6 +25,6 @@ namespace api.Application.DTOs.Usuario
         public DateTime? AtualizadoEm { get; set; }
 
         [JsonPropertyName("status")]
-        public UsuarioStatus Status { get; set; }
+        public string? Status { get; set; }
     }
 }

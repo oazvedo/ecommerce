@@ -33,7 +33,23 @@ namespace api.infra.repository
         public async Task<IEnumerable<Usuario>> GetAllAsync()
         {
             return await _context.Usuarios
+                .AsNoTracking()
                 .ToListAsync();
+        }
+
+        public async Task<(IEnumerable<Usuario> Items, int TotalCount)> GetPagedAsync(int page, int pageSize)
+        {
+            var query = _context.Usuarios
+                .AsNoTracking()
+                .OrderBy(u => u.Nome);
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
         }
 
         public async Task<Usuario?> GetByIdAsync(Guid id)

@@ -341,6 +341,53 @@ Policy: `Pedido.Delete`
 
 ---
 
+## Carteira
+
+### Carteira object
+
+```json
+{
+  "id": "uuid",
+  "usuario_id": "uuid",
+  "usuario_nome": "João Silva",
+  "saldo": 150.00,
+  "criado_em": "2024-01-15T10:00:00Z",
+  "atualizado_em": null
+}
+```
+
+---
+
+### GET `/carteira`
+Policy: `Carteira.Read` — returns all carteiras.
+
+**Response `200`** — array of carteira objects.
+
+---
+
+### GET `/carteira/{id}`
+Policy: `Carteira.Read`
+
+**Response `200`** — carteira object.  
+**Response `404`**
+
+---
+
+### PUT `/carteira/{id}`
+Policy: `Carteira.Update` — updates the saldo.
+
+**Request**
+```json
+{
+  "saldo": 200.00
+}
+```
+
+**Response `200`** — updated carteira object.  
+**Response `404`** `{ "message": "Carteira {id} não encontrada" }`
+
+---
+
 ## Enums
 
 ### PedidoStatus

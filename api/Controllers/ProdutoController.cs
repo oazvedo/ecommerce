@@ -1,3 +1,4 @@
+using api.Application.DTOs.Common;
 using api.Application.DTOs.Produto;
 using api.Application.Services.Interfaces;
 using api.Domain;
@@ -18,9 +19,12 @@ namespace api.Controllers
 
         [HttpGet]
         [Authorize(Policy = "Produto.Read")]
-        public async Task<ActionResult<IEnumerable<ProdutoDto>>> GetAll()
+        public async Task<ActionResult<PagedResult<ProdutoDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var produtos = await _service.GetAllAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            var produtos = await _service.GetPagedAsync(page, pageSize);
             return Ok(produtos);
         }
 

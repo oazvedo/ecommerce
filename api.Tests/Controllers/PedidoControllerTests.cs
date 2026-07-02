@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using api.Application.DTOs.Common;
 using api.Application.DTOs.Pedido;
 using api.Application.Services.Interfaces;
 using api.Controllers;
@@ -35,14 +36,22 @@ namespace api.Tests.Controllers
         // GET /api/pedido
 
         [Fact]
-        public async Task GetAll_DeveRetornar200ComLista()
+        public async Task GetAll_DeveRetornar200ComListaPaginada()
         {
-            _serviceMock.Setup(s => s.GetAllPedidos()).ReturnsAsync(new List<PedidoDto>());
+            var paged = new PagedResult<PedidoDto>
+            {
+                Page = 1,
+                PageSize = 10,
+                TotalCount = 1,
+                Items = new List<PedidoDto> { new() { Id = Guid.NewGuid() } }
+            };
+            _serviceMock.Setup(s => s.GetAllPedidos(1, 10)).ReturnsAsync(paged);
 
-            var result = await _controller.GetAll();
+            var result = await _controller.GetAll(1, 10);
 
             var ok = Assert.IsType<OkObjectResult>(result.Result);
-            Assert.IsAssignableFrom<IEnumerable<PedidoDto>>(ok.Value);
+            var value = Assert.IsType<PagedResult<PedidoDto>>(ok.Value);
+            Assert.Single(value.Items);
         }
 
         // GET /api/pedido/{id}

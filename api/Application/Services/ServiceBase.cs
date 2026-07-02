@@ -1,4 +1,5 @@
 using api.application.services.interfaces;
+using api.Application.DTOs.Common;
 using api.domain.interfaces;
 
 namespace api.application.services
@@ -20,6 +21,18 @@ namespace api.application.services
         {
             var entities = await _repository.GetAllAsync();
             return entities.Select(ToDto);
+        }
+
+        public async Task<PagedResult<TDto>> GetPagedAsync(int page, int pageSize)
+        {
+            var (entities, totalCount) = await _repository.GetPagedAsync(page, pageSize);
+            return new PagedResult<TDto>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Items = entities.Select(ToDto)
+            };
         }
 
         public async Task<TDto?> GetByIdAsync(Guid id)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using api.Application.DTOs.Common;
 using api.application.dtos.usuario;
 using api.application.services.interfaces;
 using api.Application.DTOs.Usuario;
@@ -29,7 +30,7 @@ namespace api.application.services
                 Email = usuario.Email,
                 CriadoEm = usuario.CriadoEm,
                 AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status
+                Status = usuario.Status.ToString()
             });
         }
 
@@ -41,15 +42,19 @@ namespace api.application.services
         public async Task<IEnumerable<UsuarioDto>> GetAllAsync()
         {
             var usuarios = await _repository.GetAllAsync();
-            return usuarios.Select(u => new UsuarioDto
+            return usuarios.Select(ToDto);
+        }
+
+        public async Task<PagedResult<UsuarioDto>> GetAllAsync(int page, int pageSize)
+        {
+            var (usuarios, totalCount) = await _repository.GetPagedAsync(page, pageSize);
+            return new PagedResult<UsuarioDto>
             {
-                Id = u.Id,
-                Nome = u.Nome,
-                Email = u.Email,
-                CriadoEm = u.CriadoEm,
-                AtualizadoEm = u.AtualizadoEm,
-                Status = u.Status
-            });
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Items = usuarios.Select(ToDto)
+            };
         }
 
         public async Task<UsuarioDto?> GetByEmailAsync(string email)
@@ -57,15 +62,7 @@ namespace api.application.services
             var usuario = await _repository.GetByEmailAsync(email);
             if (usuario == null) return null;
 
-            return new UsuarioDto
-            {
-                Id = usuario.Id,
-                Nome = usuario.Nome,
-                Email = usuario.Email,
-                CriadoEm = usuario.CriadoEm,
-                AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status
-            };
+            return ToDto(usuario);
         }
 
         public async Task<UsuarioDto?> GetByIdAsync(Guid id)
@@ -73,15 +70,7 @@ namespace api.application.services
             var usuario = await _repository.GetByIdAsync(id);
             if (usuario == null) return null;
 
-            return new UsuarioDto
-            {
-                Id = usuario.Id,
-                Nome = usuario.Nome,
-                Email = usuario.Email,
-                CriadoEm = usuario.CriadoEm,
-                AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status
-            };
+            return ToDto(usuario);
         }
 
         public async Task<UsuarioDto?> UpdateAsync(Guid id, UpdateUsuarioRequest request)
@@ -94,15 +83,7 @@ namespace api.application.services
             usuario.AtualizadoEm = DateTime.UtcNow;
 
             await _repository.UpdateAsync(usuario);
-            return new UsuarioDto
-            {
-                Id = usuario.Id,
-                Nome = usuario.Nome,
-                Email = usuario.Email,
-                CriadoEm = usuario.CriadoEm,
-                AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status
-            };
+            return ToDto(usuario);
         }
 
         public async Task<UsuarioDto?> UpdateEmail(Guid Id, string email)
@@ -114,15 +95,7 @@ namespace api.application.services
             }
             usuario.Email = email;
             await _repository.UpdateAsync(usuario);
-            return await Task.FromResult(new UsuarioDto
-            {
-                Id = usuario.Id,
-                Nome = usuario.Nome,
-                Email = usuario.Email,
-                CriadoEm = usuario.CriadoEm,
-                AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status
-            });
+            return await Task.FromResult(ToDto(usuario));
         }
 
         public async Task<UsuarioDto?> UpdateEmailAsync(Guid id, string email)
@@ -141,11 +114,23 @@ namespace api.application.services
                 Email = usuario.Email,
                 CriadoEm = usuario.CriadoEm,
                 AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status
+                Status = usuario.Status.ToString()
             });
         }
     
         public Task<bool> UpdatePasswordAsync(Guid id, string password)
             => _repository.UpdatePasswordAsync(id, password);
+
+        
+        private static UsuarioDto ToDto(Usuario u) => new()
+        {
+            Id = u.Id,
+            Nome = u.Nome,
+            Email = u.Email,
+            CriadoEm = u.CriadoEm,
+            AtualizadoEm = u.AtualizadoEm,
+            Status = u.Status.ToString()
+        };
+        
     }
 }

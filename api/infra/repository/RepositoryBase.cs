@@ -17,6 +17,18 @@ namespace api.infra.repository
         public virtual async Task<IEnumerable<T>> GetAllAsync()
             => await _dbSet.ToListAsync();
 
+        public virtual async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(int page, int pageSize)
+        {
+            var query = _dbSet.AsNoTracking();
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
         public virtual async Task<T?> GetByIdAsync(Guid id)
             => await _dbSet.FindAsync(id);
 
