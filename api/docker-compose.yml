@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: api_db
+      POSTGRES_DB: api_pedidos
     ports:
       - "5432:5432"
     volumes:
@@ -28,7 +28,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=api_db;Username=postgres;Password=postgres"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=api_pedidos;Username=postgres;Password=postgres"
       JwtSettings__Issuer: "api-dev"
       JwtSettings__Audience: "api-dev"
       JwtSettings__Secret: "dev-secret-key-change-in-production-min32chars"
