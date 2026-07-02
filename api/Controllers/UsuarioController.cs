@@ -10,7 +10,6 @@ using api.domain;
 using api.domain.interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using api.Application.DTOs.Common;
 
 namespace api.controllers
 {

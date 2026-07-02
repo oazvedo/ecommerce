@@ -6,7 +6,7 @@ namespace api.Application.Services.Interfaces
 {
     public interface IPedidoService
     {
-        Task<PagedResult<PedidoDto>> GetAllPedidos(int page = 1, int pageSize = 10);
+        Task<PagedResult<PedidoDto>> GetAllPedidos(PedidoFiltroRequest filtro);
         Task<IEnumerable<PedidoDto>> GetPedidosByUsuarioId(Guid usuarioId);
         Task<PagedResult<PedidoDto>> GetPedidosByUsuarioId(Guid usuarioId, int page, int pageSize);
         Task<PedidoDto?> GetPedidoById(Guid id);
@@ -16,5 +16,6 @@ namespace api.Application.Services.Interfaces
         Task<PedidoDto?> UpdatePedidoContratacao(Guid id, PedidoTipoContratacaoEnum novaContratacao);
         Task<bool> DeleteAsync(Guid id);
         Task<IEnumerable<PedidoDto>> GetPedidosByPeriodo(DateTime dataInicio, DateTime dataFim);
+        Task<PedidoDto?> CancelarPedido(Guid pedidoId);
     }
 }

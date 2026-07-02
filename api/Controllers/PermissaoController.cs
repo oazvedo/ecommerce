@@ -3,7 +3,6 @@ using api.Application.DTOs.Permissao;
 using api.application.services.interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using api.Application.DTOs.Common;
 
 namespace api.Controllers
 {

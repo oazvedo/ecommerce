@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "api-pedidos": {
+      "type": "http",
+      "url": "http://localhost:5103/mcp"
+    }
+  }
+}

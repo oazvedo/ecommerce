@@ -22,18 +22,29 @@ namespace api.infra.repository
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Pedido> Items, int TotalCount)> GetPedidosPagedAsync(int page, int pageSize)
+        public async Task<(IEnumerable<Pedido> Items, int TotalCount)> GetPedidosPagedAsync(PedidoFiltroRequest filtro)
         {
             var query = _context.Pedidos
                 .AsNoTracking()
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
-                .OrderByDescending(p => p.CriadoEm);
+                .AsQueryable();
+
+            if (filtro.Status.HasValue)
+                query = query.Where(p => p.Status == filtro.Status.Value);
+
+            if (filtro.Contratacao.HasValue)
+                query = query.Where(p => p.Contracacao == filtro.Contratacao.Value);
+
+            if (filtro.UsuarioId.HasValue)
+                query = query.Where(p => p.UsuarioId == filtro.UsuarioId.Value);
+
+            query = query.OrderByDescending(p => p.CriadoEm);
 
             var totalCount = await query.CountAsync();
             var items = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip((filtro.Page - 1) * filtro.PageSize)
+                .Take(filtro.PageSize)
                 .ToListAsync();
 
             return (items, totalCount);
