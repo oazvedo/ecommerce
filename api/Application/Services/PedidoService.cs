@@ -22,13 +22,13 @@ namespace api.Application.Services
             _carteiraService = carteiraService;
         }
 
-        public async Task<PagedResult<PedidoDto>> GetAllPedidos(int page = 1, int pageSize = 10)
+        public async Task<PagedResult<PedidoDto>> GetAllPedidos(PedidoFiltroRequest filtro)
         {
-            var (pedidos, totalCount) = await _repository.GetPedidosPagedAsync(page, pageSize);
+            var (pedidos, totalCount) = await _repository.GetPedidosPagedAsync(filtro);
             return new PagedResult<PedidoDto>
             {
-                Page = page,
-                PageSize = pageSize,
+                Page = filtro.Page,
+                PageSize = filtro.PageSize,
                 TotalCount = totalCount,
                 Items = pedidos.Select(ToDto)
             };
@@ -139,6 +139,15 @@ namespace api.Application.Services
             return updated == null ? null : ToDto(updated);
         }
 
+        public async Task<PedidoDto> CancelarPedido(Guid pedidoId)
+        {
+            var pedido = await _repository.GetPedidoById(pedidoId);
+            if (pedido == null) throw new KeyNotFoundException("Pedido não encontrado.");
+
+            pedido.CancelarPedido();
+            var updated = await _repository.AtualizarPedido(pedidoId, pedido);
+            return updated == null ? null : ToDto(updated);
+        }
 
          private static PedidoDto ToDto(Pedido p) => new()
         {

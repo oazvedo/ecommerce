@@ -25,7 +25,7 @@ namespace api.Controllers
         
         [HttpGet("relatorio")]
         [Authorize(Policy = "Pedido.Read")]
-        public async Task<ActionResult<RelatorioPedidoResponse>> GetRelatorio(RelatorioPedidoRequest request)
+        public async Task<ActionResult<RelatorioPedidoResponse>> GetRelatorio([FromQuery] RelatorioPedidoRequest request)
         {
             var relatorio = await _handler.Handle(request);
             return Ok(relatorio);
@@ -33,12 +33,12 @@ namespace api.Controllers
 
         [HttpGet]
         [Authorize(Policy = "Pedido.Read")]
-        public async Task<ActionResult<PagedResult<PedidoDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PagedResult<PedidoDto>>> GetAll([FromQuery] PedidoFiltroRequest filtro)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
+            if (filtro.Page < 1) filtro.Page = 1;
+            if (filtro.PageSize < 1) filtro.PageSize = 10;
 
-            var pedidos = await _service.GetAllPedidos(page, pageSize);
+            var pedidos = await _service.GetAllPedidos(filtro);
             return Ok(pedidos);
         }
 
@@ -94,7 +94,7 @@ namespace api.Controllers
 
         [HttpPut("{id}")]
         [Authorize(Policy = "Pedido.UpdateAdmin")]
-        public async Task<ActionResult<PedidoDto>> UpdatePedido(Guid id, UpdatePedidoRequest request)
+        public async Task<IActionResult> UpdatePedido(Guid id, UpdatePedidoRequest request)
         {
             var pedido = await _service.UpdatePedido(id, request);
             if (pedido == null)
@@ -122,7 +122,7 @@ namespace api.Controllers
 
         [HttpPatch("{id}/contratacao")]
         [Authorize(Policy = "Pedido.Update")]
-        public async Task<ActionResult<PedidoDto>> Update(Guid id, PutPedidoRequest request)
+        public async Task<IActionResult> Update(Guid id, PutPedidoRequest request)
         {
             try
             {
@@ -147,6 +147,23 @@ namespace api.Controllers
                 return NotFound(new { mensagem = "Pedido não encontrado." });
 
             return NoContent();
+        }
+
+        [HttpPost("cancelar")]
+        public async Task<IActionResult> Cancelar(Guid id)
+        {
+            try
+            {
+                var pedido = await _service.CancelarPedido(id);
+                if (pedido == null)
+                    return NotFound(new { mensagem = "Pedido não encontrado." });
+
+                return Ok(pedido);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
+            }
         }
     }
 }

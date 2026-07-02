@@ -90,5 +90,22 @@ namespace api.Domain
             if (Status == PedidoStatus.Cancelado)
                 throw new InvalidOperationException("Pedidos cancelados não podem ter atualização de status");
         }
+
+        public void CancelarPedido()
+        {
+            ValidarPedidoPodeSerCancelado();
+            Status = PedidoStatus.Cancelado;
+            AtualizadoEm = DateTime.UtcNow;
+        }
+
+        private void ValidarPedidoPodeSerCancelado()
+        {
+            if (Status == PedidoStatus.Cancelado)
+                throw new InvalidOperationException("Pedido já está cancelado.");
+
+            if (Status == PedidoStatus.Finalizado)
+                throw new InvalidOperationException("Pedidos finalizados não podem ser cancelados.");
+
+        }
     }
 }

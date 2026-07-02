@@ -16,6 +16,7 @@ using Microsoft.OpenApi;
 using api.Domain;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using api.Application.Handlers.Relatorio;
+using api.Mcp;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -94,6 +95,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<PedidoMcpTools>();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -128,5 +133,6 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapMcp("/mcp");
 
 app.Run();
