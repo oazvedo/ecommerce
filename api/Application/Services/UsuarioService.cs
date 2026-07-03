@@ -115,7 +115,8 @@ namespace api.application.services
                 Email = usuario.Email,
                 CriadoEm = usuario.CriadoEm,
                 AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status.ToString()
+                Status = usuario.Status.ToString(), 
+                Cargo = usuario.Cargo.ToString()
             });
         }
     
@@ -130,7 +131,8 @@ namespace api.application.services
             Email = u.Email,
             CriadoEm = u.CriadoEm,
             AtualizadoEm = u.AtualizadoEm,
-            Status = u.Status.ToString()
+            Status = u.Status.ToString(),
+            Cargo = u.Cargo.ToString()
         };
         
     }
