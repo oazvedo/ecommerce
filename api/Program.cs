@@ -117,6 +117,7 @@ builder.Services.AddSwaggerGen(options =>
         Description = "JWT Authorization header using the Bearer scheme"
     };
     
+    
     options.AddSecurityDefinition("Bearer", securityScheme);
     options.OperationFilter<SwaggerSecurityScheme>();
 });
@@ -128,11 +129,9 @@ using (var scope = app.Services.CreateScope())
     await DatabaseSeeder.SeedAsync(scope.ServiceProvider);
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// swager ui 
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseCors();
