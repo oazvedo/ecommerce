@@ -20,9 +20,7 @@ services:
       - backend
 
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/oazvedo/projetos:latest
     container_name: api_app_prd
     restart: always
     environment:
