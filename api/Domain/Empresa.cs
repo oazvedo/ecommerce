@@ -25,13 +25,13 @@ namespace api.Domain
         public bool Status { get; set; }
 
         [JsonPropertyName("empresa_responsavel")]
-        public string Responsavel { get; set; }
+        public string Responsavel { get; set; } = string.Empty;
 
         [JsonPropertyName("empresa_responsavel_id")]
         public Guid ResponsavelId { get; set; }
 
         [JsonPropertyName("empresa_telefone")]
-        public string Telefone { get; set; }
+        public string Telefone { get; set; } = string.Empty;
 
         [JsonPropertyName("empresa_tipo")]
         public EmpresaTipo Tipo { get; set; }

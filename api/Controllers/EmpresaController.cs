@@ -1,8 +1,8 @@
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Empresa;
 using api.Application.Services.Interfaces;
+using api.Application.Utils;
 using api.Domain;
-using api.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,72 +23,110 @@ namespace api.Controllers
         [Authorize(Policy = "Empresa.Read")]
         public async Task<ActionResult<PagedResult<EmpresaDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
 
-            var empresas = await _service.GetPagedAsync(page, pageSize);
-            return Ok(empresas);
+                var empresas = await _service.GetPagedAsync(page, pageSize);
+                return Ok(empresas);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]
         [Authorize(Policy = "Empresa.Read")]
         public async Task<ActionResult<EmpresaDto?>> GetById(Guid id)
         {
-            var empresa = await _service.GetByIdAsync(id);
-            if (empresa == null)
-                return NotFound(new { mensagem = "Empresa não encontrada." });
+            try
+            {
+                var empresa = await _service.GetByIdAsync(id);
+                if (empresa == null)
+                    return NotFound(new { mensagem = "Empresa não encontrada." });
 
-            return Ok(empresa);
+                return Ok(empresa);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpPost]
         [Authorize(Policy = "Empresa.Create")]
         public async Task<ActionResult<EmpresaDto>> Create(CreateEmpresaRequest request)
         {
-            var empresa = await _service.CreateAsync(new Empresa(
-                request.Nome,
-                request.Cnpj,
-                request.Responsavel,
-                request.ResponsavelId,
-                request.Telefone,
-                request.Tipo,
-                request.Status));
+            try
+            {
+                var usuarioId = User.GetId();
+                var usuarioNome = User.GetNome();
 
-            return CreatedAtAction(nameof(GetById), new { id = empresa.Id }, empresa);
+                var empresa = await _service.CreateAsync(new Empresa(
+                    request.Nome,
+                    request.Cnpj,
+                    usuarioNome!,
+                    usuarioId,
+                    request.Telefone,
+                    request.Tipo,
+                    request.Status));
+
+                return CreatedAtAction(nameof(GetById), new { id = empresa.Id }, empresa);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         [Authorize(Policy = "Empresa.Update")]
         public async Task<ActionResult<EmpresaDto>> Update(Guid id, UpdateEmpresaRequest request)
         {
-            var entity = new Empresa(
-                request.Nome,
-                request.Cnpj,
-                request.Responsavel,
-                request.ResponsavelId,
-                request.Telefone,
-                request.Tipo,
-                request.Status)
+            try
             {
-                Id = id
-            };
+                var entity = new Empresa(
+                    request.Nome,
+                    request.Cnpj,
+                    request.Responsavel,
+                    request.ResponsavelId,
+                    request.Telefone,
+                    request.Tipo,
+                    request.Status)
+                {
+                    Id = id
+                };
 
-            var empresa = await _service.UpdateAsync(entity);
-            if (empresa == null)
-                return NotFound(new { mensagem = "Empresa não encontrada." });
+                var empresa = await _service.UpdateAsync(entity);
+                if (empresa == null)
+                    return NotFound(new { mensagem = "Empresa não encontrada." });
 
-            return Ok(empresa);
+                return Ok(empresa);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
         [Authorize(Policy = "Empresa.Delete")]
         public async Task<ActionResult> Delete(Guid id)
         {
-            var removido = await _service.DeleteAsync(id);
-            if (!removido)
-                return NotFound(new { mensagem = "Empresa não encontrada." });
+            try
+            {
+                var removido = await _service.DeleteAsync(id);
+                if (!removido)
+                    return NotFound(new { mensagem = "Empresa não encontrada." });
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
     }
 }

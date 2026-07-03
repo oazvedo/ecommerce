@@ -22,58 +22,93 @@ namespace api.Controllers
             _service = service;
             _handler = handler;
         }
-        
+
         [HttpGet("relatorio")]
         [Authorize(Policy = "Pedido.Read")]
         public async Task<ActionResult<RelatorioPedidoResponse>> GetRelatorio([FromQuery] RelatorioPedidoRequest request)
         {
-            var relatorio = await _handler.Handle(request);
-            return Ok(relatorio);
+            try
+            {
+                var relatorio = await _handler.Handle(request);
+                return Ok(relatorio);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpGet]
         [Authorize(Policy = "Pedido.Read")]
         public async Task<ActionResult<PagedResult<PedidoDto>>> GetAll([FromQuery] PedidoFiltroRequest filtro)
         {
-            if (filtro.Page < 1) filtro.Page = 1;
-            if (filtro.PageSize < 1) filtro.PageSize = 10;
+            try
+            {
+                if (filtro.Page < 1) filtro.Page = 1;
+                if (filtro.PageSize < 1) filtro.PageSize = 10;
 
-            var pedidos = await _service.GetAllPedidos(filtro);
-            return Ok(pedidos);
+                var pedidos = await _service.GetAllPedidos(filtro);
+                return Ok(pedidos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]
         [Authorize(Policy = "Pedido.Read")]
         public async Task<ActionResult<PedidoDto>> GetById(Guid id)
         {
-            var pedido = await _service.GetPedidoById(id);
-            if (pedido == null)
-                return NotFound(new { mensagem = "Pedido não encontrado." });
+            try
+            {
+                var pedido = await _service.GetPedidoById(id);
+                if (pedido == null)
+                    return NotFound(new { mensagem = "Pedido não encontrado." });
 
-            return Ok(pedido);
+                return Ok(pedido);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpGet("usuario/{usuarioId}")]
         [Authorize(Policy = "Pedido.Read")]
         public async Task<ActionResult<PagedResult<PedidoDto>>> GetByUsuario(Guid usuarioId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
 
-            var pedidos = await _service.GetPedidosByUsuarioId(usuarioId, page, pageSize);
-            return Ok(pedidos);
+                var pedidos = await _service.GetPedidosByUsuarioId(usuarioId, page, pageSize);
+                return Ok(pedidos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpGet("meus")]
         [Authorize(Policy = "Pedido.Read")]
         public async Task<ActionResult<PagedResult<PedidoDto>>> GetMeus([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
 
-            var usuarioId = User.GetId();
-            var pedidos = await _service.GetPedidosByUsuarioId(usuarioId, page, pageSize);
-            return Ok(pedidos);
+                var usuarioId = User.GetId();
+                var pedidos = await _service.GetPedidosByUsuarioId(usuarioId, page, pageSize);
+                return Ok(pedidos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpPost]
@@ -90,16 +125,27 @@ namespace api.Controllers
             {
                 return NotFound(new { mensagem = ex.Message });
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         [Authorize(Policy = "Pedido.UpdateAdmin")]
         public async Task<IActionResult> UpdatePedido(Guid id, UpdatePedidoRequest request)
         {
-            var pedido = await _service.UpdatePedido(id, request);
-            if (pedido == null)
-                return NotFound(new {message = "Pedido não encontrado"});
-            return NoContent();
+            try
+            {
+                var pedido = await _service.UpdatePedido(id, request);
+                if (pedido == null)
+                    return NotFound(new { mensagem = "Pedido não encontrado." });
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpPatch("{id}/status")]
@@ -117,6 +163,10 @@ namespace api.Controllers
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { mensagem = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
             }
         }
 
@@ -136,17 +186,28 @@ namespace api.Controllers
             {
                 return BadRequest(new { mensagem = ex.Message });
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
         [Authorize(Policy = "Pedido.Delete")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var removido = await _service.DeleteAsync(id);
-            if (!removido)
-                return NotFound(new { mensagem = "Pedido não encontrado." });
+            try
+            {
+                var removido = await _service.DeleteAsync(id);
+                if (!removido)
+                    return NotFound(new { mensagem = "Pedido não encontrado." });
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpPost("cancelar")]
@@ -163,6 +224,10 @@ namespace api.Controllers
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { mensagem = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
             }
         }
     }

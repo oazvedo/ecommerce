@@ -11,11 +11,6 @@ namespace api.Application.DTOs.Empresa
         [JsonPropertyName("cnpj")]
         public string Cnpj { get; set; } = null!;
 
-        [JsonPropertyName("responsavel")]
-        public string Responsavel { get; set; } = null!;
-
-        [JsonPropertyName("responsavel_id")]
-        public Guid ResponsavelId { get; set; }
 
         [JsonPropertyName("telefone")]
         public string Telefone { get; set; } = null!;

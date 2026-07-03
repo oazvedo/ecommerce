@@ -23,14 +23,19 @@ namespace api.controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] AuthRequest request)
         {
-            var usuario = await _repository.GetByEmailAsync(request.Email);
-            if (usuario == null || !usuario.VerifyPassword(request.Password))
+            try
             {
-                return Unauthorized();
-            }
+                var usuario = await _repository.GetByEmailAsync(request.Email);
+                if (usuario == null || !usuario.VerifyPassword(request.Password))
+                    return Unauthorized();
 
-            var token = TokenService.GenerateToken(usuario, _jwtSettings);
-            return Ok(new { access_token = token, token_type = "Bearer" });
+                var token = TokenService.GenerateToken(usuario, _jwtSettings);
+                return Ok(new { access_token = token, token_type = "Bearer" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
     }
 }
