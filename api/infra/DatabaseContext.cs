@@ -152,10 +152,19 @@ namespace api.infra
                 entity.Property(u => u.UsuarioId)
                     .HasColumnName("usuario_id");
 
+                entity.Property(u => u.EmpresaId)
+                    .HasColumnName("empresa_id")
+                    .IsRequired(false);
+
                 entity.HasOne(u => u.Usuario)
                     .WithMany()
                     .HasForeignKey(u => u.UsuarioId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Empresa)
+                    .WithMany(e => e.Pedidos)
+                    .HasForeignKey(p => p.EmpresaId)
+                    .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasMany(u => u.Itens)
                     .WithOne()

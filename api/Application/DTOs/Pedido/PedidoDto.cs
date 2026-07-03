@@ -21,6 +21,9 @@ namespace api.Application.DTOs.Pedido
         [JsonProperty("valor_total")]
         public decimal ValorTotal { get; set; }
 
+        [JsonProperty("empresa_id")]
+        public Guid? EmpresaId { get; set; }
+
         [JsonProperty("usuario_id")]
         public Guid UsuarioId { get; set; }
 

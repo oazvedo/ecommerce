@@ -143,6 +143,10 @@ namespace api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
 
+                    b.Property<Guid?>("EmpresaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("empresa_id");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");
@@ -152,6 +156,8 @@ namespace api.Migrations
                         .HasColumnName("usuario_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId");
 
                     b.HasIndex("UsuarioId");
 
@@ -343,11 +349,18 @@ namespace api.Migrations
 
             modelBuilder.Entity("api.Domain.Pedido", b =>
                 {
+                    b.HasOne("api.Domain.Empresa", "Empresa")
+                        .WithMany("Pedidos")
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("api.domain.Usuario", "Usuario")
                         .WithMany()
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Empresa");
 
                     b.Navigation("Usuario");
                 });
@@ -386,6 +399,11 @@ namespace api.Migrations
                     b.Navigation("Permissao");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("api.Domain.Empresa", b =>
+                {
+                    b.Navigation("Pedidos");
                 });
 
             modelBuilder.Entity("api.Domain.Pedido", b =>

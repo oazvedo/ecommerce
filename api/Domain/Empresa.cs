@@ -36,6 +36,8 @@ namespace api.Domain
         [JsonPropertyName("empresa_tipo")]
         public EmpresaTipo Tipo { get; set; }
 
+        public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
+
         [SetsRequiredMembers]
         public Empresa(string nome, string cnpj, string responsavel, Guid responsavelId, string telefone, EmpresaTipo tipo, bool status = true)
         {

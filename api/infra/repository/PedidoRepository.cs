@@ -17,6 +17,7 @@ namespace api.infra.repository
         public async Task<IEnumerable<Pedido>> GetPedidosAsync()
         {
             return await _context.Pedidos
+                .Include(p => p.Empresa)
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
                 .ToListAsync();
@@ -26,6 +27,7 @@ namespace api.infra.repository
         {
             var query = _context.Pedidos
                 .AsNoTracking()
+                .Include(p => p.Empresa)
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
                 .AsQueryable();
@@ -53,6 +55,7 @@ namespace api.infra.repository
         public async Task<IEnumerable<Pedido>> GetPedidosByUsuarioIdAsync(Guid usuarioId)
         {
             return await _context.Pedidos
+                .Include(p => p.Empresa)
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
                 .Where(p => p.UsuarioId == usuarioId)
@@ -62,6 +65,7 @@ namespace api.infra.repository
         public async Task<Pedido?> GetPedidoById(Guid id)
         {
             return await _context.Pedidos
+                .Include(p => p.Empresa)
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
                 .FirstOrDefaultAsync(p => p.Id == id);

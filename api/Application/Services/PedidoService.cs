@@ -63,7 +63,7 @@ namespace api.Application.Services
 
         public async Task<PedidoDto> CreatePedido(Guid usuarioId, CreatePedidoRequest request)
         {
-            var pedido = new Pedido(usuarioId, new List<PedidoItem>(), request.contratacao);
+            var pedido = new Pedido(request.EmpresaId, usuarioId, new List<PedidoItem>(), request.contratacao);
 
             foreach (var item in request.itens)
             {
@@ -152,6 +152,7 @@ namespace api.Application.Services
          private static PedidoDto ToDto(Pedido p) => new()
         {
             Id = p.Id,
+            EmpresaId = p.EmpresaId,
             UsuarioId = p.UsuarioId,
             UsuarioNome = p.Usuario?.Nome,
             Status = p.Status,

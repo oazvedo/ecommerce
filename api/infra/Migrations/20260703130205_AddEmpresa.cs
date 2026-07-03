@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -30,11 +30,42 @@ namespace api.Migrations
                 {
                     table.PrimaryKey("PK_empresas", x => x.id);
                 });
+
+            migrationBuilder.AddColumn<Guid>(
+                name: "empresa_id",
+                table: "pedidos",
+                type: "uuid",
+                nullable: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_pedidos_empresa_id",
+                table: "pedidos",
+                column: "empresa_id");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_pedidos_empresas_empresa_id",
+                table: "pedidos",
+                column: "empresa_id",
+                principalTable: "empresas",
+                principalColumn: "id",
+                onDelete: ReferentialAction.SetNull);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_pedidos_empresas_empresa_id",
+                table: "pedidos");
+
+            migrationBuilder.DropIndex(
+                name: "IX_pedidos_empresa_id",
+                table: "pedidos");
+
+            migrationBuilder.DropColumn(
+                name: "empresa_id",
+                table: "pedidos");
+
             migrationBuilder.DropTable(
                 name: "empresas");
         }
