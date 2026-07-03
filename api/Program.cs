@@ -34,6 +34,7 @@ builder.Services.AddScoped<IPermissaoService, PermissaoService>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<IProdutoService, ProdutoService>();
 builder.Services.AddScoped<ICarteiraService, CarteiraService>();
+builder.Services.AddScoped<IEmpresaService, EmpresaService>();
 // repositories
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IPermissaoRepository, PermissaoRepository>();
@@ -41,6 +42,7 @@ builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<IRepositoryBase<Produto>, ProdutoRepository>();
 builder.Services.AddScoped<ICarteiraRepository, CarteiraRepository>();
+builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();
