@@ -30,7 +30,8 @@ namespace api.application.services
                 Email = usuario.Email,
                 CriadoEm = usuario.CriadoEm,
                 AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status.ToString()
+                Status = usuario.Status.ToString(),
+                Cargo = usuario.Cargo.ToString()
             });
         }
 

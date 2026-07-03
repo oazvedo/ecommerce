@@ -1,4 +1,6 @@
 
+using api.Domain.Enums.UsuarioEnums;
+
 namespace api.application.dtos.usuario
 {
     public class CreateUsuarioRequest

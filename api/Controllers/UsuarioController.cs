@@ -6,6 +6,7 @@ using api.domain;
 using api.domain.interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using api.Domain.Enums.UsuarioEnums;
 
 namespace api.controllers
 {
@@ -56,12 +57,12 @@ namespace api.controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "Usuario.Create")]
-        public async Task<ActionResult<UsuarioDto>> CreateUsuario(CreateUsuarioRequest request)
+        // [Authorize(Policy = "Usuario.Create")]
+        public async Task<ActionResult<UsuarioDto>> CreateUsuario(UsuarioCargo cargo,CreateUsuarioRequest request)
         {
             try
             {
-                var usuario = new Usuario(request.Nome, request.Email, request.Password);
+                var usuario = new Usuario(request.Nome, request.Email, request.Password, cargo);
                 var usuarioDto = await _service.CreateAsync(usuario);
                 return CreatedAtAction(nameof(GetUsuario), new { id = usuarioDto.Id }, usuarioDto);
             }

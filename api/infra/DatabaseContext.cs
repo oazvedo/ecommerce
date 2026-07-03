@@ -47,6 +47,10 @@ namespace api.infra
                     .HasColumnName("status")
                     .IsRequired();
 
+                entity.Property(u => u.Cargo)
+                    .HasColumnName("cargo")
+                    .IsRequired();
+
                 entity.Property(u => u.PasswordHash)
                     .HasColumnName("password_hash")
                     .IsRequired();

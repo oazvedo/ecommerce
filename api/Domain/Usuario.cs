@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using api.infra.auth;
 using api.domain.enums;
 using api.Domain;
+using api.Domain.Enums.UsuarioEnums;
 
 namespace api.domain
 {
@@ -28,6 +29,9 @@ namespace api.domain
         [JsonPropertyName("status")]
         public UsuarioStatus Status { get; set; }
 
+        [JsonPropertyName("cargo")]
+        public UsuarioCargo Cargo { get; set; }
+
         [JsonIgnore]
         public virtual Carteira? Carteira { get; set; }
 
@@ -35,7 +39,7 @@ namespace api.domain
 
         public Usuario() { }
 
-        public Usuario(string nome, string email, string password)
+        public Usuario(string nome, string email, string password, UsuarioCargo cargo)
         {
             Id = Guid.NewGuid();
             Carteira = new Carteira(Id);
@@ -44,6 +48,7 @@ namespace api.domain
             PasswordHash = PasswordHasher.HashPassword(password);
             CriadoEm = DateTime.UtcNow;
             Status = UsuarioStatus.Ativo;
+            Cargo = cargo;
         }
 
         public bool VerifyPassword(string password)
