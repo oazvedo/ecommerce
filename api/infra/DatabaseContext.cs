@@ -17,6 +17,7 @@ namespace api.infra
         public DbSet<Pedido> Pedidos {get; set;}
         public DbSet<PedidoItem> PedidoItens { get; set; }
         public DbSet<Produto> Produtos { get; set; }
+        public DbSet<Empresa> Empresas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -200,6 +201,57 @@ namespace api.infra
                     .WithMany()
                     .HasForeignKey(i => i.ProdutoId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Empresa>(entity =>
+            {
+                entity.ToTable("empresas");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .IsRequired();
+
+                entity.Property(e => e.Nome)
+                    .HasColumnName("nome")
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.Property(e => e.Cnpj)
+                    .HasColumnName("cnpj")
+                    .IsRequired()
+                    .HasMaxLength(18);
+
+                entity.Property(e => e.Responsavel)
+                    .HasColumnName("responsavel")
+                    .IsRequired()
+                    .HasMaxLength(150);
+
+                entity.Property(e => e.ResponsavelId)
+                    .HasColumnName("responsavel_id")
+                    .IsRequired();
+
+                entity.Property(e => e.Telefone)
+                    .HasColumnName("telefone")
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.Tipo)
+                    .HasColumnName("tipo")
+                    .IsRequired();
+
+                entity.Property(e => e.Status)
+                    .HasColumnName("status")
+                    .IsRequired();
+
+                entity.Property(e => e.CriadoEm)
+                    .HasColumnName("criado_em")
+                    .IsRequired();
+
+                entity.Property(e => e.AtualizadoEm)
+                    .HasColumnName("atualizado_em")
+                    .IsRequired(false);
             });
 
             modelBuilder.Entity<Produto>(entity =>
