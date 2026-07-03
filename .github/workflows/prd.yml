@@ -89,5 +89,7 @@ jobs:
 
       - name: Deploy
         run: |
-          cd ~/projetos/api
-          docker compose -f docker-compose.prod.yml up -d
+          cd ~/projetos
+          git pull
+          cd api
+          docker compose -f docker-compose.prod.yml up -d --pull always --force-recreate
