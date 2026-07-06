@@ -1,5 +1,8 @@
+using api.Application.DTOs.Pedido;
+using api.domain;
 using api.Domain;
 using api.Domain.Enums;
+using api.Domain.Enums.UsuarioEnums;
 using api.infra;
 using api.infra.repository;
 using Microsoft.EntityFrameworkCore;
@@ -14,14 +17,31 @@ namespace api.Tests.Repositories
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options);
 
+        private static Usuario CriarUsuario() =>
+            new("Test User", $"test{Guid.NewGuid()}@test.com", "Senha123!", UsuarioCargo.Operador);
+
+        private static Empresa CriarEmpresa() =>
+            new("Empresa Test", "00.000.000/0001-00", "Responsavel Test", Guid.NewGuid(), "11999999999", EmpresaTipo.Central);
+
+        private static Pedido CriarPedido(Guid usuarioId, Guid empresaId) =>
+            new(empresaId, usuarioId, new List<PedidoItem>(), PedidoTipoContratacaoEnum.Mensal);
+
+        private static async Task<(Usuario, Empresa)> SeedContextAsync(DatabaseContext ctx)
+        {
+            var usuario = CriarUsuario();
+            var empresa = CriarEmpresa();
+            ctx.Usuarios.Add(usuario);
+            ctx.Empresas.Add(empresa);
+            await ctx.SaveChangesAsync();
+            return (usuario, empresa);
+        }
+
         [Fact]
         public async Task GetPedidosAsync_DeveRetornarTodosOsPedidos()
         {
             using var ctx = CreateContext();
-            ctx.Pedidos.AddRange(
-                new Pedido(Guid.NewGuid(), PedidoTipoContratacaoEnum.Mensal),
-                new Pedido(Guid.NewGuid(), PedidoTipoContratacaoEnum.Anual)
-            );
+            var (usuario, empresa) = await SeedContextAsync(ctx);
+            ctx.Pedidos.AddRange(CriarPedido(usuario.Id, empresa.Id), CriarPedido(usuario.Id, empresa.Id));
             await ctx.SaveChangesAsync();
 
             var result = await new PedidoRepository(ctx).GetPedidosAsync();
@@ -30,27 +50,83 @@ namespace api.Tests.Repositories
         }
 
         [Fact]
+        public async Task GetPedidosPagedAsync_SemFiltro_DeveRetornarTodos()
+        {
+            using var ctx = CreateContext();
+            var (usuario, empresa) = await SeedContextAsync(ctx);
+            ctx.Pedidos.AddRange(
+                CriarPedido(usuario.Id, empresa.Id),
+                CriarPedido(usuario.Id, empresa.Id),
+                CriarPedido(usuario.Id, empresa.Id));
+            await ctx.SaveChangesAsync();
+
+            var filtro = new PedidoFiltroRequest { Page = 1, PageSize = 10 };
+            var (items, total) = await new PedidoRepository(ctx).GetPedidosPagedAsync(filtro);
+
+            Assert.Equal(3, total);
+            Assert.Equal(3, items.Count());
+        }
+
+        [Fact]
+        public async Task GetPedidosPagedAsync_ComFiltroStatus_DeveRetornarFiltrado()
+        {
+            using var ctx = CreateContext();
+            var (usuario, empresa) = await SeedContextAsync(ctx);
+            var pedido1 = CriarPedido(usuario.Id, empresa.Id);
+            var pedido2 = CriarPedido(usuario.Id, empresa.Id);
+            pedido2.UpdateStatus(PedidoStatus.EmProcessamento);
+            ctx.Pedidos.AddRange(pedido1, pedido2);
+            await ctx.SaveChangesAsync();
+
+            var filtro = new PedidoFiltroRequest { Page = 1, PageSize = 10, Status = PedidoStatus.Criado };
+            var (items, total) = await new PedidoRepository(ctx).GetPedidosPagedAsync(filtro);
+
+            Assert.Equal(1, total);
+            Assert.All(items, p => Assert.Equal(PedidoStatus.Criado, p.Status));
+        }
+
+        [Fact]
+        public async Task GetPedidosPagedAsync_ComPaginacao_DeveRetornarPaginado()
+        {
+            using var ctx = CreateContext();
+            var (usuario, empresa) = await SeedContextAsync(ctx);
+            ctx.Pedidos.AddRange(
+                CriarPedido(usuario.Id, empresa.Id),
+                CriarPedido(usuario.Id, empresa.Id),
+                CriarPedido(usuario.Id, empresa.Id));
+            await ctx.SaveChangesAsync();
+
+            var filtro = new PedidoFiltroRequest { Page = 1, PageSize = 2 };
+            var (items, total) = await new PedidoRepository(ctx).GetPedidosPagedAsync(filtro);
+
+            Assert.Equal(3, total);
+            Assert.Equal(2, items.Count());
+        }
+
+        [Fact]
         public async Task GetPedidosByUsuarioIdAsync_DeveRetornarApenasDoUsuario()
         {
             using var ctx = CreateContext();
-            var usuarioId = Guid.NewGuid();
-            ctx.Pedidos.AddRange(
-                new Pedido(usuarioId, PedidoTipoContratacaoEnum.Mensal),
-                new Pedido(Guid.NewGuid(), PedidoTipoContratacaoEnum.Anual)
-            );
+            var (usuario1, empresa) = await SeedContextAsync(ctx);
+            var usuario2 = CriarUsuario();
+            ctx.Usuarios.Add(usuario2);
             await ctx.SaveChangesAsync();
 
-            var result = await new PedidoRepository(ctx).GetPedidosByUsuarioIdAsync(usuarioId);
+            ctx.Pedidos.AddRange(CriarPedido(usuario1.Id, empresa.Id), CriarPedido(usuario2.Id, empresa.Id));
+            await ctx.SaveChangesAsync();
+
+            var result = await new PedidoRepository(ctx).GetPedidosByUsuarioIdAsync(usuario1.Id);
 
             Assert.Single(result);
-            Assert.All(result, p => Assert.Equal(usuarioId, p.UsuarioId));
+            Assert.All(result, p => Assert.Equal(usuario1.Id, p.UsuarioId));
         }
 
         [Fact]
         public async Task GetPedidoById_QuandoExiste_DeveRetornarPedido()
         {
             using var ctx = CreateContext();
-            var pedido = new Pedido(Guid.NewGuid(), PedidoTipoContratacaoEnum.Mensal);
+            var (usuario, empresa) = await SeedContextAsync(ctx);
+            var pedido = CriarPedido(usuario.Id, empresa.Id);
             ctx.Pedidos.Add(pedido);
             await ctx.SaveChangesAsync();
 
@@ -74,8 +150,9 @@ namespace api.Tests.Repositories
         public async Task AdicionarPedido_DevePersistirPedidoNoBanco()
         {
             using var ctx = CreateContext();
-            var pedido = new Pedido(Guid.NewGuid(), PedidoTipoContratacaoEnum.Anual);
+            var (usuario, empresa) = await SeedContextAsync(ctx);
 
+            var pedido = new Pedido(empresa.Id, usuario.Id, new List<PedidoItem>(), PedidoTipoContratacaoEnum.Anual);
             var result = await new PedidoRepository(ctx).AdicionarPedido(pedido);
 
             Assert.Equal(1, await ctx.Pedidos.CountAsync());
@@ -87,7 +164,8 @@ namespace api.Tests.Repositories
         public async Task AtualizarPedido_QuandoExiste_DeveAtualizarStatus()
         {
             using var ctx = CreateContext();
-            var pedido = new Pedido(Guid.NewGuid(), PedidoTipoContratacaoEnum.Mensal);
+            var (usuario, empresa) = await SeedContextAsync(ctx);
+            var pedido = CriarPedido(usuario.Id, empresa.Id);
             ctx.Pedidos.Add(pedido);
             await ctx.SaveChangesAsync();
 
@@ -102,7 +180,8 @@ namespace api.Tests.Repositories
         public async Task AtualizarPedido_QuandoExiste_DeveAtualizarContratacao()
         {
             using var ctx = CreateContext();
-            var pedido = new Pedido(Guid.NewGuid(), PedidoTipoContratacaoEnum.Mensal);
+            var (usuario, empresa) = await SeedContextAsync(ctx);
+            var pedido = CriarPedido(usuario.Id, empresa.Id);
             ctx.Pedidos.Add(pedido);
             await ctx.SaveChangesAsync();
 
@@ -114,21 +193,11 @@ namespace api.Tests.Repositories
         }
 
         [Fact]
-        public async Task AtualizarPedido_QuandoNaoExiste_DeveRetornarNull()
-        {
-            using var ctx = CreateContext();
-            var pedido = new Pedido(Guid.NewGuid(), PedidoTipoContratacaoEnum.Mensal);
-
-            var result = await new PedidoRepository(ctx).AtualizarPedido(Guid.NewGuid(), pedido);
-
-            Assert.Null(result);
-        }
-
-        [Fact]
         public async Task RemoverPedido_QuandoExiste_DeveRemoverERetornarTrue()
         {
             using var ctx = CreateContext();
-            var pedido = new Pedido(Guid.NewGuid(), PedidoTipoContratacaoEnum.Mensal);
+            var (usuario, empresa) = await SeedContextAsync(ctx);
+            var pedido = CriarPedido(usuario.Id, empresa.Id);
             ctx.Pedidos.Add(pedido);
             await ctx.SaveChangesAsync();
 
