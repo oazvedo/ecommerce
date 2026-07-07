@@ -19,5 +19,17 @@ namespace api.infra.repository
 
         public override async Task<Carteira?> GetByIdAsync(Guid id)
             => await _dbSet.Include(c => c.Usuario).FirstOrDefaultAsync(c => c.Id == id);
+
+        public override async Task<(IEnumerable<Carteira> Items, int TotalCount)> GetPagedAsync(int page, int pageSize)
+        {
+            var query = _dbSet.AsNoTracking().Include(c => c.Usuario);
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
     }
 }

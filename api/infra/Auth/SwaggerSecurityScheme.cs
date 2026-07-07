@@ -19,7 +19,7 @@ namespace api.infra.auth
                     new OpenApiSecurityRequirement
                     {
                         {
-                            new OpenApiSecuritySchemeReference("Bearer", null),
+                            new OpenApiSecuritySchemeReference("Bearer", context.Document),
                             new List<string>()
                         }
                     }

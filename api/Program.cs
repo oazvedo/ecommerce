@@ -115,14 +115,20 @@ builder.Services.AddSwaggerGen(options =>
 {
     var securityScheme = new Microsoft.OpenApi.OpenApiSecurityScheme
     {
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer", 
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.SecuritySchemeType.ApiKey,
+        In = Microsoft.OpenApi.ParameterLocation.Header,
+        Scheme = "Bearer",
         BearerFormat = "JWT",
-        Description = "JWT Authorization header using the Bearer scheme"
+        Description = "Enter 'Bearer {token}' in the value field."
     };
-    
+
     options.SchemaGeneratorOptions.UseInlineDefinitionsForEnums = true;
     options.AddSecurityDefinition("Bearer", securityScheme);
+    options.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+    {
+        { new OpenApiSecuritySchemeReference("Bearer", doc), new List<string>() }
+    });
     options.OperationFilter<SwaggerSecurityScheme>();
 });
 
