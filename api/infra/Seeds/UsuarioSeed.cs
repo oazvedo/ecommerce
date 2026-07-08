@@ -1,4 +1,5 @@
 using api.domain;
+using api.Domain.Enums.UsuarioEnums;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.infra
@@ -16,7 +17,7 @@ namespace api.infra
 
             if (adminUser == null)
             {
-                adminUser = new Usuario("Administrador", AdminEmail, AdminPassword);
+                adminUser = new Usuario("Administrador", AdminEmail, AdminPassword, UsuarioCargo.Administrador, EmpresaSeed.DefaultEmpresaId);
                 context.Usuarios.Add(adminUser);
                 await context.SaveChangesAsync();
             }

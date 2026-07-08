@@ -6,6 +6,9 @@ namespace api.Application.DTOs.Pedido
 {
     public class CreatePedidoRequest
     {
+        [JsonPropertyName("empresa_id")]
+        public Guid EmpresaId { get; set; }
+
         [JsonPropertyName("contratacao")]
         public PedidoTipoContratacaoEnum contratacao {get;set;}
 

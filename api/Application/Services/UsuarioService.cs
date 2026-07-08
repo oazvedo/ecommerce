@@ -30,7 +30,9 @@ namespace api.application.services
                 Email = usuario.Email,
                 CriadoEm = usuario.CriadoEm,
                 AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status.ToString()
+                Status = usuario.Status.ToString(),
+                Cargo = usuario.Cargo.ToString(),
+                EmpresaId = usuario.EmpresaId
             });
         }
 
@@ -114,10 +116,12 @@ namespace api.application.services
                 Email = usuario.Email,
                 CriadoEm = usuario.CriadoEm,
                 AtualizadoEm = usuario.AtualizadoEm,
-                Status = usuario.Status.ToString()
+                Status = usuario.Status.ToString(),
+                Cargo = usuario.Cargo.ToString(),
+                EmpresaId = usuario.EmpresaId
             });
         }
-    
+
         public Task<bool> UpdatePasswordAsync(Guid id, string password)
             => _repository.UpdatePasswordAsync(id, password);
 
@@ -129,7 +133,9 @@ namespace api.application.services
             Email = u.Email,
             CriadoEm = u.CriadoEm,
             AtualizadoEm = u.AtualizadoEm,
-            Status = u.Status.ToString()
+            Status = u.Status.ToString(),
+            Cargo = u.Cargo.ToString(),
+            EmpresaId = u.EmpresaId
         };
         
     }

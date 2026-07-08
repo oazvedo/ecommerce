@@ -8,6 +8,18 @@ All protected endpoints require a Bearer JWT token in the `Authorization` header
 Authorization: Bearer {token}
 ```
 
+Endpoints that return lists are paginated. Pass `?page=1&pageSize=10` as query params. Response shape:
+
+```json
+{
+  "page": 1,
+  "pageSize": 10,
+  "totalCount": 42,
+  "totalPages": 5,
+  "items": [...]
+}
+```
+
 ---
 
 ## Authentication
@@ -38,42 +50,53 @@ No authentication required.
 
 ## Usuários
 
-### GET `/usuario`
-Policy: `Usuario.Read`
+### Usuario object
 
-**Response `200`**
 ```json
-[
-  {
-    "id": "uuid",
-    "nome": "João Silva",
-    "email": "joao@email.com",
-    "status": 1,
-    "criado_em": "2024-01-15T10:00:00Z",
-    "atualizado_em": null
-  }
-]
+{
+  "id": "uuid",
+  "nome": "João Silva",
+  "email": "joao@email.com",
+  "status": "Ativo",
+  "cargo": "Operador",
+  "empresa_id": "uuid",
+  "criado_em": "2024-01-15T10:00:00Z",
+  "atualizado_em": null
+}
 ```
+
+---
+
+### GET `/usuario`
+Policy: `Usuario.Read` — paged.
+
+**Query params:** `?page=1&pageSize=10`
+
+**Response `200`** — `PagedResult<Usuario>`.
 
 ---
 
 ### GET `/usuario/{id}`
 Policy: `Usuario.Read`
 
-**Response `200`** — same shape as single item above.  
+**Response `200`** — usuario object.  
 **Response `404`**
 
 ---
 
 ### POST `/usuario`
-Policy: `Usuario.Create`
+
+No authentication required.
+
+**Query param:** `?cargo=1` (see `UsuarioCargo` enum)
 
 **Request**
 ```json
 {
   "nome": "João Silva",
   "email": "joao@email.com",
-  "password": "senha123"
+  "password": "senha123",
+  "empresaId": "uuid"
 }
 ```
 
@@ -108,7 +131,7 @@ Policy: `Usuario.PasswordUpdate`
 ```
 
 **Response `204`**  
-**Response `404`**
+**Response `404`** `{ "mensagem": "Usuário não encontrado." }`
 
 ---
 
@@ -137,36 +160,43 @@ Policy: `Usuario.Delete`
 
 ## Produtos
 
-### GET `/produto`
-Policy: `Produto.Read`
+### Produto object
 
-**Response `200`**
 ```json
-[
-  {
-    "id": "uuid",
-    "nome": "Produto A",
-    "descricao": "Descrição do produto",
-    "codigo": "COD-001",
-    "status": true,
-    "criado_em": "2024-01-15T10:00:00Z",
-    "atualizado_em": null
-  }
-]
+{
+  "id": "uuid",
+  "nome": "Produto A",
+  "descricao": "Descrição do produto",
+  "codigo": "COD-001",
+  "status": true,
+  "preco": 99.90,
+  "empresaId": "uuid",
+  "criadoEm": "2024-01-15T10:00:00Z",
+  "atualizadoEm": null
+}
 ```
+
+---
+
+### GET `/produto`
+Policy: `Produto.Read` — paged.
+
+**Query params:** `?page=1&pageSize=10`
+
+**Response `200`** — `PagedResult<Produto>`.
 
 ---
 
 ### GET `/produto/{id}`
 Policy: `Produto.Read`
 
-**Response `200`** — same shape as single item above.  
+**Response `200`** — produto object.  
 **Response `404`** `{ "mensagem": "Produto não encontrado." }`
 
 ---
 
 ### POST `/produto`
-Policy: `Produto.Create`
+Policy: `Produto.Create` — `empresa_id` is derived from the authenticated user.
 
 **Request**
 ```json
@@ -179,7 +209,8 @@ Policy: `Produto.Create`
 }
 ```
 
-**Response `201`** — created produto object.
+**Response `201`** — created produto object.  
+**Response `404`** `{ "mensagem": "Usuário não encontrado." }`
 
 ---
 
@@ -208,11 +239,14 @@ Policy: `Produto.Delete`
 ```json
 {
   "id": "uuid",
-  "usuario_id": "uuid",
+  "status": "Criado",
+  "contracacao": "Mensal",
+  "valorTotal": 299.70,
+  "empresaId": "uuid",
+  "empresaNome": "Empresa X",
+  "empresaCNPJ": "00.000.000/0001-00",
+  "usuarioId": "uuid",
   "usuario_nome": "João Silva",
-  "status": 1,
-  "contratacao": 1,
-  "valor_total": 299.70,
   "itens": [
     {
       "ProdutoId": "uuid",
@@ -222,17 +256,38 @@ Policy: `Produto.Delete`
       "Subtotal": 299.70
     }
   ],
-  "criado_em": "2024-01-15T10:00:00Z",
-  "atualizado_em": null
+  "criadoEm": "2024-01-15T10:00:00Z",
+  "atualizadoEm": null
+}
+```
+
+---
+
+### GET `/pedido/relatorio`
+Policy: `Pedido.Read` — returns sales summary for a date range.
+
+**Query params:** `?data_inicio=2024-01-01T00:00:00Z&data_fim=2024-01-31T23:59:59Z`
+
+**Response `200`**
+```json
+{
+  "produto_mais_vendido": "Produto A",
+  "total_de_vendas": 42,
+  "total_de_valor_vendas": 4199.80,
+  "maior_valor_de_venda": 299.70,
+  "cliente_mais_frequente": "João Silva",
+  "tipo_de_contratacao_mais_utilizado": "Mensal"
 }
 ```
 
 ---
 
 ### GET `/pedido`
-Policy: `Pedido.Read` — returns all pedidos.
+Policy: `Pedido.Read` — paged, with optional filters.
 
-**Response `200`** — array of pedido objects.
+**Query params:** `?page=1&pageSize=10&status=Criado&contratacao=Mensal&usuarioId=uuid`
+
+**Response `200`** — `PagedResult<Pedido>`.
 
 ---
 
@@ -244,17 +299,39 @@ Policy: `Pedido.Read`
 
 ---
 
-### GET `/pedido/usuario/{usuarioId}`
-Policy: `Pedido.Read` — returns all pedidos for a specific user.
+### GET `/pedido/empresa/{empresaId}`
+Policy: `Pedido.Read` — paged, returns all pedidos for a specific empresa.
 
-**Response `200`** — array of pedido objects.
+**Query params:** `?page=1&pageSize=10`
+
+**Response `200`** — `PagedResult<Pedido>`.
+
+---
+
+### GET `/pedido/empresa/cnpj/{cnpj}`
+Policy: `Pedido.Read` — paged, returns all pedidos for an empresa by CNPJ.
+
+**Query params:** `?page=1&pageSize=10`
+
+**Response `200`** — `PagedResult<Pedido>`.
+
+---
+
+### GET `/pedido/usuario/{usuarioId}`
+Policy: `Pedido.Read` — paged.
+
+**Query params:** `?page=1&pageSize=10`
+
+**Response `200`** — `PagedResult<Pedido>`.
 
 ---
 
 ### GET `/pedido/meus`
-Policy: `Pedido.Read` — returns pedidos of the authenticated user (extraído do token).
+Policy: `Pedido.Read` — paged, returns pedidos of the authenticated user (extraído do token).
 
-**Response `200`** — array of pedido objects.
+**Query params:** `?page=1&pageSize=10`
+
+**Response `200`** — `PagedResult<Pedido>`.
 
 ---
 
@@ -264,7 +341,8 @@ Policy: `Pedido.Create` — cria o pedido para o usuário autenticado.
 **Request**
 ```json
 {
-  "contratacao": 1,
+  "empresa_id": "uuid",
+  "contratacao": "Mensal",
   "itens": [
     {
       "produto_id": "uuid",
@@ -285,8 +363,8 @@ Policy: `Pedido.UpdateAdmin` — full update (status, contratacao, and items).
 **Request**
 ```json
 {
-  "status": 2,
-  "contratacao": 2,
+  "status": "EmProcessamento",
+  "contratacao": "Anual",
   "itens": [
     {
       "produto_id": "uuid",
@@ -297,7 +375,7 @@ Policy: `Pedido.UpdateAdmin` — full update (status, contratacao, and items).
 ```
 
 **Response `204`**  
-**Response `404`** `{ "message": "Pedido não encontrado" }`
+**Response `404`** `{ "mensagem": "Pedido não encontrado." }`
 
 ---
 
@@ -307,7 +385,7 @@ Policy: `Pedido.Update` — updates only the status.
 **Request**
 ```json
 {
-  "status": 2
+  "status": "EmProcessamento"
 }
 ```
 
@@ -323,12 +401,24 @@ Policy: `Pedido.Update` — updates only the contratacao type.
 **Request**
 ```json
 {
-  "contratacao": 2
+  "contratacao": "Anual"
 }
 ```
 
 **Response `200`** — updated pedido object.  
 **Response `400`** `{ "mensagem": "Pedidos cancelados não podem ter atualização de status" }`  
+**Response `404`** `{ "mensagem": "Pedido não encontrado." }`
+
+---
+
+### POST `/pedido/cancelar`
+
+No authentication required.
+
+**Query param:** `?id=uuid`
+
+**Response `200`** — updated pedido object.  
+**Response `400`** `{ "mensagem": "..." }`  
 **Response `404`** `{ "mensagem": "Pedido não encontrado." }`
 
 ---
@@ -350,6 +440,7 @@ Policy: `Pedido.Delete`
   "id": "uuid",
   "usuario_id": "uuid",
   "usuario_nome": "João Silva",
+  "usuario_email": "joao@email.com",
   "saldo": 150.00,
   "criado_em": "2024-01-15T10:00:00Z",
   "atualizado_em": null
@@ -359,9 +450,19 @@ Policy: `Pedido.Delete`
 ---
 
 ### GET `/carteira`
-Policy: `Carteira.Read` — returns all carteiras.
+Policy: `Carteira.Read` — paged.
 
-**Response `200`** — array of carteira objects.
+**Query params:** `?page=1&pageSize=10`
+
+**Response `200`** — `PagedResult<Carteira>`.
+
+---
+
+### GET `/carteira/minha-carteira`
+Policy: `Carteira.Read` — returns the carteira of the authenticated user.
+
+**Response `200`** — carteira object.  
+**Response `404`**
 
 ---
 
@@ -379,25 +480,179 @@ Policy: `Carteira.Update` — updates the saldo.
 **Request**
 ```json
 {
-  "saldo": 200.00
+  "saldo": 200.00,
+  "cupom": "DESCONTO10"
 }
 ```
 
+`cupom` is optional.
+
 **Response `200`** — updated carteira object.  
-**Response `404`** `{ "message": "Carteira {id} não encontrada" }`
+**Response `404`** `{ "mensagem": "..." }`
+
+---
+
+### PUT `/carteira/update-my-balance`
+Policy: `Carteira.Update` — updates the saldo of the authenticated user's carteira.
+
+**Request** — same shape as `PUT /carteira/{id}`.
+
+**Response `200`** — updated carteira object.  
+**Response `404`** `{ "mensagem": "..." }`
+
+---
+
+## Empresa
+
+### Empresa object
+
+```json
+{
+  "empresa_id": "uuid",
+  "empresa_nome": "Empresa X",
+  "empresa_cnpj": "00.000.000/0001-00",
+  "empresa_responsavel": "João Silva",
+  "empresa_responsavel_id": "uuid",
+  "empresa_telefone": "(11) 99999-9999",
+  "empresa_tipo": "Central",
+  "empresa_status": true,
+  "empresa_criado_em": "2024-01-15T10:00:00Z",
+  "empresa_atualizado_em": null
+}
+```
+
+---
+
+### GET `/empresa`
+Policy: `Empresa.Read` — paged.
+
+**Query params:** `?page=1&pageSize=10`
+
+**Response `200`** — `PagedResult<Empresa>`.
+
+---
+
+### GET `/empresa/{id}`
+Policy: `Empresa.Read`
+
+**Response `200`** — empresa object.  
+**Response `404`** `{ "mensagem": "Empresa não encontrada." }`
+
+---
+
+### POST `/empresa`
+Policy: `Empresa.Create` — `responsavel` e `responsavel_id` são derivados do usuário autenticado.
+
+**Request**
+```json
+{
+  "nome": "Empresa X",
+  "cnpj": "00.000.000/0001-00",
+  "telefone": "(11) 99999-9999",
+  "tipo": "Central",
+  "status": true
+}
+```
+
+**Response `201`** — created empresa object.
+
+---
+
+### PUT `/empresa/{id}`
+Policy: `Empresa.Update`
+
+**Request**
+```json
+{
+  "nome": "Empresa X Atualizada",
+  "cnpj": "00.000.000/0001-00",
+  "responsavel": "Maria Silva",
+  "responsavel_id": "uuid",
+  "telefone": "(11) 88888-8888",
+  "tipo": "Filial",
+  "status": true
+}
+```
+
+**Response `200`** — updated empresa object.  
+**Response `404`** `{ "mensagem": "Empresa não encontrada." }`
+
+---
+
+### DELETE `/empresa/{id}`
+Policy: `Empresa.Delete`
+
+**Response `204`**  
+**Response `404`** `{ "mensagem": "Empresa não encontrada." }`
+
+---
+
+## Permissões
+
+### Permissao object
+
+```json
+{
+  "id": "uuid",
+  "nome": "Pedido.Read",
+  "descricao": "Permite leitura de pedidos"
+}
+```
+
+---
+
+### GET `/permissao`
+Policy: `Permissao.Read` — paged.
+
+**Query params:** `?page=1&pageSize=10`
+
+**Response `200`** — `PagedResult<Permissao>`.
+
+---
+
+### GET `/permissao/usuario/{usuarioId}`
+Policy: `Permissao.Read` — returns all permissions assigned to a user.
+
+**Response `200`** — array of permissao objects.
+
+---
+
+### POST `/permissao/usuario/{usuarioId}/{permissaoId}`
+Policy: `Permissao.Assign` — assigns a permission to a user.
+
+**Response `204`**  
+**Response `409`** `{ "mensagem": "Usuário ou permissão não encontrado, ou permissão já atribuída." }`
+
+---
+
+### DELETE `/permissao/usuario/{usuarioId}/{permissaoId}`
+Policy: `Permissao.Remove` — removes a specific permission from a user.
+
+**Response `204`**  
+**Response `404`** `{ "mensagem": "Vínculo entre usuário e permissão não encontrado." }`
+
+---
+
+### DELETE `/permissao/usuario/{usuarioId}`
+Policy: `Permissao.RemoveAll` — removes all permissions from a user.
+
+**Response `204`**  
+**Response `404`** `{ "mensagem": "Usuário não encontrado ou sem permissões atribuídas." }`
 
 ---
 
 ## Enums
 
+Enum values are serialized as strings.
+
 ### PedidoStatus
-| Value | Name | Description |
-|-------|------|-------------|
-| `0` | `Cancelado` | Pedido cancelado — não permite mais atualizações |
-| `1` | `Criado` | Estado inicial |
-| `2` | `EmProcessamento` | Em processamento |
-| `4` | `Suporte` | Aguardando suporte |
-| `5` | `Finalizado` | Concluído |
+| Value | Name |
+|-------|------|
+| `0` | `Cancelado` — não permite mais atualizações |
+| `1` | `Criado` |
+| `2` | `EmProcessamento` |
+| `4` | `Suporte` |
+| `5` | `Finalizado` |
 
 ### PedidoTipoContratacao
 | Value | Name |
@@ -410,3 +665,18 @@ Policy: `Carteira.Update` — updates the saldo.
 |-------|------|
 | `0` | `Desativado` |
 | `1` | `Ativo` |
+
+### UsuarioCargo
+| Value | Name |
+|-------|------|
+| `1` | `Operador` |
+| `2` | `Administrador` |
+| `3` | `Gerente` |
+| `4` | `Diretor` |
+
+### EmpresaTipo
+| Value | Name |
+|-------|------|
+| `1` | `Central` |
+| `2` | `Parceira` |
+| `3` | `Filial` |

@@ -58,6 +58,72 @@ namespace api.Migrations
                     b.ToTable("carteiras", (string)null);
                 });
 
+            modelBuilder.Entity("api.Domain.Empresa", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasJsonPropertyName("empresa_id");
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("atualizado_em")
+                        .HasJsonPropertyName("empresa_atualizado_em");
+
+                    b.Property<string>("Cnpj")
+                        .IsRequired()
+                        .HasMaxLength(18)
+                        .HasColumnType("character varying(18)")
+                        .HasColumnName("cnpj")
+                        .HasJsonPropertyName("empresa_cnpj");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em")
+                        .HasJsonPropertyName("empresa_criado_em");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome")
+                        .HasJsonPropertyName("empresa_nome");
+
+                    b.Property<string>("Responsavel")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("responsavel")
+                        .HasJsonPropertyName("empresa_responsavel");
+
+                    b.Property<Guid>("ResponsavelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("responsavel_id")
+                        .HasJsonPropertyName("empresa_responsavel_id");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("boolean")
+                        .HasColumnName("status")
+                        .HasJsonPropertyName("empresa_status");
+
+                    b.Property<string>("Telefone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("telefone")
+                        .HasJsonPropertyName("empresa_telefone");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer")
+                        .HasColumnName("tipo")
+                        .HasJsonPropertyName("empresa_tipo");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("empresas", (string)null);
+                });
+
             modelBuilder.Entity("api.Domain.Pedido", b =>
                 {
                     b.Property<Guid>("Id")
@@ -77,6 +143,10 @@ namespace api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em");
 
+                    b.Property<Guid?>("EmpresaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("empresa_id");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");
@@ -87,9 +157,51 @@ namespace api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EmpresaId");
+
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("pedidos", (string)null);
+                });
+
+            modelBuilder.Entity("api.Domain.PedidoHistorico", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("EmpresaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("empresa_id");
+
+                    b.Property<DateTime>("OcorridoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocorrido_em");
+
+                    b.Property<Guid>("PedidoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pedido_id");
+
+                    b.Property<int?>("StatusAnterior")
+                        .HasColumnType("integer")
+                        .HasColumnName("status_anterior");
+
+                    b.Property<int>("StatusNovo")
+                        .HasColumnType("integer")
+                        .HasColumnName("status_novo");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<decimal>("ValorTotal")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("valor_total");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("pedido_historicos", (string)null);
                 });
 
             modelBuilder.Entity("api.Domain.PedidoItem", b =>
@@ -154,6 +266,11 @@ namespace api.Migrations
                         .HasColumnName("descricao")
                         .HasJsonPropertyName("descricao");
 
+                    b.Property<Guid>("EmpresaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("empresa_id")
+                        .HasJsonPropertyName("empresa_id");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasColumnType("text")
@@ -170,7 +287,48 @@ namespace api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EmpresaId");
+
                     b.ToTable("produtos", (string)null);
+                });
+
+            modelBuilder.Entity("api.Domain.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("Revogado")
+                        .HasColumnType("boolean")
+                        .HasColumnName("revogado");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("token");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("refresh_tokens", (string)null);
                 });
 
             modelBuilder.Entity("api.domain.Permissao", b =>
@@ -210,6 +368,11 @@ namespace api.Migrations
                         .HasColumnName("atualizado_em")
                         .HasJsonPropertyName("atualizado_em");
 
+                    b.Property<int>("Cargo")
+                        .HasColumnType("integer")
+                        .HasColumnName("cargo")
+                        .HasJsonPropertyName("cargo");
+
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em")
@@ -221,6 +384,11 @@ namespace api.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("email")
                         .HasJsonPropertyName("email");
+
+                    b.Property<Guid>("EmpresaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("empresa_id")
+                        .HasJsonPropertyName("empresa_id");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -240,6 +408,8 @@ namespace api.Migrations
                         .HasJsonPropertyName("status");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId");
 
                     b.ToTable("usuarios", (string)null);
                 });
@@ -272,11 +442,18 @@ namespace api.Migrations
 
             modelBuilder.Entity("api.Domain.Pedido", b =>
                 {
+                    b.HasOne("api.Domain.Empresa", "Empresa")
+                        .WithMany("Pedidos")
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("api.domain.Usuario", "Usuario")
                         .WithMany()
                         .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Empresa");
 
                     b.Navigation("Usuario");
                 });
@@ -298,6 +475,39 @@ namespace api.Migrations
                     b.Navigation("Produto");
                 });
 
+            modelBuilder.Entity("api.Domain.Produto", b =>
+                {
+                    b.HasOne("api.Domain.Empresa", "Empresa")
+                        .WithMany("Produtos")
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empresa");
+                });
+
+            modelBuilder.Entity("api.Domain.RefreshToken", b =>
+                {
+                    b.HasOne("api.domain.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("api.domain.Usuario", b =>
+                {
+                    b.HasOne("api.Domain.Empresa", "Empresa")
+                        .WithMany("Usuarios")
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Empresa");
+                });
+
             modelBuilder.Entity("api.domain.UsuarioPermissao", b =>
                 {
                     b.HasOne("api.domain.Permissao", "Permissao")
@@ -315,6 +525,15 @@ namespace api.Migrations
                     b.Navigation("Permissao");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("api.Domain.Empresa", b =>
+                {
+                    b.Navigation("Pedidos");
+
+                    b.Navigation("Produtos");
+
+                    b.Navigation("Usuarios");
                 });
 
             modelBuilder.Entity("api.Domain.Pedido", b =>

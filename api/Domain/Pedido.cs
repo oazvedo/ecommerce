@@ -12,6 +12,12 @@ namespace api.Domain
         [JsonProperty("status")]
         public PedidoStatus Status { get; set; }
 
+        [JsonProperty("empresa_id")]
+        public Guid? EmpresaId { get; set; }
+
+        [JsonProperty("empresa")]
+        public Empresa? Empresa { get; set; }
+
         [JsonProperty("contratacao")]
         public PedidoTipoContratacaoEnum Contracacao { get; set; }
 
@@ -35,9 +41,10 @@ namespace api.Domain
 
         public Pedido() { }
 
-        public Pedido(Guid usuarioId, List<PedidoItem> itens, PedidoTipoContratacaoEnum contratacao)
+        public Pedido(Guid empresa, Guid usuarioId, List<PedidoItem> itens, PedidoTipoContratacaoEnum contratacao)
         {
             Id = Guid.NewGuid();
+            EmpresaId = empresa;
             Status = PedidoStatus.Criado;
             Contracacao = contratacao;
             UsuarioId = usuarioId;

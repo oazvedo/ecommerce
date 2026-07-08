@@ -1,12 +1,18 @@
 using api.application.services;
 using api.application.services.interfaces;
+using api.Application.Jobs;
 using api.Application.Services;
 using api.Application.Services.Interfaces;
 using api.infra.auth;
 using api.infra;
+using api.infra.Hangfire;
 using api.infra.repository;
 using api.domain.interfaces;
 using api.Domain.Interfaces;
+using api.Application.Consumers;
+using Hangfire;
+using Hangfire.PostgreSql;
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +23,18 @@ using api.Domain;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using api.Application.Handlers.Relatorio;
 using api.Mcp;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((ctx, services, config) => config
+    .ReadFrom.Configuration(ctx.Configuration)
+    .ReadFrom.Services(services)
+    .WriteTo.Console());
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -34,6 +50,7 @@ builder.Services.AddScoped<IPermissaoService, PermissaoService>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<IProdutoService, ProdutoService>();
 builder.Services.AddScoped<ICarteiraService, CarteiraService>();
+builder.Services.AddScoped<IEmpresaService, EmpresaService>();
 // repositories
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IPermissaoRepository, PermissaoRepository>();
@@ -41,9 +58,50 @@ builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<IRepositoryBase<Produto>, ProdutoRepository>();
 builder.Services.AddScoped<ICarteiraRepository, CarteiraRepository>();
+builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();
+
+// masstransit + rabbitmq
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<PedidoTrackingConsumer>();
+
+    x.UsingRabbitMq((ctx, cfg) =>
+    {
+        cfg.Host(builder.Configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
+        {
+            h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
+            h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
+        });
+
+        cfg.ReceiveEndpoint("pedido-tracking", e =>
+        {
+            e.ConfigureConsumer<PedidoTrackingConsumer>(ctx);
+        });
+    });
+});
+
+// hangfire
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options =>
+        options.UseNpgsqlConnection(connectionString)));
+
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 2;
+    options.Queues = ["default"];
+});
+
+builder.Services.AddScoped<PedidoProgressaoJob>();
+builder.Services.AddScoped<PedidoProgressaoRecurringJob>();
+builder.Services.AddScoped<CarteiraReembolsoJob>();
+builder.Services.AddScoped<PedidosPresosJob>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -63,19 +121,6 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!))
     };
     
-    options.Events = new JwtBearerEvents
-    {
-        OnAuthenticationFailed = context =>
-        {
-            Console.WriteLine($"Token validation failed: {context.Exception.Message}");
-            return Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {
-            Console.WriteLine("Token validated successfully");
-            return Task.CompletedTask;
-        }
-    };
 });
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
@@ -103,20 +148,30 @@ builder.Services.AddMcpServer()
     .WithHttpTransport()
     .WithTools<UsuarioMcpTools>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     var securityScheme = new Microsoft.OpenApi.OpenApiSecurityScheme
     {
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer", 
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.SecuritySchemeType.ApiKey,
+        In = Microsoft.OpenApi.ParameterLocation.Header,
+        Scheme = "Bearer",
         BearerFormat = "JWT",
-        Description = "JWT Authorization header using the Bearer scheme"
+        Description = "Enter 'Bearer {token}' in the value field."
     };
-    
-    
+
+    options.SchemaGeneratorOptions.UseInlineDefinitionsForEnums = true;
     options.AddSecurityDefinition("Bearer", securityScheme);
+    options.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+    {
+        { new OpenApiSecuritySchemeReference("Bearer", doc), new List<string>() }
+    });
     options.OperationFilter<SwaggerSecurityScheme>();
 });
 
@@ -127,9 +182,26 @@ using (var scope = app.Services.CreateScope())
     await DatabaseSeeder.SeedAsync(scope.ServiceProvider);
 }
 
-// swager ui 
+// swager ui
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = [new HangfireAuthorizationFilter(app.Environment)]
+});
+
+RecurringJob.AddOrUpdate<PedidoProgressaoRecurringJob>(
+    "pedido-progressao",
+    job => job.Executar(),
+    "* * * * *",
+    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
+RecurringJob.AddOrUpdate<PedidosPresosJob>(
+    "pedidos-presos-diario",
+    job => job.Executar(),
+    Cron.Daily(0, 0),
+    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 
 app.UseHttpsRedirection();
 app.UseCors();

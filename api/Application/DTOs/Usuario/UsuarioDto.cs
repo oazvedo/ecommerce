@@ -26,5 +26,11 @@ namespace api.Application.DTOs.Usuario
 
         [JsonPropertyName("status")]
         public string? Status { get; set; }
+
+        [JsonPropertyName("cargo")]
+        public string? Cargo { get; set; }
+
+        [JsonPropertyName("empresa_id")]
+        public Guid EmpresaId { get; set; }
     }
 }

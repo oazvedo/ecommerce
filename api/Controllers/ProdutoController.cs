@@ -1,6 +1,8 @@
+using api.application.services.interfaces;
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Produto;
 using api.Application.Services.Interfaces;
+using api.Application.Utils;
 using api.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,62 +14,108 @@ namespace api.Controllers
     public class ProdutoController : ControllerBase
     {
         private readonly IProdutoService _service;
-        public ProdutoController(IProdutoService service)
+        private readonly IUsuarioService _usuarioService;
+
+        public ProdutoController(IProdutoService service, IUsuarioService usuarioService)
         {
             _service = service;
+            _usuarioService = usuarioService;
         }
 
         [HttpGet]
         [Authorize(Policy = "Produto.Read")]
         public async Task<ActionResult<PagedResult<ProdutoDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
 
-            var produtos = await _service.GetPagedAsync(page, pageSize);
-            return Ok(produtos);
+                var produtos = await _service.GetPagedAsync(page, pageSize);
+                return Ok(produtos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]
         [Authorize(Policy = "Produto.Read")]
-        public async Task <ActionResult<ProdutoDto?>> GetProdutoById(Guid id)
+        public async Task<ActionResult<ProdutoDto?>> GetProdutoById(Guid id)
         {
-            var produto = await _service.GetByIdAsync(id);
-            if (produto == null)
-                return NotFound(new { mensagem = "Produto não encontrado." });
+            try
+            {
+                var produto = await _service.GetByIdAsync(id);
+                if (produto == null)
+                    return NotFound(new { mensagem = "Produto não encontrado." });
 
-            return Ok(produto);
+                return Ok(produto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpPost]
         [Authorize(Policy = "Produto.Create")]
         public async Task<ActionResult<ProdutoDto>> Create(CreateProdutoRequest request)
         {
-            var produto = await _service.CreateAsync(new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, request.Status));
-            return CreatedAtAction(nameof(GetProdutoById), new { id = produto.Id }, produto);
+            try
+            {
+                var usuario = await _usuarioService.GetByIdAsync(User.GetId());
+                if (usuario == null)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
+
+                var produto = await _service.CreateAsync(new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, usuario.EmpresaId, request.Status));
+                return CreatedAtAction(nameof(GetProdutoById), new { id = produto.Id }, produto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         [Authorize(Policy = "Produto.Update")]
         public async Task<ActionResult<ProdutoDto>> Update(Guid id, UpdateProdutoRequest request)
         {
-            var entity = new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, request.Status);
-            var produto = await _service.UpdateAsync(entity);
-            if (produto == null)
-                return NotFound(new { mensagem = "Produto não encontrado." });
+            try
+            {
+                var existente = await _service.GetByIdAsync(id);
+                if (existente == null)
+                    return NotFound(new { mensagem = "Produto não encontrado." });
 
-            return Ok(produto);
+                var entity = new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, existente.EmpresaId, request.Status);
+                var produto = await _service.UpdateAsync(entity);
+                if (produto == null)
+                    return NotFound(new { mensagem = "Produto não encontrado." });
+
+                return Ok(produto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
-        
+
         [HttpDelete("{id}")]
         [Authorize(Policy = "Produto.Delete")]
         public async Task<ActionResult<ProdutoDto>> Delete(Guid id)
         {
-            var removido = await _service.DeleteAsync(id);
-            if (!removido)
-                return NotFound(new { mensagem = "Produto não encontrado." });
+            try
+            {
+                var removido = await _service.DeleteAsync(id);
+                if (!removido)
+                    return NotFound(new { mensagem = "Produto não encontrado." });
 
-            return NoContent();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
         }
     }
 }

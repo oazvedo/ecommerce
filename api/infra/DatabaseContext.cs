@@ -17,6 +17,9 @@ namespace api.infra
         public DbSet<Pedido> Pedidos {get; set;}
         public DbSet<PedidoItem> PedidoItens { get; set; }
         public DbSet<Produto> Produtos { get; set; }
+        public DbSet<Empresa> Empresas { get; set; }
+        public DbSet<PedidoHistorico> PedidoHistoricos { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -46,6 +49,10 @@ namespace api.infra
                     .HasColumnName("status")
                     .IsRequired();
 
+                entity.Property(u => u.Cargo)
+                    .HasColumnName("cargo")
+                    .IsRequired();
+
                 entity.Property(u => u.PasswordHash)
                     .HasColumnName("password_hash")
                     .IsRequired();
@@ -62,6 +69,15 @@ namespace api.infra
                     .WithOne(c => c.Usuario)
                     .HasForeignKey<Carteira>(c => c.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(u => u.EmpresaId)
+                    .HasColumnName("empresa_id")
+                    .IsRequired();
+
+                entity.HasOne(u => u.Empresa)
+                    .WithMany(e => e.Usuarios)
+                    .HasForeignKey(u => u.EmpresaId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Carteira>(entity =>
@@ -147,10 +163,19 @@ namespace api.infra
                 entity.Property(u => u.UsuarioId)
                     .HasColumnName("usuario_id");
 
+                entity.Property(u => u.EmpresaId)
+                    .HasColumnName("empresa_id")
+                    .IsRequired(false);
+
                 entity.HasOne(u => u.Usuario)
                     .WithMany()
                     .HasForeignKey(u => u.UsuarioId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.Empresa)
+                    .WithMany(e => e.Pedidos)
+                    .HasForeignKey(p => p.EmpresaId)
+                    .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasMany(u => u.Itens)
                     .WithOne()
@@ -202,6 +227,94 @@ namespace api.infra
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            modelBuilder.Entity<Empresa>(entity =>
+            {
+                entity.ToTable("empresas");
+
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .IsRequired();
+
+                entity.Property(e => e.Nome)
+                    .HasColumnName("nome")
+                    .IsRequired()
+                    .HasMaxLength(200);
+
+                entity.Property(e => e.Cnpj)
+                    .HasColumnName("cnpj")
+                    .IsRequired()
+                    .HasMaxLength(18);
+
+                entity.Property(e => e.Responsavel)
+                    .HasColumnName("responsavel")
+                    .IsRequired()
+                    .HasMaxLength(150);
+
+                entity.Property(e => e.ResponsavelId)
+                    .HasColumnName("responsavel_id")
+                    .IsRequired();
+
+                entity.Property(e => e.Telefone)
+                    .HasColumnName("telefone")
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.Tipo)
+                    .HasColumnName("tipo")
+                    .IsRequired();
+
+                entity.Property(e => e.Status)
+                    .HasColumnName("status")
+                    .IsRequired();
+
+                entity.Property(e => e.CriadoEm)
+                    .HasColumnName("criado_em")
+                    .IsRequired();
+
+                entity.Property(e => e.AtualizadoEm)
+                    .HasColumnName("atualizado_em")
+                    .IsRequired(false);
+            });
+
+            modelBuilder.Entity<PedidoHistorico>(entity =>
+            {
+                entity.ToTable("pedido_historicos");
+
+                entity.HasKey(h => h.Id);
+
+                entity.Property(h => h.Id).HasColumnName("id").IsRequired();
+                entity.Property(h => h.PedidoId).HasColumnName("pedido_id").IsRequired();
+                entity.Property(h => h.UsuarioId).HasColumnName("usuario_id").IsRequired();
+                entity.Property(h => h.EmpresaId).HasColumnName("empresa_id").IsRequired(false);
+                entity.Property(h => h.StatusAnterior).HasColumnName("status_anterior").IsRequired(false);
+                entity.Property(h => h.StatusNovo).HasColumnName("status_novo").IsRequired();
+                entity.Property(h => h.ValorTotal).HasColumnName("valor_total").HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(h => h.OcorridoEm).HasColumnName("ocorrido_em").IsRequired();
+            });
+
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("refresh_tokens");
+
+                entity.HasKey(rt => rt.Id);
+
+                entity.Property(rt => rt.Id).HasColumnName("id").IsRequired();
+                entity.Property(rt => rt.UsuarioId).HasColumnName("usuario_id").IsRequired();
+                entity.Property(rt => rt.Token).HasColumnName("token").IsRequired().HasMaxLength(256);
+                entity.Property(rt => rt.ExpiresAt).HasColumnName("expires_at").IsRequired();
+                entity.Property(rt => rt.Revogado).HasColumnName("revogado").IsRequired();
+                entity.Property(rt => rt.CriadoEm).HasColumnName("criado_em").IsRequired();
+
+                entity.HasOne(rt => rt.Usuario)
+                    .WithMany()
+                    .HasForeignKey(rt => rt.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(rt => rt.Token).IsUnique();
+            });
+
             modelBuilder.Entity<Produto>(entity =>
             {
                 entity.ToTable("produtos");
@@ -235,6 +348,15 @@ namespace api.infra
                 entity.Property(u => u.AtualizadoEm)
                     .HasColumnName("atualizado_em")
                     .IsRequired(false);
+
+                entity.Property(u => u.EmpresaId)
+                    .HasColumnName("empresa_id")
+                    .IsRequired();
+
+                entity.HasOne(u => u.Empresa)
+                    .WithMany(e => e.Produtos)
+                    .HasForeignKey(u => u.EmpresaId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

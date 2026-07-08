@@ -11,6 +11,8 @@ namespace api.Application.DTOs.Carteira
         public Guid UsuarioId { get; set; }
         [JsonPropertyName("usuario_nome")]
         public string? UsuarioNome {get;set;}
+        [JsonPropertyName("usuario_email")]
+        public string? UsuarioEmail {get;set;}
 
         [JsonPropertyName("saldo")]
         public double Saldo { get; set; } = 0;

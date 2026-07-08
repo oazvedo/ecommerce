@@ -1,0 +1,135 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using api.Application.DTOs.Common;
+using api.Application.DTOs.Produto;
+using api.Application.Services.Interfaces;
+using api.Controllers;
+using api.Domain;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using Xunit;
+
+namespace api.Tests.Controllers
+{
+    public class ProdutoControllerTests
+    {
+        private readonly Mock<IProdutoService> _serviceMock;
+        private readonly ProdutoController _controller;
+
+        public ProdutoControllerTests()
+        {
+            _serviceMock = new Mock<IProdutoService>();
+            _controller = new ProdutoController(_serviceMock.Object);
+        }
+
+        // GET /api/produto
+
+        [Fact]
+        public async Task GetAll_DeveRetornar200ComListaPaginada()
+        {
+            var paged = new PagedResult<ProdutoDto>
+            {
+                Page = 1,
+                PageSize = 10,
+                TotalCount = 1,
+                Items = new List<ProdutoDto> { new() { Id = Guid.NewGuid() } }
+            };
+            _serviceMock.Setup(s => s.GetPagedAsync(1, 10)).ReturnsAsync(paged);
+
+            var result = await _controller.GetAll(1, 10);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var value = Assert.IsType<PagedResult<ProdutoDto>>(ok.Value);
+            Assert.Single(value.Items);
+        }
+
+        // GET /api/produto/{id}
+
+        [Fact]
+        public async Task GetById_QuandoExiste_DeveRetornar200()
+        {
+            var dto = new ProdutoDto { Id = Guid.NewGuid() };
+            _serviceMock.Setup(s => s.GetByIdAsync(dto.Id)).ReturnsAsync(dto);
+
+            var result = await _controller.GetProdutoById(dto.Id);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            Assert.Equal(dto, ok.Value);
+        }
+
+        [Fact]
+        public async Task GetById_QuandoNaoExiste_DeveRetornar404()
+        {
+            _serviceMock.Setup(s => s.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((ProdutoDto?)null);
+
+            var result = await _controller.GetProdutoById(Guid.NewGuid());
+
+            Assert.IsType<NotFoundObjectResult>(result.Result);
+        }
+
+        // POST /api/produto
+
+        [Fact]
+        public async Task Create_DeveRetornar201ComProdutoCriado()
+        {
+            var dto = new ProdutoDto { Id = Guid.NewGuid(), Nome = "Produto A", Descricao = "Desc", Codigo = "COD001", Preco = 10m };
+            var request = new CreateProdutoRequest { Nome = "Produto A", Descricao = "Desc", Preco = 10m, Codigo = "COD001", Status = true };
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<Produto>())).ReturnsAsync(dto);
+
+            var result = await _controller.Create(request);
+
+            var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+            Assert.Equal(dto, created.Value);
+        }
+
+        // PUT /api/produto/{id}
+
+        [Fact]
+        public async Task Update_QuandoExiste_DeveRetornar200()
+        {
+            var dto = new ProdutoDto { Id = Guid.NewGuid() };
+            var request = new UpdateProdutoRequest { Nome = "Produto A", Descricao = "Desc", Preco = 10m, Codigo = "COD001", Status = true };
+            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<Produto>())).ReturnsAsync(dto);
+
+            var result = await _controller.Update(dto.Id, request);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            Assert.Equal(dto, ok.Value);
+        }
+
+        [Fact]
+        public async Task Update_QuandoNaoExiste_DeveRetornar404()
+        {
+            var request = new UpdateProdutoRequest { Nome = "Produto A", Descricao = "Desc", Preco = 10m, Codigo = "COD001", Status = true };
+            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<Produto>())).ReturnsAsync((ProdutoDto?)null);
+
+            var result = await _controller.Update(Guid.NewGuid(), request);
+
+            Assert.IsType<NotFoundObjectResult>(result.Result);
+        }
+
+        // DELETE /api/produto/{id}
+
+        [Fact]
+        public async Task Delete_QuandoExiste_DeveRetornar204()
+        {
+            var id = Guid.NewGuid();
+            _serviceMock.Setup(s => s.DeleteAsync(id)).ReturnsAsync(true);
+
+            var result = await _controller.Delete(id);
+
+            Assert.IsType<NoContentResult>(result.Result);
+        }
+
+        [Fact]
+        public async Task Delete_QuandoNaoExiste_DeveRetornar404()
+        {
+            _serviceMock.Setup(s => s.DeleteAsync(It.IsAny<Guid>())).ReturnsAsync(false);
+
+            var result = await _controller.Delete(Guid.NewGuid());
+
+            Assert.IsType<NotFoundObjectResult>(result.Result);
+        }
+    }
+}

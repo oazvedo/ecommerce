@@ -10,5 +10,6 @@ namespace api.Application.DTOs.Produto
         public decimal Preco { get; set; }
         public DateTime CriadoEm { get; set; }
         public DateTime? AtualizadoEm { get; set; }
+        public Guid EmpresaId { get; set; }
     }
 }

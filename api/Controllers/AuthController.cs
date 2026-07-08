@@ -1,6 +1,8 @@
 using api.application.dtos;
 using api.infra.auth;
 using api.domain.interfaces;
+using api.Domain;
+using api.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,12 +12,17 @@ namespace api.controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly IUsuarioRepository _repository;
+        private readonly IUsuarioRepository _usuarioRepository;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
         private readonly JwtSettings _jwtSettings;
 
-        public AuthController(IUsuarioRepository repository, JwtSettings jwtSettings)
+        public AuthController(
+            IUsuarioRepository usuarioRepository,
+            IRefreshTokenRepository refreshTokenRepository,
+            JwtSettings jwtSettings)
         {
-            _repository = repository;
+            _usuarioRepository = usuarioRepository;
+            _refreshTokenRepository = refreshTokenRepository;
             _jwtSettings = jwtSettings;
         }
 
@@ -23,14 +30,62 @@ namespace api.controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] AuthRequest request)
         {
-            var usuario = await _repository.GetByEmailAsync(request.Email);
-            if (usuario == null || !usuario.VerifyPassword(request.Password))
+            try
             {
-                return Unauthorized();
-            }
+                var usuario = await _usuarioRepository.GetByEmailAsync(request.Email);
+                if (usuario == null || !usuario.VerifyPassword(request.Password))
+                    return Unauthorized();
 
-            var token = TokenService.GenerateToken(usuario, _jwtSettings);
-            return Ok(new { access_token = token, token_type = "Bearer" });
+                var accessToken = TokenService.GenerateToken(usuario, _jwtSettings);
+                var refreshTokenValue = TokenService.GenerateRefreshToken();
+
+                var refreshToken = new RefreshToken(usuario.Id, refreshTokenValue, _jwtSettings.RefreshTokenExpiryDays);
+                await _refreshTokenRepository.CreateAsync(refreshToken);
+
+                return Ok(new
+                {
+                    access_token = accessToken,
+                    refresh_token = refreshTokenValue,
+                    token_type = "Bearer"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpPost("refresh")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
+        {
+            var refreshToken = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
+
+            if (refreshToken is null || !refreshToken.EstaValido())
+                return Unauthorized(new { mensagem = "Refresh token inválido ou expirado." });
+
+            await _refreshTokenRepository.RevogarAsync(request.RefreshToken);
+
+            var novoRefreshTokenValue = TokenService.GenerateRefreshToken();
+            var novoRefreshToken = new RefreshToken(refreshToken.UsuarioId, novoRefreshTokenValue, _jwtSettings.RefreshTokenExpiryDays);
+            await _refreshTokenRepository.CreateAsync(novoRefreshToken);
+
+            var accessToken = TokenService.GenerateToken(refreshToken.Usuario!, _jwtSettings);
+
+            return Ok(new
+            {
+                access_token = accessToken,
+                refresh_token = novoRefreshTokenValue,
+                token_type = "Bearer"
+            });
+        }
+
+        [HttpPost("revoke")]
+        [Authorize]
+        public async Task<IActionResult> Revoke([FromBody] RefreshTokenRequest request)
+        {
+            await _refreshTokenRepository.RevogarAsync(request.RefreshToken);
+            return NoContent();
         }
     }
 }

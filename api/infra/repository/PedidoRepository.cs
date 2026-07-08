@@ -17,6 +17,7 @@ namespace api.infra.repository
         public async Task<IEnumerable<Pedido>> GetPedidosAsync()
         {
             return await _context.Pedidos
+                .Include(p => p.Empresa)
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
                 .ToListAsync();
@@ -26,6 +27,7 @@ namespace api.infra.repository
         {
             var query = _context.Pedidos
                 .AsNoTracking()
+                .Include(p => p.Empresa)
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
                 .AsQueryable();
@@ -53,15 +55,48 @@ namespace api.infra.repository
         public async Task<IEnumerable<Pedido>> GetPedidosByUsuarioIdAsync(Guid usuarioId)
         {
             return await _context.Pedidos
+                .Include(p => p.Empresa)
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
                 .Where(p => p.UsuarioId == usuarioId)
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Pedido>> GetPedidosByPeriodoAsync(DateTime dataInicio, DateTime dataFim)
+        {
+            return await _context.Pedidos
+                .Include(p => p.Empresa)
+                .Include(p => p.Usuario)
+                .Include(p => p.Itens).ThenInclude(i => i.Produto)
+                .Where(p => p.CriadoEm >= dataInicio && p.CriadoEm <= dataFim)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Pedido>> GetPedidosByEmpresaIdAsync(Guid empresaId)
+        {
+            return await _context.Pedidos
+                .Include(p => p.Empresa)
+                .Include(p => p.Usuario)
+                .Include(p => p.Itens).ThenInclude(i => i.Produto)
+                .Where(p => p.EmpresaId == empresaId)
+                .ToListAsync();
+        }
+
+
+        public async Task<IEnumerable<Pedido>> GetByEmpresaCNPJ(string cnpj)
+        {
+            return await _context.Pedidos
+                .Include(p => p.Empresa)
+                .Include(p => p.Usuario)
+                .Include(p => p.Itens).ThenInclude(i => i.Produto)
+                .Where(p => p.Empresa.Cnpj == cnpj)
+                .ToListAsync();
+        }
+
         public async Task<Pedido?> GetPedidoById(Guid id)
         {
             return await _context.Pedidos
+                .Include(p => p.Empresa)
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
                 .FirstOrDefaultAsync(p => p.Id == id);
