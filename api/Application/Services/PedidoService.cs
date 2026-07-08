@@ -1,11 +1,15 @@
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Pedido;
+using api.Application.Events;
+using api.Application.Jobs;
 using api.Application.Services.Interfaces;
 using api.domain;
 using api.domain.interfaces;
 using api.Domain;
 using api.Domain.Enums;
 using api.Domain.Interfaces;
+using Hangfire;
+using MassTransit;
 
 namespace api.Application.Services
 {
@@ -14,12 +18,24 @@ namespace api.Application.Services
         private readonly IPedidoRepository _repository;
         private readonly IRepositoryBase<Produto> _produtoRepository;
         private readonly ICarteiraRepository _carteiraService;
+        private readonly IBackgroundJobClient _backgroundJobs;
+        private readonly IPublishEndpoint _publishEndpoint;
+        private readonly ILogger<PedidoService> _logger;
 
-        public PedidoService(IPedidoRepository repository, IRepositoryBase<Produto> produtoRepository, ICarteiraRepository carteiraService)
+        public PedidoService(
+            IPedidoRepository repository,
+            IRepositoryBase<Produto> produtoRepository,
+            ICarteiraRepository carteiraService,
+            IBackgroundJobClient backgroundJobs,
+            IPublishEndpoint publishEndpoint,
+            ILogger<PedidoService> logger)
         {
             _repository = repository;
             _produtoRepository = produtoRepository;
             _carteiraService = carteiraService;
+            _backgroundJobs = backgroundJobs;
+            _publishEndpoint = publishEndpoint;
+            _logger = logger;
         }
 
         public async Task<PagedResult<PedidoDto>> GetAllPedidos(PedidoFiltroRequest filtro)
@@ -112,6 +128,22 @@ namespace api.Application.Services
                 carteiraUsuario.UpdateBalance(-(double)pedido.ValorTotal);
                 await _carteiraService.UpdateAsync(carteiraUsuario);
                 await _repository.AdicionarPedido(pedido);
+
+                var eventoCriado = new PedidoStatusAlteradoEvent
+                {
+                    PedidoId = pedido.Id,
+                    UsuarioId = usuarioId,
+                    EmpresaId = pedido.EmpresaId,
+                    StatusAnterior = null,
+                    StatusNovo = PedidoStatus.Criado,
+                    ValorTotal = pedido.ValorTotal,
+                    OcorridoEm = DateTime.UtcNow
+                };
+                await _publishEndpoint.Publish(eventoCriado);
+                _logger.LogInformation(
+                    "[RabbitMQ] Publicado PedidoStatusAlteradoEvent — pedido {PedidoId} criado, valor R$ {ValorTotal:F2}.",
+                    pedido.Id, pedido.ValorTotal);
+
                 return ToDto(pedido);
             }
 
@@ -122,8 +154,28 @@ namespace api.Application.Services
             var pedido = await _repository.GetPedidoById(id);
             if (pedido == null) return null;
 
+            var statusAnterior = pedido.Status;
             pedido.UpdateStatus(newStatus);
             var updated = await _repository.AtualizarPedido(id, pedido);
+
+            if (updated != null)
+            {
+                var eventoStatus = new PedidoStatusAlteradoEvent
+                {
+                    PedidoId = id,
+                    UsuarioId = pedido.UsuarioId,
+                    EmpresaId = pedido.EmpresaId,
+                    StatusAnterior = statusAnterior,
+                    StatusNovo = newStatus,
+                    ValorTotal = pedido.ValorTotal,
+                    OcorridoEm = DateTime.UtcNow
+                };
+                await _publishEndpoint.Publish(eventoStatus);
+                _logger.LogInformation(
+                    "[RabbitMQ] Publicado PedidoStatusAlteradoEvent — pedido {PedidoId}: {StatusAnterior} → {StatusNovo}.",
+                    id, statusAnterior, newStatus);
+            }
+
             return updated == null ? null : ToDto(updated);
         }
 
@@ -174,8 +226,37 @@ namespace api.Application.Services
             var pedido = await _repository.GetPedidoById(pedidoId);
             if (pedido == null) throw new KeyNotFoundException("Pedido não encontrado.");
 
+            var valorTotal = (double)pedido.ValorTotal;
+            var usuarioId = pedido.UsuarioId;
+            var statusAnterior = pedido.Status;
+
             pedido.CancelarPedido();
             var updated = await _repository.AtualizarPedido(pedidoId, pedido);
+
+            if (updated != null)
+            {
+                if (valorTotal > 0)
+                {
+                    _backgroundJobs.Enqueue<CarteiraReembolsoJob>(
+                        job => job.Executar(usuarioId, valorTotal));
+                }
+
+                var eventoCancelado = new PedidoStatusAlteradoEvent
+                {
+                    PedidoId = pedidoId,
+                    UsuarioId = usuarioId,
+                    EmpresaId = pedido.EmpresaId,
+                    StatusAnterior = statusAnterior,
+                    StatusNovo = PedidoStatus.Cancelado,
+                    ValorTotal = pedido.ValorTotal,
+                    OcorridoEm = DateTime.UtcNow
+                };
+                await _publishEndpoint.Publish(eventoCancelado);
+                _logger.LogInformation(
+                    "[RabbitMQ] Publicado PedidoStatusAlteradoEvent — pedido {PedidoId} cancelado, reembolso de R$ {ValorTotal:F2} enfileirado.",
+                    pedidoId, pedido.ValorTotal);
+            }
+
             return updated == null ? null : ToDto(updated);
         }
 

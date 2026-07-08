@@ -1,12 +1,18 @@
 using api.application.services;
 using api.application.services.interfaces;
+using api.Application.Jobs;
 using api.Application.Services;
 using api.Application.Services.Interfaces;
 using api.infra.auth;
 using api.infra;
+using api.infra.Hangfire;
 using api.infra.repository;
 using api.domain.interfaces;
 using api.Domain.Interfaces;
+using api.Application.Consumers;
+using Hangfire;
+using Hangfire.PostgreSql;
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +52,45 @@ builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();
+
+// masstransit + rabbitmq
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<PedidoTrackingConsumer>();
+
+    x.UsingRabbitMq((ctx, cfg) =>
+    {
+        cfg.Host(builder.Configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
+        {
+            h.Username(builder.Configuration["RabbitMQ:Username"] ?? "guest");
+            h.Password(builder.Configuration["RabbitMQ:Password"] ?? "guest");
+        });
+
+        cfg.ReceiveEndpoint("pedido-tracking", e =>
+        {
+            e.ConfigureConsumer<PedidoTrackingConsumer>(ctx);
+        });
+    });
+});
+
+// hangfire
+builder.Services.AddHangfire(config => config
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options =>
+        options.UseNpgsqlConnection(connectionString)));
+
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 2;
+    options.Queues = ["default"];
+});
+
+builder.Services.AddScoped<PedidoProgressaoJob>();
+builder.Services.AddScoped<PedidoProgressaoRecurringJob>();
+builder.Services.AddScoped<CarteiraReembolsoJob>();
+builder.Services.AddScoped<PedidosPresosJob>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -139,9 +184,26 @@ using (var scope = app.Services.CreateScope())
     await DatabaseSeeder.SeedAsync(scope.ServiceProvider);
 }
 
-// swager ui 
+// swager ui
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = [new HangfireAuthorizationFilter(app.Environment)]
+});
+
+RecurringJob.AddOrUpdate<PedidoProgressaoRecurringJob>(
+    "pedido-progressao",
+    job => job.Executar(),
+    "* * * * *",
+    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
+RecurringJob.AddOrUpdate<PedidosPresosJob>(
+    "pedidos-presos-diario",
+    job => job.Executar(),
+    Cron.Daily(0, 0),
+    new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 
 app.UseHttpsRedirection();
 app.UseCors();
