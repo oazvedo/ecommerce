@@ -18,6 +18,7 @@ namespace api.infra
         public DbSet<PedidoItem> PedidoItens { get; set; }
         public DbSet<Produto> Produtos { get; set; }
         public DbSet<Empresa> Empresas { get; set; }
+        public DbSet<PedidoHistorico> PedidoHistoricos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -274,6 +275,22 @@ namespace api.infra
                 entity.Property(e => e.AtualizadoEm)
                     .HasColumnName("atualizado_em")
                     .IsRequired(false);
+            });
+
+            modelBuilder.Entity<PedidoHistorico>(entity =>
+            {
+                entity.ToTable("pedido_historicos");
+
+                entity.HasKey(h => h.Id);
+
+                entity.Property(h => h.Id).HasColumnName("id").IsRequired();
+                entity.Property(h => h.PedidoId).HasColumnName("pedido_id").IsRequired();
+                entity.Property(h => h.UsuarioId).HasColumnName("usuario_id").IsRequired();
+                entity.Property(h => h.EmpresaId).HasColumnName("empresa_id").IsRequired(false);
+                entity.Property(h => h.StatusAnterior).HasColumnName("status_anterior").IsRequired(false);
+                entity.Property(h => h.StatusNovo).HasColumnName("status_novo").IsRequired();
+                entity.Property(h => h.ValorTotal).HasColumnName("valor_total").HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(h => h.OcorridoEm).HasColumnName("ocorrido_em").IsRequired();
             });
 
             modelBuilder.Entity<Produto>(entity =>
