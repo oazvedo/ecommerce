@@ -33,12 +33,35 @@ namespace api.Application.Services
             return ToDto(updated!);
         }
 
-        public async Task<CarteiraDto> GetMyCarteiraAsync(Guid usuarioId)
+
+        public async Task <CarteiraDto> UpdateMyBalanceAsync(Guid usuarioId, UpdateCarteiraRequest request)
+        {
+            var carteira = await GetMyCarteiraAsync(usuarioId)
+                ?? throw new KeyNotFoundException($"Carteira para usuário {usuarioId} não encontrada");
+            
+                  if (string.IsNullOrWhiteSpace(request.Cupom))
+            
+
+            if (string.IsNullOrWhiteSpace(request.Cupom))
+            {
+                carteira.UpdateBalance(request.Saldo);
+            }
+            else
+            {
+                carteira.ApplyBonus(request.Saldo, request.Cupom);
+            }
+
+            var updated = await _repository.UpdateAsync(carteira);
+            return ToDto(updated!);
+
+        }
+        public async Task<Carteira> GetMyCarteiraAsync(Guid usuarioId)
         {
             var carteira = await _carteiraRepository.GetCarteiraByUsuarioId(usuarioId)
                 ?? throw new KeyNotFoundException($"Carteira para usuário {usuarioId} não encontrada");
-            return ToDto(carteira);
+            return carteira;
         }
+
 
         protected override CarteiraDto ToDto(Carteira entity) => new()
         {

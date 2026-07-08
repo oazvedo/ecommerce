@@ -83,5 +83,25 @@ namespace api.Controllers
                 return StatusCode(500, new { mensagem = ex.Message });
             }
         }
+        
+        [HttpPut("update-my-balance")]
+        [Authorize(Policy = "Carteira.Update")]
+        public async Task<IActionResult> UpdateMyBalance([FromBody] UpdateCarteiraRequest request)
+        {
+            try
+            {
+                var usuarioId = User.GetId();
+                var updated = await _service.UpdateMyBalanceAsync(usuarioId, request);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensagem = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
     }
 }
