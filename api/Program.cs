@@ -23,8 +23,18 @@ using api.Domain;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using api.Application.Handlers.Relatorio;
 using api.Mcp;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((ctx, services, config) => config
+    .ReadFrom.Configuration(ctx.Configuration)
+    .ReadFrom.Services(services)
+    .WriteTo.Console());
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
@@ -49,6 +59,7 @@ builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<IRepositoryBase<Produto>, ProdutoRepository>();
 builder.Services.AddScoped<ICarteiraRepository, CarteiraRepository>();
 builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();
@@ -110,19 +121,6 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!))
     };
     
-    options.Events = new JwtBearerEvents
-    {
-        OnAuthenticationFailed = context =>
-        {
-            Console.WriteLine($"Token validation failed: {context.Exception.Message}");
-            return Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {
-            Console.WriteLine("Token validated successfully");
-            return Task.CompletedTask;
-        }
-    };
 });
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;

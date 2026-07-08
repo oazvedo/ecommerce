@@ -19,6 +19,7 @@ namespace api.infra
         public DbSet<Produto> Produtos { get; set; }
         public DbSet<Empresa> Empresas { get; set; }
         public DbSet<PedidoHistorico> PedidoHistoricos { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -291,6 +292,27 @@ namespace api.infra
                 entity.Property(h => h.StatusNovo).HasColumnName("status_novo").IsRequired();
                 entity.Property(h => h.ValorTotal).HasColumnName("valor_total").HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(h => h.OcorridoEm).HasColumnName("ocorrido_em").IsRequired();
+            });
+
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("refresh_tokens");
+
+                entity.HasKey(rt => rt.Id);
+
+                entity.Property(rt => rt.Id).HasColumnName("id").IsRequired();
+                entity.Property(rt => rt.UsuarioId).HasColumnName("usuario_id").IsRequired();
+                entity.Property(rt => rt.Token).HasColumnName("token").IsRequired().HasMaxLength(256);
+                entity.Property(rt => rt.ExpiresAt).HasColumnName("expires_at").IsRequired();
+                entity.Property(rt => rt.Revogado).HasColumnName("revogado").IsRequired();
+                entity.Property(rt => rt.CriadoEm).HasColumnName("criado_em").IsRequired();
+
+                entity.HasOne(rt => rt.Usuario)
+                    .WithMany()
+                    .HasForeignKey(rt => rt.UsuarioId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(rt => rt.Token).IsUnique();
             });
 
             modelBuilder.Entity<Produto>(entity =>
