@@ -62,7 +62,7 @@ namespace api.controllers
         {
             try
             {
-                var usuario = new Usuario(request.Nome, request.Email, request.Password, cargo);
+                var usuario = new Usuario(request.Nome, request.Email, request.Password, cargo, request.EmpresaId);
                 var usuarioDto = await _service.CreateAsync(usuario);
                 return CreatedAtAction(nameof(GetUsuario), new { id = usuarioDto.Id }, usuarioDto);
             }

@@ -1,6 +1,8 @@
+using api.application.services.interfaces;
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Produto;
 using api.Application.Services.Interfaces;
+using api.Application.Utils;
 using api.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +14,12 @@ namespace api.Controllers
     public class ProdutoController : ControllerBase
     {
         private readonly IProdutoService _service;
+        private readonly IUsuarioService _usuarioService;
 
-        public ProdutoController(IProdutoService service)
+        public ProdutoController(IProdutoService service, IUsuarioService usuarioService)
         {
             _service = service;
+            _usuarioService = usuarioService;
         }
 
         [HttpGet]
@@ -60,7 +64,11 @@ namespace api.Controllers
         {
             try
             {
-                var produto = await _service.CreateAsync(new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, request.Status));
+                var usuario = await _usuarioService.GetByIdAsync(User.GetId());
+                if (usuario == null)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
+
+                var produto = await _service.CreateAsync(new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, usuario.EmpresaId, request.Status));
                 return CreatedAtAction(nameof(GetProdutoById), new { id = produto.Id }, produto);
             }
             catch (Exception ex)
@@ -75,7 +83,11 @@ namespace api.Controllers
         {
             try
             {
-                var entity = new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, request.Status);
+                var existente = await _service.GetByIdAsync(id);
+                if (existente == null)
+                    return NotFound(new { mensagem = "Produto não encontrado." });
+
+                var entity = new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, existente.EmpresaId, request.Status);
                 var produto = await _service.UpdateAsync(entity);
                 if (produto == null)
                     return NotFound(new { mensagem = "Produto não encontrado." });

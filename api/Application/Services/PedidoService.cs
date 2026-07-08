@@ -76,6 +76,21 @@ namespace api.Application.Services
             };
         }
 
+        public async Task<PagedResult<PedidoDto>> GetByEmpresaCNPJ(string cnpj, int page, int pageSize)
+        {
+            var pedidos = await _repository.GetByEmpresaCNPJ(cnpj);
+            var totalCount = pedidos.Count();
+            var items = pedidos.Skip((page - 1) * pageSize).Take(pageSize);
+
+            return new PagedResult<PedidoDto>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Items = items.Select(ToDto)
+            };
+        }
+
         public async Task<PedidoDto> CreatePedido(Guid usuarioId, CreatePedidoRequest request)
         {
             var pedido = new Pedido(request.EmpresaId, usuarioId, new List<PedidoItem>(), request.contratacao);
@@ -168,6 +183,8 @@ namespace api.Application.Services
         {
             Id = p.Id,
             EmpresaId = p.EmpresaId,
+            EmpresaNome = p.Empresa?.Nome,
+            EmpresaCNPJ = p.Empresa?.Cnpj,
             UsuarioId = p.UsuarioId,
             UsuarioNome = p.Usuario?.Nome,
             Status = p.Status,

@@ -19,7 +19,8 @@ namespace api.Application.Services
             Status = entity.Status,
             Preco = entity.Preco,
             CriadoEm = entity.CriadoEm,
-            AtualizadoEm = entity.AtualizadoEm
+            AtualizadoEm = entity.AtualizadoEm,
+            EmpresaId = entity.EmpresaId
         };
     }
 }

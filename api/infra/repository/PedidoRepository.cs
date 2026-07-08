@@ -82,6 +82,17 @@ namespace api.infra.repository
                 .ToListAsync();
         }
 
+
+        public async Task<IEnumerable<Pedido>> GetByEmpresaCNPJ(string cnpj)
+        {
+            return await _context.Pedidos
+                .Include(p => p.Empresa)
+                .Include(p => p.Usuario)
+                .Include(p => p.Itens).ThenInclude(i => i.Produto)
+                .Where(p => p.Empresa.Cnpj == cnpj)
+                .ToListAsync();
+        }
+
         public async Task<Pedido?> GetPedidoById(Guid id)
         {
             return await _context.Pedidos

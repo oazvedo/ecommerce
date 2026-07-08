@@ -14,5 +14,6 @@ namespace api.Domain.Interfaces
         Task<bool> RemoverPedido(Guid id);
         Task<IEnumerable<Pedido>> GetPedidosByPeriodoAsync(DateTime dataInicio, DateTime dataFim);
         Task<IEnumerable<Pedido>> GetPedidosByEmpresaIdAsync(Guid empresaId);
+        Task<IEnumerable<Pedido>> GetByEmpresaCNPJ(string cnpj);
     }
 }

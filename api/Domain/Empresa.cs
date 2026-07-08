@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using api.domain;
 using api.Domain.Enums;
 
 namespace api.Domain
@@ -37,6 +38,10 @@ namespace api.Domain
         public EmpresaTipo Tipo { get; set; }
 
         public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
+
+        public ICollection<Produto> Produtos { get; set; } = new List<Produto>();
+
+        public ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
 
         [SetsRequiredMembers]
         public Empresa(string nome, string cnpj, string responsavel, Guid responsavelId, string telefone, EmpresaTipo tipo, bool status = true)

@@ -67,6 +67,15 @@ namespace api.infra
                     .WithOne(c => c.Usuario)
                     .HasForeignKey<Carteira>(c => c.UsuarioId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(u => u.EmpresaId)
+                    .HasColumnName("empresa_id")
+                    .IsRequired();
+
+                entity.HasOne(u => u.Empresa)
+                    .WithMany(e => e.Usuarios)
+                    .HasForeignKey(u => u.EmpresaId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Carteira>(entity =>
@@ -300,6 +309,15 @@ namespace api.infra
                 entity.Property(u => u.AtualizadoEm)
                     .HasColumnName("atualizado_em")
                     .IsRequired(false);
+
+                entity.Property(u => u.EmpresaId)
+                    .HasColumnName("empresa_id")
+                    .IsRequired();
+
+                entity.HasOne(u => u.Empresa)
+                    .WithMany(e => e.Produtos)
+                    .HasForeignKey(u => u.EmpresaId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

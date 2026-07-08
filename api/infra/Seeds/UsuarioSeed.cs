@@ -17,7 +17,7 @@ namespace api.infra
 
             if (adminUser == null)
             {
-                adminUser = new Usuario("Administrador", AdminEmail, AdminPassword, UsuarioCargo.Administrador);
+                adminUser = new Usuario("Administrador", AdminEmail, AdminPassword, UsuarioCargo.Administrador, EmpresaSeed.DefaultEmpresaId);
                 context.Usuarios.Add(adminUser);
                 await context.SaveChangesAsync();
             }

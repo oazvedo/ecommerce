@@ -24,6 +24,11 @@ namespace api.Application.DTOs.Pedido
         [JsonProperty("empresa_id")]
         public Guid? EmpresaId { get; set; }
 
+        [JsonProperty("empresa_nome")]
+        public string? EmpresaNome { get; set; }
+
+        [JsonProperty("empresa_cnpj")]
+        public string? EmpresaCNPJ { get; set; }
         [JsonProperty("usuario_id")]
         public Guid UsuarioId { get; set; }
 

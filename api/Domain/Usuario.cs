@@ -37,9 +37,15 @@ namespace api.domain
 
         public ICollection<UsuarioPermissao> UsuarioPermissoes { get; set; } = new List<UsuarioPermissao>();
 
+        [JsonPropertyName("empresa_id")]
+        public Guid EmpresaId { get; set; }
+
+        [JsonIgnore]
+        public Empresa? Empresa { get; set; }
+
         public Usuario() { }
 
-        public Usuario(string nome, string email, string password, UsuarioCargo cargo)
+        public Usuario(string nome, string email, string password, UsuarioCargo cargo, Guid empresaId)
         {
             Id = Guid.NewGuid();
             Carteira = new Carteira(Id);
@@ -49,6 +55,7 @@ namespace api.domain
             CriadoEm = DateTime.UtcNow;
             Status = UsuarioStatus.Ativo;
             Cargo = cargo;
+            EmpresaId = empresaId;
         }
 
         public bool VerifyPassword(string password)

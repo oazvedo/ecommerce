@@ -18,5 +18,6 @@ namespace api.Application.Services.Interfaces
         Task<IEnumerable<PedidoDto>> GetPedidosByPeriodo(DateTime dataInicio, DateTime dataFim);
         Task<PedidoDto?> CancelarPedido(Guid pedidoId);
         Task<PagedResult<PedidoDto>> GetPedidosByEmpresaId(Guid empresaId, int page, int pageSize);
+        Task<PagedResult<PedidoDto>> GetByEmpresaCNPJ(string cnpj, int page, int pageSize);
     }
 }

@@ -30,25 +30,32 @@ namespace api.Domain
         [JsonPropertyName("atualizado_em")]
         public DateTime? AtualizadoEm { get; set; }
 
+        [JsonPropertyName("empresa_id")]
+        public Guid EmpresaId { get; set; }
+
+        public Empresa? Empresa { get; set; }
+
         [SetsRequiredMembers]
-        public Produto(string nome, string descricao, decimal preco, string codigo, bool status = true)
+        public Produto(string nome, string descricao, decimal preco, string codigo, Guid empresaId, bool status = true)
         {
             Id = Guid.NewGuid();
             Nome = nome;
             Descricao = descricao;
             Preco = preco;
             Codigo = codigo;
+            EmpresaId = empresaId;
             Status = status;
             CriadoEm = DateTime.UtcNow;
             ValidarProduto();
         }
 
-        public Produto(string nome, string descricao, string codigo, bool status)
+        public Produto(string nome, string descricao, string codigo, Guid empresaId, bool status)
         {
             Id = Guid.NewGuid();
             Nome = nome;
             Descricao = descricao;
             Codigo = codigo;
+            EmpresaId = empresaId;
             Status = status;
             CriadoEm = DateTime.UtcNow;
         }
