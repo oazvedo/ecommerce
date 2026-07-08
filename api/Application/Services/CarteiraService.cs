@@ -45,6 +45,7 @@ namespace api.Application.Services
             Id = entity.Id,
             UsuarioId = entity.UsuarioId,
             UsuarioNome = entity.Usuario.Nome,
+            UsuarioEmail = entity.Usuario.Email,
             Saldo = entity.Saldo,
             CriadoEm = entity.CriadoEm,
             AtualizadoEm = entity.AtualizadoEm

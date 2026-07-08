@@ -62,6 +62,26 @@ namespace api.infra.repository
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Pedido>> GetPedidosByPeriodoAsync(DateTime dataInicio, DateTime dataFim)
+        {
+            return await _context.Pedidos
+                .Include(p => p.Empresa)
+                .Include(p => p.Usuario)
+                .Include(p => p.Itens).ThenInclude(i => i.Produto)
+                .Where(p => p.CriadoEm >= dataInicio && p.CriadoEm <= dataFim)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Pedido>> GetPedidosByEmpresaIdAsync(Guid empresaId)
+        {
+            return await _context.Pedidos
+                .Include(p => p.Empresa)
+                .Include(p => p.Usuario)
+                .Include(p => p.Itens).ThenInclude(i => i.Produto)
+                .Where(p => p.EmpresaId == empresaId)
+                .ToListAsync();
+        }
+
         public async Task<Pedido?> GetPedidoById(Guid id)
         {
             return await _context.Pedidos

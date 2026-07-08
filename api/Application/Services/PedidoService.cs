@@ -61,6 +61,21 @@ namespace api.Application.Services
             return pedido == null ? null : ToDto(pedido);
         }
 
+        public async Task<PagedResult<PedidoDto>> GetPedidosByEmpresaId(Guid empresaId, int page, int pageSize)
+        {
+            var pedidos = await _repository.GetPedidosByEmpresaIdAsync(empresaId);
+            var totalCount = pedidos.Count();
+            var items = pedidos.Skip((page - 1) * pageSize).Take(pageSize);
+
+            return new PagedResult<PedidoDto>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Items = items.Select(ToDto)
+            };
+        }
+
         public async Task<PedidoDto> CreatePedido(Guid usuarioId, CreatePedidoRequest request)
         {
             var pedido = new Pedido(request.EmpresaId, usuarioId, new List<PedidoItem>(), request.contratacao);

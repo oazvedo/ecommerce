@@ -17,5 +17,6 @@ namespace api.Application.Services.Interfaces
         Task<bool> DeleteAsync(Guid id);
         Task<IEnumerable<PedidoDto>> GetPedidosByPeriodo(DateTime dataInicio, DateTime dataFim);
         Task<PedidoDto?> CancelarPedido(Guid pedidoId);
+        Task<PagedResult<PedidoDto>> GetPedidosByEmpresaId(Guid empresaId, int page, int pageSize);
     }
 }
