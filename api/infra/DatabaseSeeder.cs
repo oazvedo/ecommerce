@@ -10,8 +10,6 @@ namespace api.infra
             using var scope = serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
 
-            await context.Database.MigrateAsync();
-
             await PermissaoSeed.SeedAsync(context);
             await EmpresaSeed.SeedAsync(context);
             await UsuarioSeed.SeedAsync(context);

@@ -28,7 +28,7 @@ namespace api.Migrations
             migrationBuilder.Sql(@"
                 INSERT INTO empresas (id, nome, cnpj, responsavel, responsavel_id, telefone, tipo, status, criado_em)
                 SELECT '00000000-0000-0000-0000-000000000001', 'Venturus', '123456789', 'Usuario Responsavel', '00000000-0000-0000-0000-000000000000', '', 1, true, now()
-                WHERE NOT EXISTS (SELECT 1 FROM empresas WHERE id = '00000000-0000-0000-0<PASSWORD>-<PASSWORD>');
+                WHERE NOT EXISTS (SELECT 1 FROM empresas WHERE id = '00000000-0000-0000-0000-000000000001');
             ");
 
             migrationBuilder.CreateIndex(
