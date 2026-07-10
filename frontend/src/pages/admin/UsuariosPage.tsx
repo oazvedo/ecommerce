@@ -44,6 +44,7 @@ export function UsuariosPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState({ nome: '', email: '', password: '', empresaId: '', cargo: 'Operador' })
   const [saving, setSaving] = useState(false)
+  const selectedEmpresa = empresas.find(e => e.empresa_id === form.empresaId)
 
   function load() {
     setLoading(true)
@@ -154,7 +155,11 @@ export function UsuariosPage() {
             <div className="space-y-1.5">
               <Label>Empresa</Label>
               <Select value={form.empresaId} onValueChange={v => setForm(f => ({ ...f, empresaId: v ?? f.empresaId }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <span className={cn('min-w-0 flex-1 truncate text-left', !selectedEmpresa && 'text-muted-foreground')}>
+                    {selectedEmpresa?.empresa_nome ?? 'Selecione...'}
+                  </span>
+                </SelectTrigger>
                 <SelectContent>
                   {empresas.map(e => (
                     <SelectItem key={e.empresa_id} value={e.empresa_id}>{e.empresa_nome}</SelectItem>

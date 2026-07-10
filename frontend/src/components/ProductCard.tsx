@@ -1,4 +1,4 @@
-import { ShoppingCart, Star } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Package, ShoppingCart, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -42,14 +42,29 @@ export function ProductCard({ produto }: { produto: Produto }) {
   }
 
   return (
-    <Card className="group flex flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 hover:-translate-y-0.5 bg-card">
+    <Card className="group flex h-full flex-col overflow-hidden rounded-xl border border-border/70 bg-card p-0 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10">
       <Link to={`/produto/${produto.id}`} className="block">
         <div
-          className={`relative flex h-36 items-center justify-center bg-gradient-to-br ${cardGradient(produto.nome)} overflow-hidden`}
+          className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-gradient-to-br ${cardGradient(produto.nome)}`}
         >
-          <span className="text-5xl font-black text-white/20 select-none tracking-tight uppercase">
+          <div className="absolute inset-x-3 top-3 flex items-center justify-between">
+            <Badge className="border-white/20 bg-white/90 px-2 py-0 text-[10px] font-bold text-zinc-800 hover:bg-white">
+              {produto.status ? 'Disponível' : 'Pausado'}
+            </Badge>
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 text-white backdrop-blur">
+              <Package className="h-3.5 w-3.5" />
+            </span>
+          </div>
+
+          <span className="text-6xl font-black uppercase tracking-tight text-white/25 select-none">
             {initials(produto.nome)}
           </span>
+
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between rounded-lg bg-black/15 px-2.5 py-1.5 text-white backdrop-blur">
+            <span className="truncate text-[11px] font-semibold">{produto.codigo}</span>
+            <ArrowRight className="h-3.5 w-3.5 opacity-80 transition-transform group-hover:translate-x-0.5" />
+          </div>
+
           {!produto.status && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
               <span className="rounded-full bg-white/90 px-2 py-0.5 text-xs font-semibold text-zinc-700">
@@ -60,43 +75,48 @@ export function ProductCard({ produto }: { produto: Produto }) {
         </div>
       </Link>
 
-      <CardContent className="flex flex-1 flex-col p-3">
+      <CardContent className="flex flex-1 flex-col p-4">
         <Link to={`/produto/${produto.id}`}>
-          <p className="line-clamp-2 text-sm font-medium leading-tight hover:text-primary transition-colors">
+          <p className="line-clamp-2 text-base font-semibold leading-tight transition-colors hover:text-primary">
             {produto.nome}
           </p>
         </Link>
 
-        <p className="mt-0.5 text-[11px] text-muted-foreground font-mono">{produto.codigo}</p>
-
-        <div className="mt-1 flex items-center gap-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
-          ))}
-        </div>
-
-        <p className="mt-2 text-base font-bold">
-          {produto.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+        <p className="mt-1 line-clamp-2 min-h-9 text-xs leading-relaxed text-muted-foreground">
+          {produto.descricao || 'Produto disponível para compra imediata.'}
         </p>
 
-        {produto.preco >= 100 && produto.status && (
-          <Badge
-            variant="secondary"
-            className="mt-1 w-fit bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] px-1.5 py-0 border-green-500/20"
-          >
-            Frete grátis
-          </Badge>
-        )}
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-0.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            ))}
+          </div>
+
+          {produto.preco >= 100 && produto.status && (
+            <Badge
+              variant="secondary"
+              className="gap-1 border-emerald-500/20 bg-emerald-500/10 px-2 py-0 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300"
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              Frete grátis
+            </Badge>
+          )}
+        </div>
+
+        <p className="mt-3 text-xl font-black tracking-tight">
+          {produto.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+        </p>
       </CardContent>
 
-      <CardFooter className="p-3 pt-0">
+      <CardFooter className="border-t bg-muted/30 p-3">
         <Button
-          size="sm"
-          className="w-full font-semibold text-xs h-8 transition-colors"
+          size="lg"
+          className="h-10 w-full font-semibold"
           disabled={!produto.status}
           onClick={handleAdd}
         >
-          <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+          <ShoppingCart className="h-4 w-4" />
           Adicionar ao carrinho
         </Button>
       </CardFooter>

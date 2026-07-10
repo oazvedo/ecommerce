@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { ShoppingCart, Package, Wallet, LogOut, LayoutDashboard, Search, Home, Sun, Moon } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, type FormEvent, type ReactNode } from 'react'
+import { Home, LayoutDashboard, LogOut, Moon, Package, Search, ShoppingCart, Sun, Wallet } from 'lucide-react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import {
@@ -23,6 +23,7 @@ export function Navbar() {
   const { totalItems } = useCart()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
+  const location = useLocation()
   const [query, setQuery] = useState('')
 
   async function handleLogout() {
@@ -30,7 +31,7 @@ export function Navbar() {
     navigate('/login')
   }
 
-  function handleSearch(e: React.FormEvent) {
+  function handleSearch(e: FormEvent) {
     e.preventDefault()
     navigate(query.trim() ? `/?q=${encodeURIComponent(query.trim())}` : '/')
   }
@@ -43,144 +44,185 @@ export function Navbar() {
       .join('')
       .toUpperCase() ?? 'U'
 
+  const navItems = [
+    { to: '/', label: 'Início', icon: <Home className="h-3.5 w-3.5" /> },
+    { to: '/meus-pedidos', label: 'Meus Pedidos', icon: <Package className="h-3.5 w-3.5" /> },
+    { to: '/carteira', label: 'Carteira', icon: <Wallet className="h-3.5 w-3.5" /> },
+    ...(hasPermission('Empresa.Read')
+      ? [{ to: '/admin', label: 'Admin', icon: <LayoutDashboard className="h-3.5 w-3.5" /> }]
+      : []),
+  ]
+
   return (
-    <header className="sticky top-0 z-50 w-full">
-      {/* Row 1 — logo + search + cart + avatar */}
-      <div className="bg-card border-b border-border">
-        <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-background/90 shadow-sm shadow-foreground/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
+      <div className="mx-auto max-w-7xl px-4 py-3">
+        <div className="flex items-center gap-3">
           <Link
             to="/"
-            className="flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight hover:text-primary transition-colors"
+            className="group flex shrink-0 items-center gap-2 rounded-xl px-1 py-1 transition-colors hover:text-primary"
           >
-            <Package className="h-6 w-6 text-primary" />
-            <span className="hidden sm:inline">CentralPedidos</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              <Package className="h-5 w-5" />
+            </span>
+            <span className="hidden text-lg font-black tracking-tight sm:inline">CentralPedidos</span>
           </Link>
 
-          <form onSubmit={handleSearch} className="flex flex-1 items-center overflow-hidden rounded-lg border border-border bg-background">
+          <nav className="hidden items-center gap-1 rounded-xl border border-border bg-card/70 p-1 lg:flex">
+            {navItems.map(item => (
+              <NavLinkItem
+                key={item.to}
+                to={item.to}
+                active={isActiveRoute(location.pathname, item.to)}
+              >
+                {item.icon}
+                {item.label}
+              </NavLinkItem>
+            ))}
+          </nav>
+
+          <form
+            onSubmit={handleSearch}
+            className="ml-auto flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 shadow-sm transition-colors focus-within:border-primary/50 focus-within:ring-3 focus-within:ring-primary/15 lg:max-w-md xl:max-w-xl"
+          >
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
               type="text"
               placeholder="Buscar produtos..."
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground outline-none"
+              className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
             <button
               type="submit"
-              className="flex h-full items-center gap-1 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+              title="Buscar"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-3.5 w-3.5" />
             </button>
           </form>
 
-          {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className={cn(
-              buttonVariants({ variant: 'ghost', size: 'icon' }),
-              'shrink-0 text-muted-foreground hover:text-foreground'
-            )}
-            title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-          >
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
-          <Sheet>
-            <SheetTrigger
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              onClick={toggleTheme}
               className={cn(
-                buttonVariants({ variant: 'ghost', size: 'icon' }),
-                'relative shrink-0 text-muted-foreground hover:text-foreground'
+                buttonVariants({ variant: 'outline', size: 'icon' }),
+                'h-10 w-10 rounded-xl bg-card text-muted-foreground hover:text-foreground'
               )}
+              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
             >
-              <ShoppingCart className="h-5 w-5" />
-              {totalItems > 0 && (
-                <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary p-0 text-[11px] font-bold text-primary-foreground">
-                  {totalItems}
-                </Badge>
-              )}
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-lg">
-              <SheetHeader>
-                <SheetTitle>Carrinho</SheetTitle>
-              </SheetHeader>
-              <CartSheet />
-            </SheetContent>
-          </Sheet>
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                buttonVariants({ variant: 'ghost' }),
-                'shrink-0 gap-2 pl-1 pr-2'
-              )}
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden max-w-24 truncate text-sm md:inline">
-                {user?.unique_name?.split(' ')[0]}
-              </span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <div className="px-2 py-1.5">
-                <p className="truncate text-sm font-semibold">{user?.unique_name}</p>
-                <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/meus-pedidos')} className="cursor-pointer">
-                <Package className="mr-2 h-4 w-4" />
-                Meus Pedidos
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/carteira')} className="cursor-pointer">
-                <Wallet className="mr-2 h-4 w-4" />
-                Minha Carteira
-              </DropdownMenuItem>
-              {hasPermission('Empresa.Read') && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    Painel Admin
-                  </DropdownMenuItem>
-                </>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <Sheet>
+              <SheetTrigger
+                className={cn(
+                  buttonVariants({ variant: 'outline', size: 'icon' }),
+                  'relative h-10 w-10 rounded-xl bg-card text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <ShoppingCart className="h-4.5 w-4.5" />
+                {totalItems > 0 && (
+                  <Badge className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                    {totalItems}
+                  </Badge>
+                )}
+              </SheetTrigger>
+              <SheetContent className="w-full gap-0 p-0 sm:max-w-md">
+                <SheetHeader className="border-b border-border px-5 py-4">
+                  <SheetTitle className="text-lg font-semibold">Carrinho</SheetTitle>
+                </SheetHeader>
+                <CartSheet />
+              </SheetContent>
+            </Sheet>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  buttonVariants({ variant: 'outline' }),
+                  'h-10 shrink-0 rounded-xl bg-card pl-1.5 pr-2.5'
+                )}
+              >
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden max-w-28 truncate text-sm font-medium md:inline">
+                  {user?.unique_name?.split(' ')[0]}
+                </span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5">
+                  <p className="truncate text-sm font-semibold">{user?.unique_name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/meus-pedidos')} className="cursor-pointer">
+                  <Package className="mr-2 h-4 w-4" />
+                  Meus Pedidos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/carteira')} className="cursor-pointer">
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Minha Carteira
+                </DropdownMenuItem>
+                {hasPermission('Empresa.Read') && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Painel Admin
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive focus:text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
 
-      {/* Row 2 — nav links */}
-      <div className="bg-card/80 backdrop-blur border-b border-border/50">
-        <div className="mx-auto flex h-9 max-w-7xl items-center gap-0.5 overflow-x-auto px-4 scrollbar-none">
-          <NavLinkItem to="/">
-            <Home className="mr-1 h-3 w-3" />
-            Início
-          </NavLinkItem>
-          <NavLinkItem to="/meus-pedidos">Meus Pedidos</NavLinkItem>
-          <NavLinkItem to="/carteira">Carteira</NavLinkItem>
-          {hasPermission('Empresa.Read') && (
-            <NavLinkItem to="/admin">
-              <LayoutDashboard className="mr-1 h-3 w-3" />
-              Admin
+        <nav className="mt-3 flex gap-1 overflow-x-auto lg:hidden">
+          {navItems.map(item => (
+            <NavLinkItem
+              key={item.to}
+              to={item.to}
+              active={isActiveRoute(location.pathname, item.to)}
+            >
+              {item.icon}
+              {item.label}
             </NavLinkItem>
-          )}
-        </div>
+          ))}
+        </nav>
       </div>
     </header>
   )
 }
 
-function NavLinkItem({ to, children }: { to: string; children: React.ReactNode }) {
+function isActiveRoute(pathname: string, to: string) {
+  return to === '/' ? pathname === '/' : pathname.startsWith(to)
+}
+
+function NavLinkItem({
+  to,
+  active,
+  children,
+}: {
+  to: string
+  active: boolean
+  children: ReactNode
+}) {
   return (
     <Link
       to={to}
-      className="flex shrink-0 items-center rounded px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      className={cn(
+        'flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors',
+        active
+          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+          : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+      )}
     >
       {children}
     </Link>

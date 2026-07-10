@@ -1,15 +1,50 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Tag, ShoppingCart, ArrowLeft, Package } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Minus,
+  Package,
+  Plus,
+  ShieldCheck,
+  ShoppingCart,
+  Sparkles,
+  Star,
+  Truck,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
 import { Navbar } from '@/components/Navbar'
 import { produtosApi } from '@/api/produtos'
 import { useCart } from '@/context/CartContext'
 import type { Produto } from '@/types'
 import { toast } from 'sonner'
+
+const GRADIENTS = [
+  'from-violet-500 to-purple-700',
+  'from-blue-500 to-indigo-700',
+  'from-emerald-500 to-teal-700',
+  'from-rose-500 to-pink-700',
+  'from-amber-500 to-orange-600',
+  'from-cyan-500 to-blue-600',
+  'from-red-500 to-rose-700',
+  'from-lime-600 to-green-700',
+]
+
+function cardGradient(nome: string): string {
+  const hash = nome.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return GRADIENTS[hash % GRADIENTS.length]
+}
+
+function initials(nome: string): string {
+  return nome
+    .split(' ')
+    .slice(0, 2)
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+}
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -21,6 +56,7 @@ export function ProductDetailPage() {
 
   useEffect(() => {
     if (!id) return
+    setLoading(true)
     produtosApi.get(id).then(setProduto).catch(console.error).finally(() => setLoading(false))
   }, [id])
 
@@ -30,12 +66,17 @@ export function ProductDetailPage() {
     toast.success(`${produto.nome} adicionado ao carrinho`)
   }
 
+  function handleCheckout() {
+    if (produto) addItem(produto, qty)
+    navigate('/checkout')
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50">
+      <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="mx-auto max-w-4xl px-4 py-8">
-          <Skeleton className="h-80 w-full rounded-xl" />
+        <main className="mx-auto max-w-6xl px-4 py-6">
+          <Skeleton className="h-[520px] w-full rounded-xl" />
         </main>
       </div>
     )
@@ -43,7 +84,7 @@ export function ProductDetailPage() {
 
   if (!produto) {
     return (
-      <div className="min-h-screen bg-zinc-50">
+      <div className="min-h-screen bg-background">
         <Navbar />
         <main className="mx-auto max-w-4xl px-4 py-16 text-center text-muted-foreground">
           Produto não encontrado.
@@ -52,78 +93,148 @@ export function ProductDetailPage() {
     )
   }
 
+  const subtotal = produto.preco * qty
+
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="mx-auto max-w-4xl px-4 py-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="mr-1 h-4 w-4" />
+
+      <main className="mx-auto max-w-6xl px-4 py-6">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-5">
+          <ArrowLeft className="h-4 w-4" />
           Voltar
         </Button>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col md:flex-row gap-8">
-          <div className="bg-zinc-100 rounded-lg flex items-center justify-center md:w-72 h-64 shrink-0">
-            <Tag className="h-20 w-20 text-zinc-300" />
-          </div>
-
-          <div className="flex-1 space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">{produto.codigo}</p>
-              <h1 className="text-2xl font-bold mt-1">{produto.nome}</h1>
-            </div>
-
-            {!produto.status ? (
-              <Badge variant="secondary">Indisponível</Badge>
-            ) : (
-              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Em estoque</Badge>
-            )}
-
-            <p className="text-muted-foreground text-sm leading-relaxed">{produto.descricao}</p>
-
-            <Separator />
-
-            <p className="text-3xl font-bold text-orange-600">
-              {produto.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </p>
-
-            <div className="flex items-center gap-3">
-              <div className="flex items-center border rounded-md">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setQty(q => Math.max(1, q - 1))}
-                >
-                  −
-                </Button>
-                <span className="w-10 text-center text-sm font-medium">{qty}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setQty(q => q + 1)}
-                >
-                  +
-                </Button>
+        <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+          <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+            <div className="grid gap-6 md:grid-cols-[320px_1fr]">
+              <div
+                className={`relative flex h-72 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br md:h-80 ${cardGradient(produto.nome)}`}
+              >
+                <div className="absolute left-4 top-4 flex items-center gap-2">
+                  <Badge className="border-white/20 bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-zinc-800 hover:bg-white">
+                    {produto.status ? 'Disponível' : 'Pausado'}
+                  </Badge>
+                </div>
+                <span className="text-6xl font-black uppercase tracking-tight text-white/25 select-none md:text-7xl">
+                  {initials(produto.nome)}
+                </span>
+                <div className="absolute bottom-4 left-4 right-4 rounded-lg bg-black/15 px-3 py-2.5 text-white backdrop-blur">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-white/70">Código</p>
+                  <p className="mt-0.5 truncate font-mono text-xs font-semibold">{produto.codigo}</p>
+                </div>
               </div>
 
-              <Button
-                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-                disabled={!produto.status}
-                onClick={handleAdd}
-              >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Adicionar ao Carrinho
+              <div className="flex flex-col justify-between gap-6">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-primary">{produto.codigo}</p>
+                  <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">{produto.nome}</h1>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    {produto.status ? (
+                      <Badge className="gap-1 border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Em estoque
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">Indisponível</Badge>
+                    )}
+                    <Badge variant="outline" className="gap-1">
+                      <Truck className="h-3.5 w-3.5" />
+                      Frete grátis
+                    </Badge>
+                  </div>
+
+                  <div className="mt-5 flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    ))}
+                    <span className="ml-2 text-sm text-muted-foreground">Produto recomendado</span>
+                  </div>
+
+                  <div className="mt-6 rounded-xl border border-border bg-background p-4">
+                    <p className="text-sm font-semibold">Descrição</p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {produto.descricao || 'Produto disponível para compra imediata.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <ProductBenefit icon={<ShieldCheck className="h-4 w-4" />} label="Compra segura" />
+                  <ProductBenefit icon={<Truck className="h-4 w-4" />} label="Entrega rápida" />
+                  <ProductBenefit icon={<Sparkles className="h-4 w-4" />} label="Suporte ativo" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside className="h-fit rounded-xl border border-border bg-card p-5 shadow-sm lg:sticky lg:top-28">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Valor unitário</p>
+            <p className="mt-2 text-4xl font-bold tracking-tight text-primary">
+              {formatBRL(produto.preco)}
+            </p>
+
+            <div className="mt-5 rounded-xl border border-border bg-background p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-semibold">Quantidade</span>
+                <span className="text-xs text-muted-foreground">mín. 1</span>
+              </div>
+
+              <div className="flex items-center justify-between rounded-xl border border-border bg-card p-1">
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  onClick={() => setQty(q => Math.max(1, q - 1))}
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="text-base font-bold tabular-nums">{qty}</span>
+                <button
+                  type="button"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  onClick={() => setQty(q => q + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-bold text-foreground">{formatBRL(subtotal)}</span>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <Button className="h-11 w-full font-semibold" disabled={!produto.status} onClick={handleAdd}>
+                <ShoppingCart className="h-4 w-4" />
+                Adicionar ao carrinho
+              </Button>
+              <Button variant="outline" className="h-11 w-full font-semibold" disabled={!produto.status} onClick={handleCheckout}>
+                <Package className="h-4 w-4" />
+                Ir para o checkout
               </Button>
             </div>
 
-            <Button variant="outline" className="w-full" onClick={() => navigate('/checkout')}>
-              <Package className="mr-2 h-4 w-4" />
-              Ir para o Checkout
-            </Button>
-          </div>
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              O pedido usará a quantidade selecionada acima.
+            </p>
+          </aside>
         </div>
       </main>
     </div>
   )
+}
+
+function ProductBenefit({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+      <span className="text-primary">{icon}</span>
+      <span className="font-medium">{label}</span>
+    </div>
+  )
+}
+
+function formatBRL(value: number) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
