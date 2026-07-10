@@ -1,14 +1,20 @@
-# API Documentation
+# API Documentation — Central de Pedidos
 
-Base URL: `http://localhost:{porta}/api`
+Base URL: `http://localhost:5103/api`
 
 All protected endpoints require a Bearer JWT token in the `Authorization` header:
 
 ```
-Authorization: Bearer {token}
+Authorization: Bearer {access_token}
 ```
 
-Endpoints that return lists are paginated. Pass `?page=1&pageSize=10` as query params. Response shape:
+---
+
+## Common Patterns
+
+### Pagination
+
+All list endpoints are paginated via query params `?page=1&pageSize=10`.
 
 ```json
 {
@@ -19,6 +25,24 @@ Endpoints that return lists are paginated. Pass `?page=1&pageSize=10` as query p
   "items": [...]
 }
 ```
+
+### Standard Error Shape
+
+```json
+{ "mensagem": "Descrição do erro." }
+```
+
+### HTTP Status Codes Used
+
+| Code | Meaning |
+|------|---------|
+| `200` | OK |
+| `201` | Created |
+| `204` | No Content (success, no body) |
+| `400` | Bad Request (validation / business rule) |
+| `401` | Unauthorized (missing or invalid token) |
+| `404` | Not Found |
+| `409` | Conflict (duplicate) |
 
 ---
 
@@ -40,17 +64,129 @@ No authentication required.
 ```json
 {
   "access_token": "eyJhbGci...",
+  "refresh_token": "dGhpcyBpcyBh...",
   "token_type": "Bearer"
 }
 ```
 
 **Response `401`** — credentials invalid.
 
+> **Frontend:** store `access_token` in memory (not localStorage) and `refresh_token` in an httpOnly cookie or secure storage. Decode the JWT to read user info without an extra API call.
+
+---
+
+### POST `/auth/refresh`
+
+No authentication required. Exchange an expired access token for a new pair.
+
+**Request**
+```json
+{
+  "refreshToken": "dGhpcyBpcyBh..."
+}
+```
+
+**Response `200`** — same shape as `/auth/login` (new access_token + new refresh_token).
+
+**Response `401`** `{ "mensagem": "Refresh token inválido ou expirado." }`
+
+> **Frontend:** call this automatically when any request returns `401`. Retry the original request with the new token.
+
+---
+
+### POST `/auth/revoke`
+
+Requires Bearer auth. Call on logout to invalidate the refresh token server-side.
+
+**Request**
+```json
+{
+  "refreshToken": "dGhpcyBpcyBh..."
+}
+```
+
+**Response `204`**
+
+---
+
+### JWT Claims
+
+The decoded JWT payload contains:
+
+| Claim | Value |
+|-------|-------|
+| `sub` | userId (uuid) |
+| `email` | user email |
+| `unique_name` | user full name |
+| `Permission` | one entry per permission e.g. `"Pedido.Read"` |
+
+> **Frontend:** decode the JWT on the client to determine which UI elements to show/hide based on `Permission` claims — no extra `/me` endpoint needed.
+
+---
+
+## Frontend Flows
+
+### E-commerce Order Flow
+
+```
+1. POST /auth/login          → store tokens, decode JWT
+2. GET  /produto             → list product catalog
+3. GET  /produto/{id}        → product detail page
+4. POST /pedido              → create order (checkout)
+5. GET  /pedido/meus         → order history (my orders)
+6. GET  /pedido/{id}         → order detail / tracking
+7. PATCH /pedido/{id}/status → update order status (operator/admin)
+```
+
+### Wallet Top-up Flow
+
+```
+1. GET  /carteira/minha-carteira     → current balance
+2. PUT  /carteira/update-my-balance  → add funds (optional cupom)
+```
+
+### Admin Order Management Flow
+
+```
+1. GET /pedido?status=Criado         → filter orders by status
+2. GET /pedido/relatorio             → sales report for date range
+3. PUT /pedido/{id}                  → full update (status + items + contratacao)
+4. DELETE /pedido/{id}               → remove order
+```
+
+---
+
+## Order Status State Machine
+
+```
+           Criado
+             │
+             ▼
+      EmProcessamento
+             │
+       ┌─────┴─────┐
+       ▼           ▼
+   Suporte     Finalizado
+       │
+       ▼
+   Cancelado  ◄── can also transition from any status
+```
+
+| Status | Description | Allows further updates? |
+|--------|-------------|------------------------|
+| `Criado` | Order just placed | Yes |
+| `EmProcessamento` | Being fulfilled | Yes |
+| `Suporte` | Needs attention | Yes |
+| `Finalizado` | Delivered/done | Yes |
+| `Cancelado` | Cancelled | **No** — any attempt returns `400` |
+
+> `POST /pedido/cancelar` is the public cancel endpoint (no auth required — for customer self-cancel links).
+
 ---
 
 ## Usuários
 
-### Usuario object
+### Usuario Object
 
 ```json
 {
@@ -86,9 +222,9 @@ Policy: `Usuario.Read`
 
 ### POST `/usuario`
 
-No authentication required.
+No authentication required. Registration endpoint.
 
-**Query param:** `?cargo=1` (see `UsuarioCargo` enum)
+**Query param:** `?cargo=Operador` (see `UsuarioCargo` enum — pass the name or int value)
 
 **Request**
 ```json
@@ -160,7 +296,7 @@ Policy: `Usuario.Delete`
 
 ## Produtos
 
-### Produto object
+### Produto Object
 
 ```json
 {
@@ -175,6 +311,8 @@ Policy: `Usuario.Delete`
   "atualizadoEm": null
 }
 ```
+
+> `status: true` = active/available for purchase. Filter out `false` items on the catalog page.
 
 ---
 
@@ -196,7 +334,7 @@ Policy: `Produto.Read`
 ---
 
 ### POST `/produto`
-Policy: `Produto.Create` — `empresa_id` is derived from the authenticated user.
+Policy: `Produto.Create` — `empresaId` is derived from the authenticated user's token.
 
 **Request**
 ```json
@@ -234,18 +372,18 @@ Policy: `Produto.Delete`
 
 ## Pedidos
 
-### Pedido object
+### Pedido Object
 
 ```json
 {
   "id": "uuid",
   "status": "Criado",
-  "contracacao": "Mensal",
-  "valorTotal": 299.70,
-  "empresaId": "uuid",
-  "empresaNome": "Empresa X",
-  "empresaCNPJ": "00.000.000/0001-00",
-  "usuarioId": "uuid",
+  "contratacao": "Mensal",
+  "valor_total": 299.70,
+  "empresa_id": "uuid",
+  "empresa_nome": "Empresa X",
+  "empresa_cnpj": "00.000.000/0001-00",
+  "usuario_id": "uuid",
   "usuario_nome": "João Silva",
   "itens": [
     {
@@ -256,15 +394,15 @@ Policy: `Produto.Delete`
       "Subtotal": 299.70
     }
   ],
-  "criadoEm": "2024-01-15T10:00:00Z",
-  "atualizadoEm": null
+  "criado_em": "2024-01-15T10:00:00Z",
+  "atualizado_em": null
 }
 ```
 
 ---
 
 ### GET `/pedido/relatorio`
-Policy: `Pedido.Read` — returns sales summary for a date range.
+Policy: `Pedido.Read` — sales summary for a date range. Use on admin dashboard.
 
 **Query params:** `?data_inicio=2024-01-01T00:00:00Z&data_fim=2024-01-31T23:59:59Z`
 
@@ -283,9 +421,11 @@ Policy: `Pedido.Read` — returns sales summary for a date range.
 ---
 
 ### GET `/pedido`
-Policy: `Pedido.Read` — paged, with optional filters.
+Policy: `Pedido.Read` — paged with optional filters. Use on admin order list.
 
 **Query params:** `?page=1&pageSize=10&status=Criado&contratacao=Mensal&usuarioId=uuid`
+
+All filters are optional and combinable.
 
 **Response `200`** — `PagedResult<Pedido>`.
 
@@ -300,7 +440,7 @@ Policy: `Pedido.Read`
 ---
 
 ### GET `/pedido/empresa/{empresaId}`
-Policy: `Pedido.Read` — paged, returns all pedidos for a specific empresa.
+Policy: `Pedido.Read` — paged, all pedidos for a specific empresa.
 
 **Query params:** `?page=1&pageSize=10`
 
@@ -309,7 +449,7 @@ Policy: `Pedido.Read` — paged, returns all pedidos for a specific empresa.
 ---
 
 ### GET `/pedido/empresa/cnpj/{cnpj}`
-Policy: `Pedido.Read` — paged, returns all pedidos for an empresa by CNPJ.
+Policy: `Pedido.Read` — paged, lookup by CNPJ.
 
 **Query params:** `?page=1&pageSize=10`
 
@@ -318,7 +458,7 @@ Policy: `Pedido.Read` — paged, returns all pedidos for an empresa by CNPJ.
 ---
 
 ### GET `/pedido/usuario/{usuarioId}`
-Policy: `Pedido.Read` — paged.
+Policy: `Pedido.Read` — paged, all pedidos for a specific user.
 
 **Query params:** `?page=1&pageSize=10`
 
@@ -327,16 +467,18 @@ Policy: `Pedido.Read` — paged.
 ---
 
 ### GET `/pedido/meus`
-Policy: `Pedido.Read` — paged, returns pedidos of the authenticated user (extraído do token).
+Policy: `Pedido.Read` — paged, pedidos of the authenticated user (userId extracted from JWT `sub` claim).
 
 **Query params:** `?page=1&pageSize=10`
 
 **Response `200`** — `PagedResult<Pedido>`.
 
+> **Frontend:** use this on the "My Orders" / order history page.
+
 ---
 
 ### POST `/pedido`
-Policy: `Pedido.Create` — cria o pedido para o usuário autenticado.
+Policy: `Pedido.Create` — creates an order for the authenticated user. This is the **checkout** endpoint.
 
 **Request**
 ```json
@@ -358,7 +500,7 @@ Policy: `Pedido.Create` — cria o pedido para o usuário autenticado.
 ---
 
 ### PUT `/pedido/{id}`
-Policy: `Pedido.UpdateAdmin` — full update (status, contratacao, and items).
+Policy: `Pedido.UpdateAdmin` — full update (status, contratacao, and items). Admin only.
 
 **Request**
 ```json
@@ -413,7 +555,7 @@ Policy: `Pedido.Update` — updates only the contratacao type.
 
 ### POST `/pedido/cancelar`
 
-No authentication required.
+No authentication required. Public cancel link (e.g., email unsubscribe-style cancel button).
 
 **Query param:** `?id=uuid`
 
@@ -433,7 +575,7 @@ Policy: `Pedido.Delete`
 
 ## Carteira
 
-### Carteira object
+### Carteira Object
 
 ```json
 {
@@ -450,7 +592,7 @@ Policy: `Pedido.Delete`
 ---
 
 ### GET `/carteira`
-Policy: `Carteira.Read` — paged.
+Policy: `Carteira.Read` — paged. Admin view of all wallets.
 
 **Query params:** `?page=1&pageSize=10`
 
@@ -459,10 +601,12 @@ Policy: `Carteira.Read` — paged.
 ---
 
 ### GET `/carteira/minha-carteira`
-Policy: `Carteira.Read` — returns the carteira of the authenticated user.
+Policy: `Carteira.Read` — returns the wallet of the authenticated user (from JWT).
 
 **Response `200`** — carteira object.  
 **Response `404`**
+
+> **Frontend:** use on the user's wallet/balance page.
 
 ---
 
@@ -475,7 +619,7 @@ Policy: `Carteira.Read`
 ---
 
 ### PUT `/carteira/{id}`
-Policy: `Carteira.Update` — updates the saldo.
+Policy: `Carteira.Update` — updates saldo by wallet ID. Admin use.
 
 **Request**
 ```json
@@ -493,18 +637,20 @@ Policy: `Carteira.Update` — updates the saldo.
 ---
 
 ### PUT `/carteira/update-my-balance`
-Policy: `Carteira.Update` — updates the saldo of the authenticated user's carteira.
+Policy: `Carteira.Update` — updates the saldo of the authenticated user's carteira (from JWT).
 
 **Request** — same shape as `PUT /carteira/{id}`.
 
 **Response `200`** — updated carteira object.  
 **Response `404`** `{ "mensagem": "..." }`
 
+> **Frontend:** use this on the "Add Funds" / wallet top-up screen.
+
 ---
 
 ## Empresa
 
-### Empresa object
+### Empresa Object
 
 ```json
 {
@@ -541,7 +687,7 @@ Policy: `Empresa.Read`
 ---
 
 ### POST `/empresa`
-Policy: `Empresa.Create` — `responsavel` e `responsavel_id` são derivados do usuário autenticado.
+Policy: `Empresa.Create` — `responsavel` and `responsavel_id` are derived from the authenticated user's JWT claims.
 
 **Request**
 ```json
@@ -589,7 +735,7 @@ Policy: `Empresa.Delete`
 
 ## Permissões
 
-### Permissao object
+### Permissao Object
 
 ```json
 {
@@ -611,7 +757,7 @@ Policy: `Permissao.Read` — paged.
 ---
 
 ### GET `/permissao/usuario/{usuarioId}`
-Policy: `Permissao.Read` — returns all permissions assigned to a user.
+Policy: `Permissao.Read` — returns all permissions assigned to a user (not paged, returns full array).
 
 **Response `200`** — array of permissao objects.
 
@@ -643,16 +789,16 @@ Policy: `Permissao.RemoveAll` — removes all permissions from a user.
 
 ## Enums
 
-Enum values are serialized as strings.
+Enum values are serialized as strings by name.
 
 ### PedidoStatus
-| Value | Name |
-|-------|------|
-| `0` | `Cancelado` — não permite mais atualizações |
-| `1` | `Criado` |
-| `2` | `EmProcessamento` |
-| `4` | `Suporte` |
-| `5` | `Finalizado` |
+| Value | Name | Description |
+|-------|------|-------------|
+| `0` | `Cancelado` | Cancelled — no further updates allowed |
+| `1` | `Criado` | Just placed |
+| `2` | `EmProcessamento` | Being fulfilled |
+| `4` | `Suporte` | Needs attention |
+| `5` | `Finalizado` | Completed |
 
 ### PedidoTipoContratacao
 | Value | Name |
