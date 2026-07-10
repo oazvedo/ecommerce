@@ -38,9 +38,11 @@ namespace api.Controllers
             {
                 var usuarioId = User.GetId();
                 var result = await _service.GetMyCarteiraAsync(usuarioId);
-                if (result == null)
-                    return NotFound();
                 return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensagem = ex.Message });
             }
             catch (Exception ex)
             {
