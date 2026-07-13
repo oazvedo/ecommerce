@@ -9,16 +9,21 @@ namespace api.infra.auth
 {
     public static class TokenService
     {
-        public static string GenerateToken(Usuario usuario, JwtSettings settings)
+        public static string GenerateToken(Usuario usuario, JwtSettings settings, IEnumerable<string> cargoPermissoes)
         {
+            var directPerms = usuario.UsuarioPermissoes.Select(up => up.Permissao.Nome);
+            var allPerms = directPerms.Union(cargoPermissoes).Distinct();
+
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
-                new Claim(JwtRegisteredClaimNames.UniqueName, usuario.Nome)
+                new Claim(JwtRegisteredClaimNames.UniqueName, usuario.Nome),
+                new Claim("Cargo", usuario.Cargo.ToString()),
+                new Claim("EmpresaId", usuario.EmpresaId.ToString()),
             };
 
-            claims.AddRange(usuario.UsuarioPermissoes.Select(up => new Claim("Permission", up.Permissao.Nome)));
+            claims.AddRange(allPerms.Select(p => new Claim("Permission", p)));
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Secret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

@@ -60,6 +60,7 @@ builder.Services.AddScoped<IRepositoryBase<Produto>, ProdutoRepository>();
 builder.Services.AddScoped<ICarteiraRepository, CarteiraRepository>();
 builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<ICargoPermissaoRepository, CargoPermissaoRepository>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();

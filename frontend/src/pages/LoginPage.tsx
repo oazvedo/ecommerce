@@ -48,7 +48,7 @@ export function LoginPage() {
               <Package className="h-10 w-10 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight">CentralPedidos</h1>
+          <h1 className="text-4xl font-extrabold tracking-tight">Fluxus</h1>
           <p className="mt-3 text-lg text-purple-100 leading-relaxed">
             Sua central de gerenciamento de pedidos e produtos
           </p>
@@ -72,7 +72,7 @@ export function LoginPage() {
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2 md:hidden">
             <Package className="h-7 w-7 text-primary" />
-            <span className="text-xl font-bold">CentralPedidos</span>
+            <span className="text-xl font-bold">Fluxus</span>
           </div>
 
           <h2 className="text-2xl font-bold">Bem-vindo de volta</h2>

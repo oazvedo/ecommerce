@@ -20,4 +20,13 @@ export const permissoesApi = {
 
   removeAll: (usuarioId: string) =>
     apiFetch<void>(`/permissao/usuario/${usuarioId}`, { method: 'DELETE' }),
+
+  byCargo: () =>
+    apiFetch<Record<string, Permissao[]>>('/permissao/cargo'),
+
+  setCargo: (cargo: string, permissaoIds: string[]) =>
+    apiFetch<void>(`/permissao/cargo/${cargo}`, {
+      method: 'PUT',
+      body: JSON.stringify(permissaoIds),
+    }),
 }

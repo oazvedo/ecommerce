@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { Home, LayoutDashboard, LogOut, Moon, Package, Search, ShoppingCart, Sun, Wallet } from 'lucide-react'
+import { Building2, Home, LayoutDashboard, LogOut, Moon, Package, Search, ShoppingCart, Sun, Wallet } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { CartSheet } from './CartSheet'
 
 export function Navbar() {
-  const { user, logout, hasPermission } = useAuth()
+  const { user, logout, hasPermission, isAdmin } = useAuth()
   const { totalItems } = useCart()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
@@ -48,7 +48,10 @@ export function Navbar() {
     { to: '/', label: 'Início', icon: <Home className="h-3.5 w-3.5" /> },
     { to: '/meus-pedidos', label: 'Meus Pedidos', icon: <Package className="h-3.5 w-3.5" /> },
     { to: '/carteira', label: 'Carteira', icon: <Wallet className="h-3.5 w-3.5" /> },
-    ...(hasPermission('Empresa.Read')
+    ...(!isAdmin && hasPermission('Empresa.Read')
+      ? [{ to: '/minha-empresa', label: 'Minha Empresa', icon: <Building2 className="h-3.5 w-3.5" /> }]
+      : []),
+    ...(isAdmin
       ? [{ to: '/admin', label: 'Admin', icon: <LayoutDashboard className="h-3.5 w-3.5" /> }]
       : []),
   ]
@@ -64,7 +67,7 @@ export function Navbar() {
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
               <Package className="h-5 w-5" />
             </span>
-            <span className="hidden text-lg font-black tracking-tight sm:inline">CentralPedidos</span>
+            <span className="hidden text-lg font-black tracking-tight sm:inline">Fluxus</span>
           </Link>
 
           <nav className="hidden items-center gap-1 rounded-xl border border-border bg-card/70 p-1 lg:flex">
@@ -165,7 +168,16 @@ export function Navbar() {
                   <Wallet className="mr-2 h-4 w-4" />
                   Minha Carteira
                 </DropdownMenuItem>
-                {hasPermission('Empresa.Read') && (
+                {!isAdmin && hasPermission('Empresa.Read') && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/minha-empresa')} className="cursor-pointer">
+                      <Building2 className="mr-2 h-4 w-4" />
+                      Minha Empresa
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">

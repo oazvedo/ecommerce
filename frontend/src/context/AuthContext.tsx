@@ -15,6 +15,9 @@ interface AuthContextValue {
   usuario: Usuario | null
   isAuthenticated: boolean
   isLoading: boolean
+  isAdmin: boolean
+  cargo: string | null
+  empresaId: string | null
   hasPermission: (perm: string) => boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
@@ -97,9 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user]
   )
 
+  const isAdmin = user?.Cargo === 'Administrador'
+  const cargo = user?.Cargo ?? null
+  const empresaId = user?.EmpresaId ?? null
+
   return (
     <AuthContext.Provider
-      value={{ user, usuario, isAuthenticated: !!user, isLoading, hasPermission, login, logout }}
+      value={{ user, usuario, isAuthenticated: !!user, isLoading, isAdmin, cargo, empresaId, hasPermission, login, logout }}
     >
       {children}
     </AuthContext.Provider>

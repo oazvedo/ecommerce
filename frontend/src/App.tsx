@@ -18,6 +18,8 @@ import { UsuarioDetailPage } from '@/pages/admin/UsuarioDetailPage'
 import { ProdutosAdminPage } from '@/pages/admin/ProdutosAdminPage'
 import { CarteirasPage } from '@/pages/admin/CarteirasPage'
 import { PedidosAdminPage } from '@/pages/admin/PedidosAdminPage'
+import { PermissoesCargoPage } from '@/pages/admin/PermissoesCargoPage'
+import { MinhaEmpresaPage } from '@/pages/MinhaEmpresaPage'
 
 function App() {
   return (
@@ -73,11 +75,19 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/minha-empresa"
+            element={
+              <ProtectedRoute>
+                <MinhaEmpresaPage />
+              </ProtectedRoute>
+            }
+          />
           {/* Admin routes */}
           <Route
             path="/admin"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <AdminOverviewPage />
               </ProtectedRoute>
             }
@@ -85,7 +95,7 @@ function App() {
           <Route
             path="/admin/empresas"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <EmpresasPage />
               </ProtectedRoute>
             }
@@ -93,7 +103,7 @@ function App() {
           <Route
             path="/admin/empresa/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <EmpresaDetailPage />
               </ProtectedRoute>
             }
@@ -101,7 +111,7 @@ function App() {
           <Route
             path="/admin/usuarios"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <UsuariosPage />
               </ProtectedRoute>
             }
@@ -109,7 +119,7 @@ function App() {
           <Route
             path="/admin/usuarios/:id"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <UsuarioDetailPage />
               </ProtectedRoute>
             }
@@ -117,7 +127,7 @@ function App() {
           <Route
             path="/admin/produtos"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <ProdutosAdminPage />
               </ProtectedRoute>
             }
@@ -125,7 +135,7 @@ function App() {
           <Route
             path="/admin/carteiras"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <CarteirasPage />
               </ProtectedRoute>
             }
@@ -133,8 +143,16 @@ function App() {
           <Route
             path="/admin/pedidos"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <PedidosAdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/permissoes"
+            element={
+              <ProtectedRoute adminOnly>
+                <PermissoesCargoPage />
               </ProtectedRoute>
             }
           />

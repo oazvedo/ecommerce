@@ -76,6 +76,8 @@ export interface JwtPayload {
   email: string
   unique_name: string
   Permission: string | string[]
+  Cargo: string
+  EmpresaId: string
   exp: number
   iat: number
 }

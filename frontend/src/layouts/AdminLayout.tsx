@@ -12,6 +12,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { to: '/admin/produtos', label: 'Produtos', icon: Package, end: false },
   { to: '/admin/carteiras', label: 'Carteiras', icon: Wallet, end: false },
   { to: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag, end: false },
+  { to: '/admin/permissoes', label: 'Permissões', icon: ShieldCheck, end: false },
 ]
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

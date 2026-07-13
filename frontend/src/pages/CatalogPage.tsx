@@ -73,7 +73,7 @@ export function CatalogPage() {
           <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-primary">CentralPedidos</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary">Fluxus</p>
                 <h1 className="mt-2 text-3xl font-black tracking-tight">Catálogo</h1>
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                   {query ? (

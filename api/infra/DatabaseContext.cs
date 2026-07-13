@@ -20,6 +20,7 @@ namespace api.infra
         public DbSet<Empresa> Empresas { get; set; }
         public DbSet<PedidoHistorico> PedidoHistoricos { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<CargoPermissao> CargoPermissoes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -357,6 +358,18 @@ namespace api.infra
                     .WithMany(e => e.Produtos)
                     .HasForeignKey(u => u.EmpresaId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CargoPermissao>(entity =>
+            {
+                entity.ToTable("cargo_permissoes");
+                entity.HasKey(cp => new { cp.Cargo, cp.PermissaoId });
+                entity.Property(cp => cp.Cargo).HasColumnName("cargo").IsRequired();
+                entity.Property(cp => cp.PermissaoId).HasColumnName("permissao_id").IsRequired();
+                entity.HasOne(cp => cp.Permissao)
+                    .WithMany()
+                    .HasForeignKey(cp => cp.PermissaoId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }
