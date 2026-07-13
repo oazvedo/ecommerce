@@ -21,7 +21,29 @@ namespace api.Application.Services
             CriadoEm = entity.CriadoEm,
             AtualizadoEm = entity.AtualizadoEm,
             EmpresaId = entity.EmpresaId,
-            ImagemUrl = entity.ImagemUrl
+            ImagemUrl = entity.ImagemUrl,
+            Estoque = entity.Estoque,
+            FreteGratis = entity.FreteGratis,
+            Variantes = entity.Variantes
         };
+
+        public async Task<ProdutoDto?> UpdateAsync(Guid id, UpdateProdutoRequest request)
+        {
+            var produto = await _repository.GetByIdAsync(id);
+            if (produto == null) return null;
+
+            produto.AtualizarProduto(request.Nome, request.Descricao, request.Status, request.Codigo, request.Preco, request.Estoque, request.FreteGratis, request.Variantes);
+            await _repository.UpdateAsync(produto);
+            return ToDto(produto);
+        }
+
+        public async Task AtualizarImagemAsync(Guid id, string url)
+        {
+            var produto = await _repository.GetByIdAsync(id);
+            if (produto == null) return;
+            produto.ImagemUrl = url;
+            produto.AtualizadoEm = DateTime.UtcNow;
+            await _repository.UpdateAsync(produto);
+        }
     }
 }

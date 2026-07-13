@@ -38,7 +38,7 @@ import type { Produto, PagedResult } from '@/types'
 import type { ProdutoPayload } from '@/api/produtos'
 import { toast } from 'sonner'
 
-const EMPTY_FORM: ProdutoPayload = { nome: '', descricao: '', preco: 0, codigo: '', status: true }
+const EMPTY_FORM: ProdutoPayload = { nome: '', descricao: '', preco: 0, codigo: '', status: true, estoque: 0, freteGratis: false, variantes: null }
 
 export function ProdutosAdminPage() {
   const [result, setResult] = useState<PagedResult<Produto> | null>(null)
@@ -64,7 +64,7 @@ export function ProdutosAdminPage() {
 
   function openEdit(p: Produto) {
     setEditing(p)
-    setForm({ nome: p.nome, descricao: p.descricao, preco: p.preco, codigo: p.codigo, status: p.status })
+    setForm({ nome: p.nome, descricao: p.descricao, preco: p.preco, codigo: p.codigo, status: p.status, estoque: p.estoque, freteGratis: p.freteGratis, variantes: p.variantes })
     setDialogOpen(true)
   }
 
@@ -125,8 +125,8 @@ export function ProdutosAdminPage() {
               <div className="divide-y divide-border">
                 {result?.items.map(p => (
                   <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-                    {p.imagem_url
-                      ? <img src={resolveImageUrl(p.imagem_url)!} alt={p.nome} className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                    {p.imagemUrl
+                      ? <img src={resolveImageUrl(p.imagemUrl)!} alt={p.nome} className="h-10 w-10 rounded-lg object-cover shrink-0" />
                       : <div className="h-10 w-10 rounded-lg bg-muted shrink-0" />
                     }
                     <div className="flex-1 min-w-0">
@@ -137,6 +137,13 @@ export function ProdutosAdminPage() {
                       <span className="text-sm font-semibold">
                         {p.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </span>
+                      {p.estoque === 0 ? (
+                        <Badge variant="destructive" className="text-xs">Sem estoque</Badge>
+                      ) : p.estoque <= 10 ? (
+                        <Badge className="text-xs border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-400">{p.estoque} unid.</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs">{p.estoque} unid.</Badge>
+                      )}
                       <Badge
                         variant={p.status ? 'default' : 'secondary'}
                         className="text-xs"
@@ -184,11 +191,11 @@ export function ProdutosAdminPage() {
                 <ImageUpload
                   entidade="produto"
                   id={editing.id}
-                  currentUrl={resolveImageUrl(editing.imagem_url)}
+                  currentUrl={resolveImageUrl(editing.imagemUrl)}
                   variant="produto"
                   onSuccess={url => setResult(prev => prev ? {
                     ...prev,
-                    items: prev.items.map(p => p.id === editing.id ? { ...p, imagem_url: url } : p)
+                    items: prev.items.map(p => p.id === editing.id ? { ...p, imagemUrl: url } : p)
                   } : prev)}
                 />
               </div>
@@ -217,9 +224,32 @@ export function ProdutosAdminPage() {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Estoque</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.estoque}
+                  onChange={e => setForm(f => ({ ...f, estoque: parseInt(e.target.value) || 0 }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Variantes</Label>
+                <Input
+                  placeholder="Ex: Azul, Preto, 128GB"
+                  value={form.variantes ?? ''}
+                  onChange={e => setForm(f => ({ ...f, variantes: e.target.value || null }))}
+                />
+              </div>
+            </div>
             <div className="flex items-center justify-between">
               <Label>Ativo</Label>
               <Switch checked={form.status} onCheckedChange={v => setForm(f => ({ ...f, status: v }))} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Frete grátis</Label>
+              <Switch checked={form.freteGratis} onCheckedChange={v => setForm(f => ({ ...f, freteGratis: v }))} />
             </div>
             <Button className="w-full" onClick={handleSave} disabled={saving}>
               {saving ? 'Salvando...' : 'Salvar'}

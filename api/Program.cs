@@ -208,7 +208,14 @@ RecurringJob.AddOrUpdate<PedidosPresosJob>(
 
 app.UseHttpsRedirection();
 app.UseCors();
-app.UseStaticFiles();
+
+var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(wwwrootPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath),
+    RequestPath = ""
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

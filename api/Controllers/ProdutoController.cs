@@ -68,7 +68,13 @@ namespace api.Controllers
                 if (usuario == null)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
-                var produto = await _service.CreateAsync(new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, usuario.EmpresaId, request.Status));
+                var entity = new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, usuario.EmpresaId, request.Status)
+                {
+                    Estoque = request.Estoque,
+                    FreteGratis = request.FreteGratis,
+                    Variantes = request.Variantes
+                };
+                var produto = await _service.CreateAsync(entity);
                 return CreatedAtAction(nameof(GetProdutoById), new { id = produto.Id }, produto);
             }
             catch (Exception ex)
@@ -83,12 +89,7 @@ namespace api.Controllers
         {
             try
             {
-                var existente = await _service.GetByIdAsync(id);
-                if (existente == null)
-                    return NotFound(new { mensagem = "Produto não encontrado." });
-
-                var entity = new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, existente.EmpresaId, request.Status);
-                var produto = await _service.UpdateAsync(entity);
+                var produto = await _service.UpdateAsync(id, request);
                 if (produto == null)
                     return NotFound(new { mensagem = "Produto não encontrado." });
 

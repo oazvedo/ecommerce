@@ -1,7 +1,7 @@
-using api.infra;
+using api.application.services.interfaces;
+using api.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace api.Controllers
 {
@@ -10,22 +10,26 @@ namespace api.Controllers
     [Authorize]
     public class UploadController : ControllerBase
     {
-        private readonly DatabaseContext _db;
+        private readonly IUsuarioService _usuarioService;
+        private readonly IProdutoService _produtoService;
+        private readonly IEmpresaService _empresaService;
         private readonly IWebHostEnvironment _env;
 
         private static readonly HashSet<string> _allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
         private const long MaxBytes = 5 * 1024 * 1024; // 5 MB
 
-        public UploadController(DatabaseContext db, IWebHostEnvironment env)
+        public UploadController(IUsuarioService usuarioService, IProdutoService produtoService, IEmpresaService empresaService, IWebHostEnvironment env)
         {
-            _db = db;
+            _usuarioService = usuarioService;
+            _produtoService = produtoService;
+            _empresaService = empresaService;
             _env = env;
         }
 
         [HttpPost("usuario/{id:guid}")]
         public async Task<IActionResult> UploadUsuario(Guid id, IFormFile file)
         {
-            var usuario = await _db.Usuarios.FindAsync(id);
+            var usuario = await _usuarioService.GetByIdAsync(id);
             if (usuario is null) return NotFound();
 
             var url = await SaveFile("usuarios", id, file);
@@ -34,8 +38,7 @@ namespace api.Controllers
             if (usuario.FotoUrl is not null)
                 DeleteOldFile(usuario.FotoUrl);
 
-            usuario.FotoUrl = url;
-            await _db.SaveChangesAsync();
+            await _usuarioService.AtualizarFotoAsync(id, url);
 
             return Ok(new { url });
         }
@@ -43,7 +46,7 @@ namespace api.Controllers
         [HttpPost("produto/{id:guid}")]
         public async Task<IActionResult> UploadProduto(Guid id, IFormFile file)
         {
-            var produto = await _db.Produtos.FindAsync(id);
+            var produto = await _produtoService.GetByIdAsync(id);
             if (produto is null) return NotFound();
 
             var url = await SaveFile("produtos", id, file);
@@ -52,8 +55,7 @@ namespace api.Controllers
             if (produto.ImagemUrl is not null)
                 DeleteOldFile(produto.ImagemUrl);
 
-            produto.ImagemUrl = url;
-            await _db.SaveChangesAsync();
+            await _produtoService.AtualizarImagemAsync(id, url);
 
             return Ok(new { url });
         }
@@ -61,7 +63,7 @@ namespace api.Controllers
         [HttpPost("empresa/{id:guid}")]
         public async Task<IActionResult> UploadEmpresa(Guid id, IFormFile file)
         {
-            var empresa = await _db.Empresas.FindAsync(id);
+            var empresa = await _empresaService.GetByIdAsync(id);
             if (empresa is null) return NotFound();
 
             var url = await SaveFile("empresas", id, file);
@@ -70,8 +72,7 @@ namespace api.Controllers
             if (empresa.LogoUrl is not null)
                 DeleteOldFile(empresa.LogoUrl);
 
-            empresa.LogoUrl = url;
-            await _db.SaveChangesAsync();
+            await _empresaService.AtualizarLogoAsync(id, url);
 
             return Ok(new { url });
         }
@@ -85,7 +86,7 @@ namespace api.Controllers
             if (!_allowedExtensions.Contains(ext))
                 return null;
 
-            var uploadsRoot = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", pasta);
+            var uploadsRoot = Path.Combine(_env.ContentRootPath, "wwwroot", "uploads", pasta);
             Directory.CreateDirectory(uploadsRoot);
 
             var fileName = $"{id}{ext}";
@@ -102,7 +103,7 @@ namespace api.Controllers
             try
             {
                 var relativePath = url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-                var wwwroot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var wwwroot = Path.Combine(_env.ContentRootPath, "wwwroot");
                 var fullPath = Path.Combine(wwwroot, relativePath);
                 if (System.IO.File.Exists(fullPath))
                     System.IO.File.Delete(fullPath);

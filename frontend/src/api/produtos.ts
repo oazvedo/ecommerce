@@ -7,6 +7,9 @@ export interface ProdutoPayload {
   preco: number
   codigo: string
   status: boolean
+  estoque: number
+  freteGratis: boolean
+  variantes: string | null
 }
 
 export const produtosApi = {

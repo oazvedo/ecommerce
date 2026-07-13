@@ -6,5 +6,7 @@ namespace api.Application.Services.Interfaces
 {
     public interface IProdutoService : IServiceBase<Produto, ProdutoDto>
     {
+        Task<ProdutoDto?> UpdateAsync(Guid id, UpdateProdutoRequest request);
+        Task AtualizarImagemAsync(Guid id, string url);
     }
 }

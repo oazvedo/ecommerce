@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   Minus,
@@ -10,7 +11,9 @@ import {
   ShoppingCart,
   Sparkles,
   Star,
+  Tag,
   Truck,
+  XCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Navbar } from '@/components/Navbar'
 import { produtosApi } from '@/api/produtos'
 import { useCart } from '@/context/CartContext'
+import { resolveImageUrl } from '@/api/upload'
 import type { Produto } from '@/types'
 import { toast } from 'sonner'
 
@@ -93,6 +97,8 @@ export function ProductDetailPage() {
     )
   }
 
+  const outOfStock = produto.estoque === 0
+  const lowStock = produto.estoque > 0 && produto.estoque <= 10
   const subtotal = produto.preco * qty
 
   return (
@@ -111,18 +117,23 @@ export function ProductDetailPage() {
               <div
                 className={`relative flex h-72 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br md:h-80 ${cardGradient(produto.nome)}`}
               >
+                {produto.imagemUrl && (
+                  <img
+                    src={resolveImageUrl(produto.imagemUrl)!}
+                    alt={produto.nome}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
                 <div className="absolute left-4 top-4 flex items-center gap-2">
                   <Badge className="border-white/20 bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-zinc-800 hover:bg-white">
                     {produto.status ? 'Disponível' : 'Pausado'}
                   </Badge>
                 </div>
-                <span className="text-6xl font-black uppercase tracking-tight text-white/25 select-none md:text-7xl">
-                  {initials(produto.nome)}
-                </span>
-                <div className="absolute bottom-4 left-4 right-4 rounded-lg bg-black/15 px-3 py-2.5 text-white backdrop-blur">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-white/70">Código</p>
-                  <p className="mt-0.5 truncate font-mono text-xs font-semibold">{produto.codigo}</p>
-                </div>
+                {!produto.imagemUrl && (
+                  <span className="text-6xl font-black uppercase tracking-tight text-white/25 select-none md:text-7xl">
+                    {initials(produto.nome)}
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col justify-between gap-6">
@@ -131,19 +142,45 @@ export function ProductDetailPage() {
                   <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">{produto.nome}</h1>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
-                    {produto.status ? (
+                    {!produto.status ? (
+                      <Badge variant="secondary">Indisponível</Badge>
+                    ) : outOfStock ? (
+                      <Badge className="gap-1 border-red-500/20 bg-red-500/10 text-red-700 hover:bg-red-500/10 dark:text-red-400">
+                        <XCircle className="h-3.5 w-3.5" />
+                        Fora de estoque
+                      </Badge>
+                    ) : lowStock ? (
+                      <Badge className="gap-1 border-amber-500/20 bg-amber-500/10 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Restam apenas {produto.estoque} unidade{produto.estoque > 1 ? 's' : ''}
+                      </Badge>
+                    ) : (
                       <Badge className="gap-1 border-emerald-500/20 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300">
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Em estoque
                       </Badge>
-                    ) : (
-                      <Badge variant="secondary">Indisponível</Badge>
                     )}
-                    <Badge variant="outline" className="gap-1">
-                      <Truck className="h-3.5 w-3.5" />
-                      Frete grátis
-                    </Badge>
+                    {produto.freteGratis && (
+                      <Badge variant="outline" className="gap-1">
+                        <Truck className="h-3.5 w-3.5" />
+                        Frete grátis
+                      </Badge>
+                    )}
                   </div>
+
+                  {produto.variantes && (
+                    <div className="mt-4">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Variantes</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {produto.variantes.split(',').map(v => v.trim()).filter(Boolean).map(v => (
+                          <Badge key={v} variant="outline" className="gap-1 font-medium">
+                            <Tag className="h-3 w-3" />
+                            {v}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-5 flex items-center gap-1">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -206,11 +243,11 @@ export function ProductDetailPage() {
             </div>
 
             <div className="mt-4 space-y-2">
-              <Button className="h-11 w-full font-semibold" disabled={!produto.status} onClick={handleAdd}>
+              <Button className="h-11 w-full font-semibold" disabled={!produto.status || outOfStock} onClick={handleAdd}>
                 <ShoppingCart className="h-4 w-4" />
-                Adicionar ao carrinho
+                {outOfStock ? 'Fora de estoque' : 'Adicionar ao carrinho'}
               </Button>
-              <Button variant="outline" className="h-11 w-full font-semibold" disabled={!produto.status} onClick={handleCheckout}>
+              <Button variant="outline" className="h-11 w-full font-semibold" disabled={!produto.status || outOfStock} onClick={handleCheckout}>
                 <Package className="h-4 w-4" />
                 Ir para o checkout
               </Button>

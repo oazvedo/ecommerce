@@ -126,6 +126,14 @@ namespace api.application.services
             });
         }
 
+        public async Task AtualizarFotoAsync(Guid id, string url)
+        {
+            var usuario = await _repository.GetByIdAsync(id);
+            if (usuario == null) return;
+            usuario.FotoUrl = url;
+            await _repository.UpdateAsync(usuario);
+        }
+
         public Task<bool> UpdatePasswordAsync(Guid id, string password)
             => _repository.UpdatePasswordAsync(id, password);
 

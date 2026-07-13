@@ -162,6 +162,10 @@ namespace api.Controllers
             {
                 return NotFound(new { mensagem = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { mensagem = ex.Message });

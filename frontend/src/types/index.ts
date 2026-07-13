@@ -25,10 +25,13 @@ export interface Produto {
   codigo: string
   status: boolean
   preco: number
-  imagem_url: string | null
+  imagemUrl: string | null
   empresaId: string
   criadoEm: string
   atualizadoEm: string | null
+  estoque: number
+  freteGratis: boolean
+  variantes: string | null
 }
 
 export interface PedidoItem {

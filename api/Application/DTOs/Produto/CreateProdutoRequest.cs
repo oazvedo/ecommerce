@@ -18,6 +18,15 @@ namespace api.Application.DTOs.Produto
 
         [JsonPropertyName("status")]
         public bool Status { get; set; }
+
+        [JsonPropertyName("estoque")]
+        public int Estoque { get; set; }
+
+        [JsonPropertyName("freteGratis")]
+        public bool FreteGratis { get; set; }
+
+        [JsonPropertyName("variantes")]
+        public string? Variantes { get; set; }
     }
 
     public class UpdateProdutoRequest
@@ -36,5 +45,14 @@ namespace api.Application.DTOs.Produto
 
         [JsonPropertyName("status")]
         public bool Status { get; set; }
+
+        [JsonPropertyName("estoque")]
+        public int Estoque { get; set; }
+
+        [JsonPropertyName("freteGratis")]
+        public bool FreteGratis { get; set; }
+
+        [JsonPropertyName("variantes")]
+        public string? Variantes { get; set; }
     }
 }

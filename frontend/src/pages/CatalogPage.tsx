@@ -56,12 +56,12 @@ export function CatalogPage() {
 
   const filtered = useMemo(() => {
     if (filter === 'available') return queryItems.filter(p => p.status)
-    if (filter === 'freeShipping') return queryItems.filter(p => p.status && p.preco >= 100)
+    if (filter === 'freeShipping') return queryItems.filter(p => p.freteGratis)
     return queryItems
   }, [filter, queryItems])
 
   const availableCount = items.filter(p => p.status).length
-  const freeShippingCount = items.filter(p => p.status && p.preco >= 100).length
+  const freeShippingCount = items.filter(p => p.freteGratis).length
   const featured = filtered[0]
 
   return (

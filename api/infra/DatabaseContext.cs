@@ -365,6 +365,20 @@ namespace api.infra
                     .IsRequired(false)
                     .HasMaxLength(500);
 
+                entity.Property(u => u.Estoque)
+                    .HasColumnName("estoque")
+                    .IsRequired()
+                    .HasDefaultValue(0);
+
+                entity.Property(u => u.FreteGratis)
+                    .HasColumnName("frete_gratis")
+                    .IsRequired()
+                    .HasDefaultValue(false);
+
+                entity.Property(u => u.Variantes)
+                    .HasColumnName("variantes")
+                    .IsRequired(false);
+
                 entity.Property(u => u.EmpresaId)
                     .HasColumnName("empresa_id")
                     .IsRequired();

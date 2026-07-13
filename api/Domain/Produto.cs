@@ -36,6 +36,10 @@ namespace api.Domain
         [JsonPropertyName("empresa_id")]
         public Guid EmpresaId { get; set; }
 
+        public int Estoque { get; set; }
+        public bool FreteGratis { get; set; }
+        public string? Variantes { get; set; }
+
         public Empresa? Empresa { get; set; }
 
         [SetsRequiredMembers]
@@ -63,13 +67,16 @@ namespace api.Domain
             CriadoEm = DateTime.UtcNow;
         }
 
-        public void AtualizarProduto(string nome, string descricao, bool status, string codigo, decimal preco)
+        public void AtualizarProduto(string nome, string descricao, bool status, string codigo, decimal preco, int estoque, bool freteGratis, string? variantes)
         {
             Nome = nome;
             Descricao = descricao;
             Status = status;
             Codigo = codigo;
             Preco = preco;
+            Estoque = estoque;
+            FreteGratis = freteGratis;
+            Variantes = variantes;
             AtualizadoEm = DateTime.UtcNow;
             ValidarProduto();
         }

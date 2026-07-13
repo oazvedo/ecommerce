@@ -115,7 +115,13 @@ namespace api.Application.Services
             {
                 var produto = await _produtoRepository.GetByIdAsync(item.produtoId)
                     ?? throw new KeyNotFoundException($"Produto '{item.produtoId}' não encontrado.");
+
+                if (produto.Estoque < item.quantidade)
+                    throw new InvalidOperationException(
+                        $"Estoque insuficiente para '{produto.Nome}'. Disponível: {produto.Estoque}.");
+
                 pedido.AdicionarItem(produto, item.quantidade);
+                produto.Estoque -= item.quantidade;
             }
             var carteiraUsuario = await _carteiraService.GetCarteiraByUsuarioId(usuarioId);
 
@@ -229,6 +235,13 @@ namespace api.Application.Services
             var valorTotal = (double)pedido.ValorTotal;
             var usuarioId = pedido.UsuarioId;
             var statusAnterior = pedido.Status;
+
+            foreach (var item in pedido.Itens)
+            {
+                var produto = await _produtoRepository.GetByIdAsync(item.ProdutoId);
+                if (produto != null)
+                    produto.Estoque += item.Quantidade;
+            }
 
             pedido.CancelarPedido();
             var updated = await _repository.AtualizarPedido(pedidoId, pedido);

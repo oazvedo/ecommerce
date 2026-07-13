@@ -91,5 +91,13 @@ namespace api.Application.Services
             var entity = await _empresaRepository.UpdateCamposAsync(id, request.Nome, request.Cnpj, request.Responsavel, request.ResponsavelId, request.Telefone, request.Tipo, request.Status);
             return entity == null ? null : ToDto(entity);
         }
+
+        public async Task AtualizarLogoAsync(Guid id, string url)
+        {
+            var empresa = await _repository.GetByIdAsync(id);
+            if (empresa == null) return;
+            empresa.LogoUrl = url;
+            await _repository.UpdateAsync(empresa);
+        }
     }
 }

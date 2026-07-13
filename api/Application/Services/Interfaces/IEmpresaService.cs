@@ -14,5 +14,6 @@ namespace api.Application.Services.Interfaces
         Task<bool> AdicionarUsuarioAsync(Guid empresaId, Guid usuarioId);
         Task<bool> DeleteComCascadeAsync(Guid empresaId);
         Task<EmpresaDto?> UpdateCamposAsync(Guid id, UpdateEmpresaRequest request);
+        Task AtualizarLogoAsync(Guid id, string url);
     }
 }
