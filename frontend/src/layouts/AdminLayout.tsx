@@ -13,6 +13,7 @@ import {
   Sun,
   Moon,
   ShieldCheck,
+  ArrowLeftFromLine,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
@@ -21,6 +22,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Visão Geral', icon: LayoutDashboard, end: true },
+  // { to: '/minha-empresa', label: 'Minha Empresa', icon: Building2, end: true },
   { to: '/admin/empresas', label: 'Empresas', icon: Building2, end: false },
   { to: '/admin/usuarios', label: 'Usuários', icon: Users, end: false },
   { to: '/admin/produtos', label: 'Produtos', icon: Package, end: false },
@@ -90,6 +92,21 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </NavLink>
           ))}
         </nav>
+
+        {/* Return to app */}
+        <div className="px-2 pb-2">
+          <button
+            onClick={() => navigate('/')}
+            className={cn(
+              'flex w-full items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground transition-colors border border-dashed border-border',
+              collapsed ? 'justify-center' : 'gap-2.5'
+            )}
+            title={collapsed ? 'Voltar ao sistema' : undefined}
+          >
+            <ArrowLeftFromLine className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Voltar ao sistema</span>}
+          </button>
+        </div>
 
         {/* Bottom section */}
         <div className="border-t border-border p-2 space-y-1">

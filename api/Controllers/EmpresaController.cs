@@ -3,6 +3,7 @@ using api.Application.DTOs.Empresa;
 using api.Application.Services.Interfaces;
 using api.Application.Utils;
 using api.Domain;
+using api.infra;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -117,7 +118,7 @@ namespace api.Controllers
         {
             try
             {
-                var removido = await _service.DeleteAsync(id);
+                var removido = await _service.DeleteComCascadeAsync(id);
                 if (!removido)
                     return NotFound(new { mensagem = "Empresa não encontrada." });
 
@@ -174,6 +175,24 @@ namespace api.Controllers
                 var ok = await _service.AdicionarUsuarioAsync(id, usuarioId);
                 if (!ok)
                     return NotFound(new { mensagem = "Empresa ou usuário não encontrado." });
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}/usuario/{usuarioId}")]
+        [Authorize(Policy = "Usuario.Update")]
+        public async Task<ActionResult> DesalocarUsuario(Guid id, Guid usuarioId)
+        {
+            try
+            {
+                var ok = await _service.AdicionarUsuarioAsync(infra.EmpresaSeed.DefaultEmpresaId, usuarioId);
+                if (!ok)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
 
                 return NoContent();
             }

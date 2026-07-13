@@ -42,5 +42,53 @@ namespace api.infra.repository
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<bool> DeleteComCascadeAsync(Guid empresaId)
+        {
+            var empresa = await _context.Empresas.FindAsync(empresaId);
+            if (empresa == null) return false;
+
+            var produtoIds = await _context.Produtos
+                .Where(p => p.EmpresaId == empresaId)
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            // Remove pedido_itens referencing this empresa's produtos (Restrict FK: PedidoItem → Produto)
+            if (produtoIds.Any())
+            {
+                var itensDoProduto = await _context.PedidoItens
+                    .Where(i => produtoIds.Contains(i.ProdutoId))
+                    .ToListAsync();
+                if (itensDoProduto.Any())
+                    _context.PedidoItens.RemoveRange(itensDoProduto);
+            }
+
+            // Delete pedidos of this empresa; EF cascades remaining PedidoItens via Cascade config
+            var pedidos = await _context.Pedidos
+                .Include(p => p.Itens)
+                .Where(p => p.EmpresaId == empresaId)
+                .ToListAsync();
+            if (pedidos.Any())
+                _context.Pedidos.RemoveRange(pedidos);
+
+            // Now safe to delete produtos (no more PedidoItens referencing them)
+            if (produtoIds.Any())
+            {
+                var produtos = await _context.Produtos.Where(p => p.EmpresaId == empresaId).ToListAsync();
+                _context.Produtos.RemoveRange(produtos);
+            }
+
+            // Move usuarios to default empresa (Restrict FK: Usuario → Empresa)
+            var usuarios = await _context.Usuarios.Where(u => u.EmpresaId == empresaId).ToListAsync();
+            foreach (var u in usuarios)
+                u.EmpresaId = EmpresaSeed.DefaultEmpresaId;
+
+            await _context.SaveChangesAsync();
+
+            _context.Empresas.Remove(empresa);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
     }
 }

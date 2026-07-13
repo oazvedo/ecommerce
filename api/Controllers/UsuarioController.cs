@@ -3,6 +3,7 @@ using api.Application.DTOs.Common;
 using api.Application.DTOs.Usuario;
 using api.application.services.interfaces;
 using api.domain;
+using api.domain.enums;
 using api.domain.interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -85,6 +86,27 @@ namespace api.controllers
                 var updatedUsuario = await _service.UpdateAsync(id, request);
                 if (updatedUsuario == null)
                     return NotFound();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpPatch("{id}/status")]
+        [Authorize(Policy = "Usuario.Update")]
+        public async Task<IActionResult> UpdateUsuarioStatus(Guid id, [FromBody] UpdateUsuarioStatusRequest request)
+        {
+            try
+            {
+                var usuario = await _service.GetByIdAsync(id);
+                if (usuario == null) return NotFound();
+
+                var atualizado = await _service.UpdateStatusAsync(id, request.Status);
+                if (!atualizado)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
 
                 return NoContent();
             }

@@ -93,6 +93,9 @@ export const pedidosApi = {
       body: JSON.stringify({ status }),
     }).then(normalizePedido),
 
+  delete: (id: string) =>
+    apiFetch<void>(`/pedido/${id}`, { method: 'DELETE' }),
+
   cancelar: (id: string) =>
     apiFetch<PedidoApi>(`/pedido/cancelar?id=${id}`, { method: 'POST', skipAuth: true }).then(normalizePedido),
 

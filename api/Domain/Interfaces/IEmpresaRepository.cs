@@ -8,5 +8,6 @@ namespace api.Domain.Interfaces
         Task<(IEnumerable<Produto> Items, int TotalCount)> GetProdutosAsync(Guid empresaId, int page, int pageSize);
         Task<(IEnumerable<Usuario> Items, int TotalCount)> GetUsuariosAsync(Guid empresaId, int page, int pageSize);
         Task<bool> AdicionarUsuarioAsync(Guid empresaId, Guid usuarioId);
+        Task<bool> DeleteComCascadeAsync(Guid empresaId);
     }
 }

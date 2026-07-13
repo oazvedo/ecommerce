@@ -47,4 +47,7 @@ export const empresasApi = {
 
   adicionarUsuario: (empresaId: string, usuarioId: string) =>
     apiFetch<void>(`/empresa/${empresaId}/usuario/${usuarioId}`, { method: 'PATCH' }),
+
+  desalocarUsuario: (empresaId: string, usuarioId: string) =>
+    apiFetch<void>(`/empresa/${empresaId}/usuario/${usuarioId}`, { method: 'DELETE' }),
 }

@@ -105,5 +105,22 @@ namespace api.Controllers
                 return StatusCode(500, new { mensagem = ex.Message });
             }
         }
+
+        [HttpDelete("{id}")]
+        [Authorize(Policy = "Carteira.Delete")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            try
+            {
+                var removido = await _service.DeleteAsync(id);
+                if (!removido)
+                    return NotFound(new { mensagem = "Carteira não encontrada." });
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
     }
 }

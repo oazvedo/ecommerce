@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ChevronRight } from 'lucide-react'
+import { Plus, Pencil, Trash2, MoreHorizontal, Power, PowerOff, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,6 +13,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Select,
   SelectContent,
@@ -36,15 +53,25 @@ const CARGO_COLORS: Record<string, string> = {
   Operador: 'bg-secondary text-secondary-foreground border-border',
 }
 
+type EditForm = { nome: string; email: string; cargo: string }
+
 export function UsuariosPage() {
   const navigate = useNavigate()
   const [result, setResult] = useState<PagedResult<Usuario> | null>(null)
   const [empresas, setEmpresas] = useState<Empresa[]>([])
   const [loading, setLoading] = useState(true)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [form, setForm] = useState({ nome: '', email: '', password: '', empresaId: '', cargo: 'Operador' })
+
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm, setCreateForm] = useState({ nome: '', email: '', password: '', empresaId: '', cargo: 'Operador' })
+  const [creating, setCreating] = useState(false)
+  const selectedEmpresa = empresas.find(e => e.empresa_id === createForm.empresaId)
+
+  const [editTarget, setEditTarget] = useState<Usuario | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({ nome: '', email: '', cargo: '' })
   const [saving, setSaving] = useState(false)
-  const selectedEmpresa = empresas.find(e => e.empresa_id === form.empresaId)
+
+  const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   function load() {
     setLoading(true)
@@ -59,21 +86,70 @@ export function UsuariosPage() {
 
   useEffect(load, [])
 
+  function openEdit(u: Usuario) {
+    setEditTarget(u)
+    setEditForm({ nome: u.nome, email: u.email, cargo: u.cargo })
+  }
+
   async function handleCreate() {
-    setSaving(true)
+    setCreating(true)
     try {
       await usuariosApi.create(
-        { nome: form.nome, email: form.email, password: form.password, empresaId: form.empresaId },
-        form.cargo
+        { nome: createForm.nome, email: createForm.email, password: createForm.password, empresaId: createForm.empresaId },
+        createForm.cargo
       )
       toast.success('Usuário criado.')
-      setDialogOpen(false)
-      setForm({ nome: '', email: '', password: '', empresaId: '', cargo: 'Operador' })
+      setCreateOpen(false)
+      setCreateForm({ nome: '', email: '', password: '', empresaId: '', cargo: 'Operador' })
       load()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao criar usuário')
     } finally {
+      setCreating(false)
+    }
+  }
+
+  async function handleEdit() {
+    if (!editTarget) return
+    setSaving(true)
+    try {
+      await usuariosApi.update(editTarget.id, editForm)
+      toast.success('Usuário atualizado.')
+      setEditTarget(null)
+      load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar')
+    } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleToggleStatus(u: Usuario) {
+    const next = u.status === 'Ativo' ? 'Desativado' : 'Ativo'
+    try {
+      await usuariosApi.updateStatus(u.id, next)
+      toast.success(`Usuário ${next === 'Ativo' ? 'ativado' : 'desativado'}.`)
+      setResult(prev => prev ? {
+        ...prev,
+        items: prev.items.map(x => x.id === u.id ? { ...x, status: next } : x),
+      } : prev)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao alterar status')
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await usuariosApi.delete(deleteTarget.id)
+      toast.success('Usuário excluído.')
+      setDeleteTarget(null)
+      load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao excluir')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -87,7 +163,7 @@ export function UsuariosPage() {
               {result ? `${result.totalCount} usuário(s)` : ''}
             </p>
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Novo usuário
           </Button>
@@ -102,31 +178,51 @@ export function UsuariosPage() {
             ) : (
               <div className="divide-y divide-border">
                 {result?.items.map(u => (
-                  <button
-                    key={u.id}
-                    className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
-                    onClick={() => navigate(`/admin/usuarios/${u.id}`)}
-                  >
+                  <div key={u.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{u.nome}</p>
                       <p className="text-xs text-muted-foreground">{u.email}</p>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <Badge
-                        variant="outline"
-                        className={cn('text-xs', CARGO_COLORS[u.cargo] ?? CARGO_COLORS.Operador)}
-                      >
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className={cn('text-xs', CARGO_COLORS[u.cargo] ?? CARGO_COLORS.Operador)}>
                         {u.cargo}
                       </Badge>
-                      <Badge
-                        variant={u.status === 'Ativo' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
+                      <Badge variant={u.status === 'Ativo' ? 'default' : 'secondary'} className="text-xs">
                         {u.status}
                       </Badge>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => navigate(`/admin/usuarios/${u.id}`)}>
+                            <ExternalLink className="mr-2 h-4 w-4 text-blue-500" />
+                            Detalhes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEdit(u)}>
+                            <Pencil className="mr-2 h-4 w-4 text-violet-500" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleStatus(u)}>
+                            {u.status === 'Ativo'
+                              ? <PowerOff className="mr-2 h-4 w-4 text-amber-500" />
+                              : <Power className="mr-2 h-4 w-4 text-emerald-500" />}
+                            {u.status === 'Ativo' ? 'Desativar' : 'Ativar'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setDeleteTarget(u)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -134,7 +230,8 @@ export function UsuariosPage() {
         </Card>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Create dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Novo usuário</DialogTitle>
@@ -142,19 +239,19 @@ export function UsuariosPage() {
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
               <Label>Nome</Label>
-              <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
+              <Input value={createForm.nome} onChange={e => setCreateForm(f => ({ ...f, nome: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label>E-mail</Label>
-              <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              <Input type="email" value={createForm.email} onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label>Senha</Label>
-              <Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+              <Input type="password" value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label>Empresa</Label>
-              <Select value={form.empresaId} onValueChange={v => setForm(f => ({ ...f, empresaId: v ?? f.empresaId }))}>
+              <Select value={createForm.empresaId} onValueChange={v => setCreateForm(f => ({ ...f, empresaId: v ?? f.empresaId }))}>
                 <SelectTrigger className="w-full">
                   <span className={cn('min-w-0 flex-1 truncate text-left', !selectedEmpresa && 'text-muted-foreground')}>
                     {selectedEmpresa?.empresa_nome ?? 'Selecione...'}
@@ -169,19 +266,72 @@ export function UsuariosPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Cargo</Label>
-              <Select value={form.cargo} onValueChange={v => setForm(f => ({ ...f, cargo: v ?? f.cargo }))}>
+              <Select value={createForm.cargo} onValueChange={v => setCreateForm(f => ({ ...f, cargo: v ?? f.cargo }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CARGOS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <Button className="w-full" onClick={handleCreate} disabled={saving}>
-              {saving ? 'Criando...' : 'Criar usuário'}
+            <Button className="w-full" onClick={handleCreate} disabled={creating}>
+              {creating ? 'Criando...' : 'Criar usuário'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editTarget} onOpenChange={open => !open && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={editForm.nome} onChange={e => setEditForm(f => ({ ...f, nome: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>E-mail</Label>
+              <Input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Cargo</Label>
+              <Select value={editForm.cargo} onValueChange={v => setEditForm(f => ({ ...f, cargo: v ?? f.cargo }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CARGOS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={handleEdit} disabled={saving}>
+              {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{deleteTarget?.nome}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

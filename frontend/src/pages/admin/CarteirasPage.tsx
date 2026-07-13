@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2, MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +12,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { carteiraApi } from '@/api/carteira'
 import type { Carteira, PagedResult } from '@/types'
@@ -25,6 +42,10 @@ export function CarteirasPage() {
   const [saldo, setSaldo] = useState('')
   const [cupom, setCupom] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Delete
+  const [deleteTarget, setDeleteTarget] = useState<Carteira | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Minha carteira top-up
   const [minhaSaldo, setMinhaSaldo] = useState('')
@@ -61,6 +82,25 @@ export function CarteirasPage() {
       toast.error(err instanceof Error ? err.message : 'Erro ao atualizar')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await carteiraApi.delete(deleteTarget.id)
+      toast.success('Carteira excluída.')
+      setDeleteTarget(null)
+      setResult(prev => prev ? {
+        ...prev,
+        items: prev.items.filter(c => c.id !== deleteTarget.id),
+        totalCount: prev.totalCount - 1,
+      } : prev)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao excluir')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -114,14 +154,27 @@ export function CarteirasPage() {
                           <span className="font-bold text-primary">
                             {c.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => { setEditing(c); setSaldo(String(c.saldo)); setCupom('') }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => { setEditing(c); setSaldo(String(c.saldo)); setCupom('') }}>
+                                <Pencil className="mr-2 h-4 w-4 text-violet-500" />
+                                Editar saldo
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setDeleteTarget(c)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     ))}
@@ -213,6 +266,27 @@ export function CarteirasPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir carteira</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a carteira de <strong>{deleteTarget?.usuario_nome}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   )
 }

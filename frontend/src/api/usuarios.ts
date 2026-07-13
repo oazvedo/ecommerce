@@ -17,7 +17,7 @@ export const usuariosApi = {
       skipAuth: true,
     }),
 
-  update: (id: string, data: { nome: string; email: string }) =>
+  update: (id: string, data: { nome: string; email: string; cargo?: string }) =>
     apiFetch<void>(`/usuario/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -27,6 +27,12 @@ export const usuariosApi = {
     apiFetch<void>(`/usuario/${id}/password`, {
       method: 'PUT',
       body: JSON.stringify({ password }),
+    }),
+
+  updateStatus: (id: string, status: 'Ativo' | 'Desativado') =>
+    apiFetch<void>(`/usuario/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     }),
 
   delete: (id: string) =>

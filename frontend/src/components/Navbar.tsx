@@ -48,12 +48,12 @@ export function Navbar() {
     { to: '/', label: 'Início', icon: <Home className="h-3.5 w-3.5" /> },
     { to: '/meus-pedidos', label: 'Meus Pedidos', icon: <Package className="h-3.5 w-3.5" /> },
     { to: '/carteira', label: 'Carteira', icon: <Wallet className="h-3.5 w-3.5" /> },
-    ...(!isAdmin && hasPermission('Empresa.Read')
+    ...(hasPermission('Empresa.Read')
       ? [{ to: '/minha-empresa', label: 'Minha Empresa', icon: <Building2 className="h-3.5 w-3.5" /> }]
       : []),
-    ...(isAdmin
-      ? [{ to: '/admin', label: 'Admin', icon: <LayoutDashboard className="h-3.5 w-3.5" /> }]
-      : []),
+    // ...(isAdmin
+    //   ? [{ to: '/admin', label: 'Admin', icon: <LayoutDashboard className="h-3.5 w-3.5" /> }]
+    //   : []),
   ]
 
   return (
@@ -168,7 +168,7 @@ export function Navbar() {
                   <Wallet className="mr-2 h-4 w-4" />
                   Minha Carteira
                 </DropdownMenuItem>
-                {!isAdmin && hasPermission('Empresa.Read') && (
+                {hasPermission('Empresa.Read') && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/minha-empresa')} className="cursor-pointer">

@@ -21,5 +21,6 @@ namespace api.application.services.interfaces
         Task<UsuarioDto?> UpdateAsync(Guid id, UpdateUsuarioRequest request);
         Task<UsuarioDto?> UpdateEmailAsync(Guid id, string email);
         Task<bool> UpdatePasswordAsync(Guid id, string password);
+        Task<bool> UpdateStatusAsync(Guid id, api.domain.enums.UsuarioStatus status);
     }
 }

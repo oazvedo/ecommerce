@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft, Pencil, Plus, Trash2, UserPlus, UserRoundPlus,
+  ArrowLeft, Pencil, Plus, Trash2, UserPlus, UserRoundPlus, Power, PowerOff, UserX, MoreHorizontal,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,15 +34,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { empresasApi } from '@/api/empresas'
 import { produtosApi, type ProdutoPayload } from '@/api/produtos'
 import { usuariosApi } from '@/api/usuarios'
+import { cn } from '@/lib/utils'
 import type { Empresa, Produto, Usuario, PagedResult } from '@/types'
 import { toast } from 'sonner'
 
 const TIPOS = ['Central', 'Filial', 'Parceira', 'Representante']
 const CARGOS = ['Operador', 'Gerente', 'Diretor', 'Administrador']
+
+const CARGO_COLORS: Record<string, string> = {
+  Administrador: 'bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/20',
+  Diretor: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20',
+  Gerente: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+  Operador: 'bg-secondary text-secondary-foreground border-border',
+}
 
 const EMPTY_USUARIO = { nome: '', email: '', password: '', cargo: 'Operador' }
 
@@ -87,6 +102,15 @@ export function EmpresaDetailPage() {
   const [createUserOpen, setCreateUserOpen] = useState(false)
   const [createUserForm, setCreateUserForm] = useState(EMPTY_USUARIO)
   const [creatingUser, setCreatingUser] = useState(false)
+
+  // Edit / status / deallocate / delete user
+  const [editUserTarget, setEditUserTarget] = useState<Usuario | null>(null)
+  const [editUserForm, setEditUserForm] = useState({ nome: '', email: '', cargo: '' })
+  const [savingUser, setSavingUser] = useState(false)
+  const [deallocateTarget, setDeallocateTarget] = useState<Usuario | null>(null)
+  const [deallocating, setDeallocating] = useState(false)
+  const [deleteUserTarget, setDeleteUserTarget] = useState<Usuario | null>(null)
+  const [deletingUser, setDeletingUser] = useState(false)
 
   function loadEmpresa() {
     if (!id) return
@@ -243,6 +267,65 @@ export function EmpresaDetailPage() {
     }
   }
 
+  async function handleEditUser() {
+    if (!editUserTarget) return
+    setSavingUser(true)
+    try {
+      await usuariosApi.update(editUserTarget.id, editUserForm)
+      toast.success('Usuário atualizado.')
+      setEditUserTarget(null)
+      loadUsuarios()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar')
+    } finally {
+      setSavingUser(false)
+    }
+  }
+
+  async function handleToggleUserStatus(u: Usuario) {
+    const next = u.status === 'Ativo' ? 'Desativado' : 'Ativo'
+    try {
+      await usuariosApi.updateStatus(u.id, next)
+      toast.success(`Usuário ${next === 'Ativo' ? 'ativado' : 'desativado'}.`)
+      setUsuarios(prev => prev ? {
+        ...prev,
+        items: prev.items.map(x => x.id === u.id ? { ...x, status: next } : x),
+      } : prev)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao alterar status')
+    }
+  }
+
+  async function handleDeallocate() {
+    if (!id || !deallocateTarget) return
+    setDeallocating(true)
+    try {
+      await empresasApi.desalocarUsuario(id, deallocateTarget.id)
+      toast.success('Usuário desalocado da empresa.')
+      setDeallocateTarget(null)
+      loadUsuarios()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao desalocar')
+    } finally {
+      setDeallocating(false)
+    }
+  }
+
+  async function handleDeleteUser() {
+    if (!deleteUserTarget) return
+    setDeletingUser(true)
+    try {
+      await usuariosApi.delete(deleteUserTarget.id)
+      toast.success('Usuário excluído.')
+      setDeleteUserTarget(null)
+      loadUsuarios()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao excluir')
+    } finally {
+      setDeletingUser(false)
+    }
+  }
+
   if (loadingEmpresa) {
     return (
       <AdminLayout>
@@ -326,19 +409,49 @@ export function EmpresaDetailPage() {
                   ) : (
                     <div className="divide-y divide-border">
                       {usuarios?.items.map(u => (
-                        <div key={u.id} className="flex items-center justify-between px-4 py-3">
+                        <div key={u.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">{u.nome}</p>
                             <p className="text-xs text-muted-foreground">{u.email}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <Badge variant="outline" className="text-xs">{u.cargo}</Badge>
-                            <Badge
-                              variant={u.status === 'Ativo' ? 'default' : 'secondary'}
-                              className="text-xs"
-                            >
+                            <Badge variant="outline" className={cn('text-xs', CARGO_COLORS[u.cargo] ?? CARGO_COLORS.Operador)}>
+                              {u.cargo}
+                            </Badge>
+                            <Badge variant={u.status === 'Ativo' ? 'default' : 'secondary'} className="text-xs">
                               {u.status}
                             </Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setEditUserTarget(u); setEditUserForm({ nome: u.nome, email: u.email, cargo: u.cargo }) }}>
+                                  <Pencil className="mr-2 h-4 w-4 text-violet-500" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleToggleUserStatus(u)}>
+                                  {u.status === 'Ativo'
+                                    ? <PowerOff className="mr-2 h-4 w-4 text-amber-500" />
+                                    : <Power className="mr-2 h-4 w-4 text-emerald-500" />}
+                                  {u.status === 'Ativo' ? 'Desativar' : 'Ativar'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setDeallocateTarget(u)}>
+                                  <UserX className="mr-2 h-4 w-4 text-amber-500" />
+                                  Desalocar da empresa
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteUserTarget(u)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       ))}
@@ -566,6 +679,77 @@ export function EmpresaDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit user dialog */}
+      <Dialog open={!!editUserTarget} onOpenChange={open => !open && setEditUserTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={editUserForm.nome} onChange={e => setEditUserForm(f => ({ ...f, nome: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>E-mail</Label>
+              <Input type="email" value={editUserForm.email} onChange={e => setEditUserForm(f => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Cargo</Label>
+              <Select value={editUserForm.cargo} onValueChange={v => setEditUserForm(f => ({ ...f, cargo: v ?? f.cargo }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CARGOS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full" onClick={handleEditUser} disabled={savingUser}>
+              {savingUser ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Deallocate user confirmation */}
+      <AlertDialog open={!!deallocateTarget} onOpenChange={open => !open && setDeallocateTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desalocar usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{deallocateTarget?.nome}</strong> será removido desta empresa e movido para a empresa padrão. O usuário não será excluído.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deallocating}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeallocate} disabled={deallocating}>
+              {deallocating ? 'Desalocando...' : 'Desalocar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete user confirmation */}
+      <AlertDialog open={!!deleteUserTarget} onOpenChange={open => !open && setDeleteUserTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{deleteUserTarget?.nome}</strong>? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingUser}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              disabled={deletingUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingUser ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete product confirmation */}
       <AlertDialog open={!!deleteProductId} onOpenChange={open => !open && setDeleteProductId(null)}>

@@ -20,4 +20,7 @@ export const carteiraApi = {
       method: 'PUT',
       body: JSON.stringify({ saldo, ...(cupom ? { cupom } : {}) }),
     }),
+
+  delete: (id: string) =>
+    apiFetch<void>(`/carteira/${id}`, { method: 'DELETE' }),
 }

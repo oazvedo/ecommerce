@@ -79,5 +79,8 @@ namespace api.Application.Services
 
         public Task<bool> AdicionarUsuarioAsync(Guid empresaId, Guid usuarioId)
             => _empresaRepository.AdicionarUsuarioAsync(empresaId, usuarioId);
+
+        public Task<bool> DeleteComCascadeAsync(Guid empresaId)
+            => _empresaRepository.DeleteComCascadeAsync(empresaId);
     }
 }
