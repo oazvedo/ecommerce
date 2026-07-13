@@ -1,10 +1,13 @@
+using api.Domain;
 using api.Domain.Enums;
+using api.Domain.Enums.CarteiraEnums;
 using api.Domain.Interfaces;
 
 namespace api.Application.Jobs
 {
     public class PagamentoParcelasJob(
         ICarteiraRepository carteiraRepository,
+        ICarteiraTransacaoRepository transacaoRepository,
         IPedidoRepository pedidoRepository,
         ILogger<PagamentoParcelasJob> logger)
     {
@@ -30,6 +33,10 @@ namespace api.Application.Jobs
 
             carteira.UpdateBalance(-(double)valorParcela);
             await carteiraRepository.UpdateAsync(carteira);
+
+            await transacaoRepository.AddAsync(new CarteiraTransacao(
+                carteira.Id, CarteiraTransacaoTipo.Parcela, (double)valorParcela,
+                $"Parcela {numeroParcela}/{totalParcelas} — Pedido #{pedidoId.ToString()[..8].ToUpper()}", pedidoId));
 
             logger.LogInformation(
                 "PagamentoParcela: parcela {n}/{total} de R$ {Valor:F2} debitada da carteira do usuário {UsuarioId} (pedido {PedidoId}).",

@@ -4,7 +4,10 @@ import {
   CalendarClock,
   CreditCard,
   Mail,
+  MinusCircle,
   Plus,
+  PlusCircle,
+  RefreshCw,
   ShieldCheck,
   Tag,
   User,
@@ -19,10 +22,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Navbar } from '@/components/Navbar'
 import { carteiraApi } from '@/api/carteira'
-import type { Carteira } from '@/types'
+import type { Carteira, CarteiraTransacao } from '@/types'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -36,6 +40,8 @@ const KNOWN_COUPONS = [
 export function WalletPage() {
   const [carteira, setCarteira] = useState<Carteira | null>(null)
   const [loading, setLoading] = useState(true)
+  const [transacoes, setTransacoes] = useState<CarteiraTransacao[]>([])
+  const [loadingTransacoes, setLoadingTransacoes] = useState(true)
   const [open, setOpen] = useState(false)
   const [saldo, setSaldo] = useState('')
   const [cupom, setCupom] = useState('')
@@ -43,6 +49,7 @@ export function WalletPage() {
 
   useEffect(() => {
     carteiraApi.minha().then(setCarteira).catch(console.error).finally(() => setLoading(false))
+    carteiraApi.transacoes().then(setTransacoes).catch(console.error).finally(() => setLoadingTransacoes(false))
   }, [])
 
   async function handleTopUp() {
@@ -56,6 +63,7 @@ export function WalletPage() {
     try {
       const updated = await carteiraApi.updateMinha(valor, cupom || undefined)
       setCarteira(updated)
+      carteiraApi.transacoes().then(setTransacoes).catch(console.error)
       setOpen(false)
       setSaldo('')
       setCupom('')
@@ -187,6 +195,29 @@ export function WalletPage() {
             value={loading ? null : 'Verificada'}
           />
         </div>
+
+        <section className="mt-5 rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex items-center justify-between px-5 pt-5 pb-3">
+            <h2 className="text-base font-semibold">Histórico de transações</h2>
+            <span className="text-xs text-muted-foreground">{transacoes.length} registros</span>
+          </div>
+
+          {loadingTransacoes ? (
+            <div className="space-y-2 px-5 pb-5">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-14 rounded-lg" />
+              ))}
+            </div>
+          ) : transacoes.length === 0 ? (
+            <p className="px-5 pb-6 text-sm text-muted-foreground">Nenhuma transação ainda.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {transacoes.map(t => (
+                <TransacaoRow key={t.id} transacao={t} />
+              ))}
+            </div>
+          )}
+        </section>
       </main>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -296,4 +327,67 @@ function formatDate(dateStr: string | null | undefined) {
     month: 'short',
     year: 'numeric',
   })
+}
+
+const TRANSACAO_CONFIG: Record<
+  CarteiraTransacao['tipo'],
+  { label: string; icon: ReactNode; colorClass: string; badgeClass: string; positive: boolean }
+> = {
+  Recarga: {
+    label: 'Recarga',
+    icon: <PlusCircle className="h-4 w-4" />,
+    colorClass: 'text-emerald-600 dark:text-emerald-400',
+    badgeClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+    positive: true,
+  },
+  Reembolso: {
+    label: 'Reembolso',
+    icon: <RefreshCw className="h-4 w-4" />,
+    colorClass: 'text-blue-600 dark:text-blue-400',
+    badgeClass: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20',
+    positive: true,
+  },
+  Debito: {
+    label: 'Débito',
+    icon: <MinusCircle className="h-4 w-4" />,
+    colorClass: 'text-destructive',
+    badgeClass: 'bg-destructive/10 text-destructive border-destructive/20',
+    positive: false,
+  },
+  Parcela: {
+    label: 'Parcela',
+    icon: <CreditCard className="h-4 w-4" />,
+    colorClass: 'text-orange-600 dark:text-orange-400',
+    badgeClass: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20',
+    positive: false,
+  },
+}
+
+function TransacaoRow({ transacao }: { transacao: CarteiraTransacao }) {
+  const cfg = TRANSACAO_CONFIG[transacao.tipo] ?? TRANSACAO_CONFIG.Debito
+  return (
+    <div className="flex items-center gap-3 px-5 py-3.5">
+      <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted', cfg.colorClass)}>
+        {cfg.icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn('text-[10px] font-semibold px-1.5 py-0', cfg.badgeClass)}>
+            {cfg.label}
+          </Badge>
+          <span className="truncate text-sm text-foreground">
+            {transacao.descricao ?? cfg.label}
+          </span>
+        </div>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {new Date(transacao.ocorrido_em).toLocaleString('pt-BR', {
+            day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+          })}
+        </p>
+      </div>
+      <span className={cn('shrink-0 font-bold', cfg.colorClass)}>
+        {cfg.positive ? '+' : '-'}{formatBRL(transacao.valor)}
+      </span>
+    </div>
+  )
 }

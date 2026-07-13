@@ -7,6 +7,7 @@ using api.domain;
 using api.domain.interfaces;
 using api.Domain;
 using api.Domain.Enums;
+using api.Domain.Enums.CarteiraEnums;
 using api.Domain.Interfaces;
 using Hangfire;
 using MassTransit;
@@ -18,6 +19,7 @@ namespace api.Application.Services
         private readonly IPedidoRepository _repository;
         private readonly IRepositoryBase<Produto> _produtoRepository;
         private readonly ICarteiraRepository _carteiraService;
+        private readonly ICarteiraTransacaoRepository _transacaoRepository;
         private readonly IBackgroundJobClient _backgroundJobs;
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly ILogger<PedidoService> _logger;
@@ -26,6 +28,7 @@ namespace api.Application.Services
             IPedidoRepository repository,
             IRepositoryBase<Produto> produtoRepository,
             ICarteiraRepository carteiraService,
+            ICarteiraTransacaoRepository transacaoRepository,
             IBackgroundJobClient backgroundJobs,
             IPublishEndpoint publishEndpoint,
             ILogger<PedidoService> logger)
@@ -33,6 +36,7 @@ namespace api.Application.Services
             _repository = repository;
             _produtoRepository = produtoRepository;
             _carteiraService = carteiraService;
+            _transacaoRepository = transacaoRepository;
             _backgroundJobs = backgroundJobs;
             _publishEndpoint = publishEndpoint;
             _logger = logger;
@@ -133,6 +137,9 @@ namespace api.Application.Services
 
                 carteiraUsuario.UpdateBalance(-(double)pedido.ValorTotal);
                 await _carteiraService.UpdateAsync(carteiraUsuario);
+                await _transacaoRepository.AddAsync(new CarteiraTransacao(
+                    carteiraUsuario.Id, CarteiraTransacaoTipo.Debito, (double)pedido.ValorTotal,
+                    $"Pedido #{pedido.Id.ToString()[..8].ToUpper()}", pedido.Id));
             }
             else if (request.FormaPagamento == FormaPagamentoEnum.Parcelado && request.Parcelas.HasValue)
             {
@@ -145,6 +152,9 @@ namespace api.Application.Services
 
                 carteiraUsuario.UpdateBalance(-(double)valorParcela);
                 await _carteiraService.UpdateAsync(carteiraUsuario);
+                await _transacaoRepository.AddAsync(new CarteiraTransacao(
+                    carteiraUsuario.Id, CarteiraTransacaoTipo.Parcela, (double)valorParcela,
+                    $"Parcela 1/{numeroParcelas} — Pedido #{pedido.Id.ToString()[..8].ToUpper()}", pedido.Id));
 
                 for (int i = 2; i <= numeroParcelas; i++)
                 {
@@ -286,7 +296,7 @@ namespace api.Application.Services
                 if (valorReembolso > 0)
                 {
                     _backgroundJobs.Enqueue<CarteiraReembolsoJob>(
-                        job => job.Executar(usuarioId, valorReembolso));
+                        job => job.Executar(usuarioId, valorReembolso, pedidoId));
                 }
 
                 var eventoCancelado = new PedidoStatusAlteradoEvent

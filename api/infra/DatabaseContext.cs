@@ -1,6 +1,7 @@
 using api.domain;
 using api.Domain;
 using api.Domain.Enums;
+using api.Domain.Enums.CarteiraEnums;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.infra
@@ -22,6 +23,7 @@ namespace api.infra
         public DbSet<PedidoHistorico> PedidoHistoricos { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<CargoPermissao> CargoPermissoes { get; set; }
+        public DbSet<CarteiraTransacao> CarteiraTransacoes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -409,6 +411,23 @@ namespace api.infra
                 entity.HasOne(cp => cp.Permissao)
                     .WithMany()
                     .HasForeignKey(cp => cp.PermissaoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CarteiraTransacao>(entity =>
+            {
+                entity.ToTable("carteira_transacoes");
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.Id).HasColumnName("id").IsRequired();
+                entity.Property(t => t.CarteiraId).HasColumnName("carteira_id").IsRequired();
+                entity.Property(t => t.Tipo).HasColumnName("tipo").IsRequired().HasConversion<int>();
+                entity.Property(t => t.Valor).HasColumnName("valor").IsRequired();
+                entity.Property(t => t.Descricao).HasColumnName("descricao").IsRequired(false);
+                entity.Property(t => t.ReferenciaId).HasColumnName("referencia_id").IsRequired(false);
+                entity.Property(t => t.OcorridoEm).HasColumnName("ocorrido_em").IsRequired();
+                entity.HasOne<Carteira>()
+                    .WithMany()
+                    .HasForeignKey(t => t.CarteiraId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }

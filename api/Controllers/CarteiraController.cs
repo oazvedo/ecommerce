@@ -50,6 +50,26 @@ namespace api.Controllers
             }
         }
 
+        [HttpGet("minha-carteira/transacoes")]
+        [Authorize(Policy = "Carteira.Read")]
+        public async Task<IActionResult> GetMinhasTransacoes()
+        {
+            try
+            {
+                var usuarioId = User.GetId();
+                var result = await _service.GetMinhasTransacoesAsync(usuarioId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensagem = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
         [HttpGet("{id}")]
         [Authorize(Policy = "Carteira.Read")]
         public async Task<IActionResult> GetById(Guid id)

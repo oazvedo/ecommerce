@@ -10,5 +10,6 @@ namespace api.Application.Services.Interfaces
         Task <CarteiraDto> UpdateCarteira(Guid id, UpdateCarteiraRequest request);
         Task<CarteiraDto> GetMyCarteiraAsync(Guid usuarioId);
         Task <CarteiraDto> UpdateMyBalanceAsync(Guid usuarioId, UpdateCarteiraRequest request);
+        Task<IEnumerable<CarteiraTransacaoDto>> GetMinhasTransacoesAsync(Guid usuarioId);
     }
 }

@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { Carteira, PagedResult } from '@/types'
+import type { Carteira, CarteiraTransacao, PagedResult } from '@/types'
 
 export const carteiraApi = {
   list: (page = 1, pageSize = 10) =>
@@ -23,4 +23,6 @@ export const carteiraApi = {
 
   delete: (id: string) =>
     apiFetch<void>(`/carteira/${id}`, { method: 'DELETE' }),
+
+  transacoes: () => apiFetch<CarteiraTransacao[]>('/carteira/minha-carteira/transacoes'),
 }

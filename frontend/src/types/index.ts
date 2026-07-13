@@ -74,6 +74,17 @@ export interface Carteira {
   atualizado_em: string | null
 }
 
+export type CarteiraTransacaoTipo = 'Recarga' | 'Debito' | 'Reembolso' | 'Parcela'
+
+export interface CarteiraTransacao {
+  id: string
+  tipo: CarteiraTransacaoTipo
+  valor: number
+  descricao: string | null
+  referencia_id: string | null
+  ocorrido_em: string
+}
+
 export interface AuthTokens {
   access_token: string
   refresh_token: string

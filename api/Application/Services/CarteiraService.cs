@@ -2,6 +2,7 @@ using api.application.services;
 using api.Application.DTOs.Carteira;
 using api.Application.Services.Interfaces;
 using api.Domain;
+using api.Domain.Enums.CarteiraEnums;
 using api.Domain.Interfaces;
 
 namespace api.Application.Services
@@ -9,10 +10,12 @@ namespace api.Application.Services
     public class CarteiraService : ServiceBase<Carteira, CarteiraDto>, ICarteiraService
     {
         private readonly ICarteiraRepository _carteiraRepository;
+        private readonly ICarteiraTransacaoRepository _transacaoRepository;
 
-        public CarteiraService(ICarteiraRepository repository) : base(repository)
+        public CarteiraService(ICarteiraRepository repository, ICarteiraTransacaoRepository transacaoRepository) : base(repository)
         {
             _carteiraRepository = repository;
+            _transacaoRepository = transacaoRepository;
         }
 
         public async Task<CarteiraDto> UpdateCarteira(Guid id, UpdateCarteiraRequest request)
@@ -20,34 +23,50 @@ namespace api.Application.Services
             var carteira = await _repository.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"Carteira {id} não encontrada");
 
+            var saldoAntes = carteira.Saldo;
+
             if (string.IsNullOrWhiteSpace(request.Cupom))
-            {
                 carteira.UpdateBalance(request.Saldo);
-            }
             else
-            {
                 carteira.ApplyBonus(request.Saldo, request.Cupom);
-            }
 
             var updated = await _repository.UpdateAsync(carteira);
+
+            var delta = carteira.Saldo - saldoAntes;
+            if (delta != 0)
+            {
+                var tipo = delta > 0 ? CarteiraTransacaoTipo.Recarga : CarteiraTransacaoTipo.Debito;
+                var descricao = string.IsNullOrWhiteSpace(request.Cupom)
+                    ? (delta > 0 ? "Recarga administrativa" : "Débito administrativo")
+                    : $"Recarga com cupom {request.Cupom}";
+                await _transacaoRepository.AddAsync(new CarteiraTransacao(carteira.Id, tipo, Math.Abs(delta), descricao));
+            }
+
             return ToDto(updated!);
         }
-
 
         public async Task<CarteiraDto> UpdateMyBalanceAsync(Guid usuarioId, UpdateCarteiraRequest request)
         {
             var carteira = await GetCarteiraEntityAsync(usuarioId);
+            var saldoAntes = carteira.Saldo;
 
             if (string.IsNullOrWhiteSpace(request.Cupom))
-            {
                 carteira.UpdateBalance(request.Saldo);
-            }
             else
-            {
                 carteira.ApplyBonus(request.Saldo, request.Cupom);
-            }
 
             var updated = await _repository.UpdateAsync(carteira);
+
+            var delta = carteira.Saldo - saldoAntes;
+            if (delta != 0)
+            {
+                var tipo = delta > 0 ? CarteiraTransacaoTipo.Recarga : CarteiraTransacaoTipo.Debito;
+                var descricao = string.IsNullOrWhiteSpace(request.Cupom)
+                    ? "Recarga"
+                    : $"Recarga com cupom {request.Cupom}";
+                await _transacaoRepository.AddAsync(new CarteiraTransacao(carteira.Id, tipo, Math.Abs(delta), descricao));
+            }
+
             return ToDto(updated!);
         }
 
@@ -57,12 +76,26 @@ namespace api.Application.Services
             return ToDto(carteira);
         }
 
+        public async Task<IEnumerable<CarteiraTransacaoDto>> GetMinhasTransacoesAsync(Guid usuarioId)
+        {
+            var carteira = await GetCarteiraEntityAsync(usuarioId);
+            var transacoes = await _transacaoRepository.GetByCarteiraIdAsync(carteira.Id);
+            return transacoes.Select(t => new CarteiraTransacaoDto
+            {
+                Id = t.Id,
+                Tipo = t.Tipo.ToString(),
+                Valor = t.Valor,
+                Descricao = t.Descricao,
+                ReferenciaId = t.ReferenciaId,
+                OcorridoEm = t.OcorridoEm
+            });
+        }
+
         private async Task<Carteira> GetCarteiraEntityAsync(Guid usuarioId)
         {
             return await _carteiraRepository.GetCarteiraByUsuarioId(usuarioId)
                 ?? throw new KeyNotFoundException($"Carteira para usuário {usuarioId} não encontrada");
         }
-
 
         protected override CarteiraDto ToDto(Carteira entity) => new()
         {
@@ -74,6 +107,5 @@ namespace api.Application.Services
             CriadoEm = entity.CriadoEm,
             AtualizadoEm = entity.AtualizadoEm
         };
-
     }
 }
