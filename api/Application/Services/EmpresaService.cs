@@ -29,7 +29,8 @@ namespace api.Application.Services
             Tipo = entity.Tipo,
             Status = entity.Status,
             CriadoEm = entity.CriadoEm,
-            AtualizadoEm = entity.AtualizadoEm
+            AtualizadoEm = entity.AtualizadoEm,
+            LogoUrl = entity.LogoUrl
         };
 
         public async Task<PagedResult<ProdutoDto>> GetProdutosAsync(Guid empresaId, int page, int pageSize)
@@ -50,7 +51,8 @@ namespace api.Application.Services
                     Preco = p.Preco,
                     CriadoEm = p.CriadoEm,
                     AtualizadoEm = p.AtualizadoEm,
-                    EmpresaId = p.EmpresaId
+                    EmpresaId = p.EmpresaId,
+                    ImagemUrl = p.ImagemUrl
                 })
             };
         }
@@ -72,7 +74,8 @@ namespace api.Application.Services
                     Cargo = u.Cargo.ToString(),
                     CriadoEm = u.CriadoEm,
                     AtualizadoEm = u.AtualizadoEm,
-                    EmpresaId = u.EmpresaId
+                    EmpresaId = u.EmpresaId,
+                    FotoUrl = u.FotoUrl
                 })
             };
         }
@@ -82,5 +85,11 @@ namespace api.Application.Services
 
         public Task<bool> DeleteComCascadeAsync(Guid empresaId)
             => _empresaRepository.DeleteComCascadeAsync(empresaId);
+
+        public async Task<EmpresaDto?> UpdateCamposAsync(Guid id, UpdateEmpresaRequest request)
+        {
+            var entity = await _empresaRepository.UpdateCamposAsync(id, request.Nome, request.Cnpj, request.Responsavel, request.ResponsavelId, request.Telefone, request.Tipo, request.Status);
+            return entity == null ? null : ToDto(entity);
+        }
     }
 }

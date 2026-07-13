@@ -13,5 +13,6 @@ namespace api.Application.Services.Interfaces
         Task<PagedResult<UsuarioDto>> GetUsuariosAsync(Guid empresaId, int page, int pageSize);
         Task<bool> AdicionarUsuarioAsync(Guid empresaId, Guid usuarioId);
         Task<bool> DeleteComCascadeAsync(Guid empresaId);
+        Task<EmpresaDto?> UpdateCamposAsync(Guid id, UpdateEmpresaRequest request);
     }
 }

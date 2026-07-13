@@ -39,6 +39,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { AdminLayout } from '@/layouts/AdminLayout'
+import { ImageUpload } from '@/components/ImageUpload'
+import { resolveImageUrl } from '@/api/upload'
 import { empresasApi } from '@/api/empresas'
 import type { Empresa, PagedResult } from '@/types'
 import { toast } from 'sonner'
@@ -154,7 +156,11 @@ export function EmpresasPage() {
             ) : (
               <div className="divide-y divide-border">
                 {result?.items.map(e => (
-                  <div key={e.empresa_id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+                  <div key={e.empresa_id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                    {e.empresa_logo_url
+                      ? <img src={resolveImageUrl(e.empresa_logo_url)!} alt="logo" className="h-9 w-9 rounded-lg object-cover shrink-0" />
+                      : <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">{e.empresa_nome.charAt(0)}</div>
+                    }
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{e.empresa_nome}</p>
                       <p className="text-xs text-muted-foreground">{e.empresa_cnpj} · {e.empresa_telefone}</p>
@@ -204,6 +210,20 @@ export function EmpresasPage() {
             <DialogTitle>{editing ? 'Editar empresa' : 'Nova empresa'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            {editing && (
+              <div className="flex justify-center">
+                <ImageUpload
+                  entidade="empresa"
+                  id={editing.empresa_id}
+                  currentUrl={resolveImageUrl(editing.empresa_logo_url)}
+                  variant="logo"
+                  onSuccess={url => setResult(prev => prev ? {
+                    ...prev,
+                    items: prev.items.map(e => e.empresa_id === editing.empresa_id ? { ...e, empresa_logo_url: url } : e)
+                  } : prev)}
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Nome</Label>
               <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />

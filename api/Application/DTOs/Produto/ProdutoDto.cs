@@ -11,5 +11,6 @@ namespace api.Application.DTOs.Produto
         public DateTime CriadoEm { get; set; }
         public DateTime? AtualizadoEm { get; set; }
         public Guid EmpresaId { get; set; }
+        public string? ImagemUrl { get; set; }
     }
 }

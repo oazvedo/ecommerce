@@ -31,6 +31,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AdminLayout } from '@/layouts/AdminLayout'
+import { ImageUpload } from '@/components/ImageUpload'
+import { resolveImageUrl } from '@/api/upload'
 import { produtosApi } from '@/api/produtos'
 import type { Produto, PagedResult } from '@/types'
 import type { ProdutoPayload } from '@/api/produtos'
@@ -122,7 +124,11 @@ export function ProdutosAdminPage() {
             ) : (
               <div className="divide-y divide-border">
                 {result?.items.map(p => (
-                  <div key={p.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+                  <div key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                    {p.imagem_url
+                      ? <img src={resolveImageUrl(p.imagem_url)!} alt={p.nome} className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                      : <div className="h-10 w-10 rounded-lg bg-muted shrink-0" />
+                    }
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{p.nome}</p>
                       <p className="text-xs text-muted-foreground font-mono">{p.codigo}</p>
@@ -173,6 +179,20 @@ export function ProdutosAdminPage() {
             <DialogTitle>{editing ? 'Editar produto' : 'Novo produto'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            {editing && (
+              <div className="flex justify-center">
+                <ImageUpload
+                  entidade="produto"
+                  id={editing.id}
+                  currentUrl={resolveImageUrl(editing.imagem_url)}
+                  variant="produto"
+                  onSuccess={url => setResult(prev => prev ? {
+                    ...prev,
+                    items: prev.items.map(p => p.id === editing.id ? { ...p, imagem_url: url } : p)
+                  } : prev)}
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Nome</Label>
               <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />

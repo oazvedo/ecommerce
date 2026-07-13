@@ -18,7 +18,8 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { resolveImageUrl } from '@/api/upload'
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Visão Geral', icon: LayoutDashboard, end: true },
@@ -33,7 +34,7 @@ const NAV_ITEMS = [
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, usuario, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
@@ -125,6 +126,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           {!collapsed && (
             <div className="flex items-center gap-2 rounded-lg px-2.5 py-2">
               <Avatar className="h-7 w-7 shrink-0">
+                {resolveImageUrl(usuario?.foto_url) && (
+                  <AvatarImage src={resolveImageUrl(usuario?.foto_url)!} />
+                )}
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
                   {initials}
                 </AvatarFallback>

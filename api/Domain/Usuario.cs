@@ -37,6 +37,9 @@ namespace api.domain
 
         public ICollection<UsuarioPermissao> UsuarioPermissoes { get; set; } = new List<UsuarioPermissao>();
 
+        [JsonPropertyName("foto_url")]
+        public string? FotoUrl { get; set; }
+
         [JsonPropertyName("empresa_id")]
         public Guid EmpresaId { get; set; }
 

@@ -66,6 +66,11 @@ namespace api.infra
                     .HasColumnName("atualizado_em")
                     .IsRequired(false);
 
+                entity.Property(u => u.FotoUrl)
+                    .HasColumnName("foto_url")
+                    .IsRequired(false)
+                    .HasMaxLength(500);
+
                 entity.HasOne(u => u.Carteira)
                     .WithOne(c => c.Usuario)
                     .HasForeignKey<Carteira>(c => c.UsuarioId)
@@ -277,6 +282,11 @@ namespace api.infra
                 entity.Property(e => e.AtualizadoEm)
                     .HasColumnName("atualizado_em")
                     .IsRequired(false);
+
+                entity.Property(e => e.LogoUrl)
+                    .HasColumnName("logo_url")
+                    .IsRequired(false)
+                    .HasMaxLength(500);
             });
 
             modelBuilder.Entity<PedidoHistorico>(entity =>
@@ -349,6 +359,11 @@ namespace api.infra
                 entity.Property(u => u.AtualizadoEm)
                     .HasColumnName("atualizado_em")
                     .IsRequired(false);
+
+                entity.Property(u => u.ImagemUrl)
+                    .HasColumnName("imagem_url")
+                    .IsRequired(false)
+                    .HasMaxLength(500);
 
                 entity.Property(u => u.EmpresaId)
                     .HasColumnName("empresa_id")

@@ -35,6 +35,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Building2, Phone, Hash, Pencil, KeyRound, UserX, PowerOff, Power, MoreHorizontal } from 'lucide-react'
+import { ImageUpload } from '@/components/ImageUpload'
+import { resolveImageUrl } from '@/api/upload'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -225,9 +227,12 @@ export function MinhaEmpresaPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Building2 className="h-5 w-5" />
-                    </div>
+                    {resolveImageUrl(empresa.empresa_logo_url)
+                      ? <img src={resolveImageUrl(empresa.empresa_logo_url)!} alt="logo" className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                      : <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                    }
                     <div>
                       <CardTitle className="text-lg">{empresa.empresa_nome}</CardTitle>
                       <p className="text-sm text-muted-foreground">{empresa.empresa_tipo}</p>
@@ -347,6 +352,17 @@ export function MinhaEmpresaPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Editar empresa</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
+            {empresa && (
+              <div className="flex justify-center">
+                <ImageUpload
+                  entidade="empresa"
+                  id={empresa.empresa_id}
+                  currentUrl={resolveImageUrl(empresa.empresa_logo_url)}
+                  variant="logo"
+                  onSuccess={url => setEmpresa(e => e ? { ...e, empresa_logo_url: url } : e)}
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Nome</Label>
               <Input value={empresaForm.nome} onChange={e => setEmpresaForm(f => ({ ...f, nome: e.target.value }))} />

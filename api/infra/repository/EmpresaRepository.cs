@@ -90,5 +90,23 @@ namespace api.infra.repository
 
             return true;
         }
+
+        public async Task<Empresa?> UpdateCamposAsync(Guid id, string nome, string cnpj, string responsavel, Guid responsavelId, string telefone, api.Domain.Enums.EmpresaTipo tipo, bool status)
+        {
+            var empresa = await _context.Empresas.FindAsync(id);
+            if (empresa == null) return null;
+
+            empresa.Nome = nome;
+            empresa.Cnpj = cnpj;
+            empresa.Responsavel = responsavel;
+            empresa.ResponsavelId = responsavelId;
+            empresa.Telefone = telefone;
+            empresa.Tipo = tipo;
+            empresa.Status = status;
+            empresa.AtualizadoEm = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return empresa;
+        }
     }
 }

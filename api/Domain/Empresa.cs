@@ -37,6 +37,9 @@ namespace api.Domain
         [JsonPropertyName("empresa_tipo")]
         public EmpresaTipo Tipo { get; set; }
 
+        [JsonPropertyName("empresa_logo_url")]
+        public string? LogoUrl { get; set; }
+
         public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
 
         public ICollection<Produto> Produtos { get; set; } = new List<Produto>();

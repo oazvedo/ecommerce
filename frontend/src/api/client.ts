@@ -9,6 +9,10 @@ export function setAccessToken(token: string | null) {
   _accessToken = token
 }
 
+export function getAuthHeader(): Record<string, string> {
+  return _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {}
+}
+
 export function configureClient(opts: {
   onRefresh: () => Promise<string>
   onSessionExpired: () => void

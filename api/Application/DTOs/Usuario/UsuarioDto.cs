@@ -32,5 +32,8 @@ namespace api.Application.DTOs.Usuario
 
         [JsonPropertyName("empresa_id")]
         public Guid EmpresaId { get; set; }
+
+        [JsonPropertyName("foto_url")]
+        public string? FotoUrl { get; set; }
     }
 }

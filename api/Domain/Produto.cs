@@ -30,6 +30,9 @@ namespace api.Domain
         [JsonPropertyName("atualizado_em")]
         public DateTime? AtualizadoEm { get; set; }
 
+        [JsonPropertyName("imagem_url")]
+        public string? ImagemUrl { get; set; }
+
         [JsonPropertyName("empresa_id")]
         public Guid EmpresaId { get; set; }
 

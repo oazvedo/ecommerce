@@ -20,7 +20,8 @@ namespace api.Application.Services
             Preco = entity.Preco,
             CriadoEm = entity.CriadoEm,
             AtualizadoEm = entity.AtualizadoEm,
-            EmpresaId = entity.EmpresaId
+            EmpresaId = entity.EmpresaId,
+            ImagemUrl = entity.ImagemUrl
         };
     }
 }

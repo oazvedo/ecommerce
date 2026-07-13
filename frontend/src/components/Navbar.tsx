@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { resolveImageUrl } from '@/api/upload'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/context/AuthContext'
 import { useCart } from '@/context/CartContext'
@@ -19,7 +20,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { CartSheet } from './CartSheet'
 
 export function Navbar() {
-  const { user, logout, hasPermission, isAdmin } = useAuth()
+  const { user, usuario, logout, hasPermission, isAdmin } = useAuth()
   const { totalItems } = useCart()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
@@ -146,6 +147,9 @@ export function Navbar() {
                 )}
               >
                 <Avatar className="h-7 w-7">
+                  {resolveImageUrl(usuario?.foto_url) && (
+                    <AvatarImage src={resolveImageUrl(usuario?.foto_url)!} />
+                  )}
                   <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
                     {initials}
                   </AvatarFallback>

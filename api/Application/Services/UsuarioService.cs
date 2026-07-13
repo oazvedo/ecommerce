@@ -32,7 +32,8 @@ namespace api.application.services
                 AtualizadoEm = usuario.AtualizadoEm,
                 Status = usuario.Status.ToString(),
                 Cargo = usuario.Cargo.ToString(),
-                EmpresaId = usuario.EmpresaId
+                EmpresaId = usuario.EmpresaId,
+                FotoUrl = usuario.FotoUrl
             });
         }
 
@@ -120,7 +121,8 @@ namespace api.application.services
                 AtualizadoEm = usuario.AtualizadoEm,
                 Status = usuario.Status.ToString(),
                 Cargo = usuario.Cargo.ToString(),
-                EmpresaId = usuario.EmpresaId
+                EmpresaId = usuario.EmpresaId,
+                FotoUrl = usuario.FotoUrl
             });
         }
 
@@ -146,7 +148,8 @@ namespace api.application.services
             AtualizadoEm = u.AtualizadoEm,
             Status = u.Status.ToString(),
             Cargo = u.Cargo.ToString(),
-            EmpresaId = u.EmpresaId
+            EmpresaId = u.EmpresaId,
+            FotoUrl = u.FotoUrl
         };
         
     }

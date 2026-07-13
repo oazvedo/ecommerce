@@ -38,6 +38,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { AdminLayout } from '@/layouts/AdminLayout'
+import { ImageUpload } from '@/components/ImageUpload'
+import { resolveImageUrl } from '@/api/upload'
 import { usuariosApi } from '@/api/usuarios'
 import { empresasApi } from '@/api/empresas'
 import type { Usuario, Empresa, PagedResult } from '@/types'
@@ -178,7 +180,11 @@ export function UsuariosPage() {
             ) : (
               <div className="divide-y divide-border">
                 {result?.items.map(u => (
-                  <div key={u.id} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+                  <div key={u.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
+                    {u.foto_url
+                      ? <img src={resolveImageUrl(u.foto_url)!} alt={u.nome} className="h-9 w-9 rounded-full object-cover shrink-0" />
+                      : <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">{u.nome.charAt(0).toUpperCase()}</div>
+                    }
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{u.nome}</p>
                       <p className="text-xs text-muted-foreground">{u.email}</p>
@@ -287,6 +293,20 @@ export function UsuariosPage() {
             <DialogTitle>Editar usuário</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
+            {editTarget && (
+              <div className="flex justify-center">
+                <ImageUpload
+                  entidade="usuario"
+                  id={editTarget.id}
+                  currentUrl={resolveImageUrl(editTarget.foto_url)}
+                  variant="avatar"
+                  onSuccess={url => setResult(prev => prev ? {
+                    ...prev,
+                    items: prev.items.map(u => u.id === editTarget.id ? { ...u, foto_url: url } : u)
+                  } : prev)}
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Nome</Label>
               <Input value={editForm.nome} onChange={e => setEditForm(f => ({ ...f, nome: e.target.value }))} />

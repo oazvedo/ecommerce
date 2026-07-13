@@ -158,7 +158,7 @@ function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <Toaster richColors position="top-right" />
+        <Toaster position="top-right" />
       </CartProvider>
     </AuthProvider>
   )

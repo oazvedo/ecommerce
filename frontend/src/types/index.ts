@@ -13,6 +13,7 @@ export interface Usuario {
   status: 'Ativo' | 'Desativado'
   cargo: 'Operador' | 'Administrador' | 'Gerente' | 'Diretor'
   empresa_id: string
+  foto_url: string | null
   criado_em: string
   atualizado_em: string | null
 }
@@ -24,6 +25,7 @@ export interface Produto {
   codigo: string
   status: boolean
   preco: number
+  imagem_url: string | null
   empresaId: string
   criadoEm: string
   atualizadoEm: string | null
@@ -105,6 +107,7 @@ export interface Empresa {
   empresa_telefone: string
   empresa_tipo: string
   empresa_status: boolean
+  empresa_logo_url: string | null
   empresa_criado_em: string
   empresa_atualizado_em: string | null
 }

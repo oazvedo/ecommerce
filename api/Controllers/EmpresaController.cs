@@ -88,19 +88,7 @@ namespace api.Controllers
         {
             try
             {
-                var entity = new Empresa(
-                    request.Nome,
-                    request.Cnpj,
-                    request.Responsavel,
-                    request.ResponsavelId,
-                    request.Telefone,
-                    request.Tipo,
-                    request.Status)
-                {
-                    Id = id
-                };
-
-                var empresa = await _service.UpdateAsync(entity);
+                var empresa = await _service.UpdateCamposAsync(id, request);
                 if (empresa == null)
                     return NotFound(new { mensagem = "Empresa não encontrada." });
 
