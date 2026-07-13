@@ -12,6 +12,7 @@ import { OrderDetailPage } from '@/pages/OrderDetailPage'
 import { WalletPage } from '@/pages/WalletPage'
 import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage'
 import { EmpresasPage } from '@/pages/admin/EmpresasPage'
+import { EmpresaDetailPage } from '@/pages/admin/EmpresaDetailPage'
 import { UsuariosPage } from '@/pages/admin/UsuariosPage'
 import { UsuarioDetailPage } from '@/pages/admin/UsuarioDetailPage'
 import { ProdutosAdminPage } from '@/pages/admin/ProdutosAdminPage'
@@ -86,6 +87,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <EmpresasPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/empresa/:id"
+            element={
+              <ProtectedRoute>
+                <EmpresaDetailPage />
               </ProtectedRoute>
             }
           />

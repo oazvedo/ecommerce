@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Pencil, Trash2, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,6 +49,7 @@ interface EmpresaForm {
 const EMPTY_FORM: EmpresaForm = { nome: '', cnpj: '', telefone: '', tipo: 'Central', status: true }
 
 export function EmpresasPage() {
+  const navigate = useNavigate()
   const [result, setResult] = useState<PagedResult<Empresa> | null>(null)
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -168,6 +170,15 @@ export function EmpresasPage() {
                         onClick={() => setDeleteId(e.empresa_id)}
                       >
                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Ver detalhes"
+                        onClick={() => navigate(`/admin/empresa/${e.empresa_id}`)}
+                      >
+                        <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>

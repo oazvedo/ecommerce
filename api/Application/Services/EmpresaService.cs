@@ -1,5 +1,8 @@
 using api.application.services;
+using api.Application.DTOs.Common;
 using api.Application.DTOs.Empresa;
+using api.Application.DTOs.Produto;
+using api.Application.DTOs.Usuario;
 using api.Application.Services.Interfaces;
 using api.Domain;
 using api.Domain.Interfaces;
@@ -8,7 +11,12 @@ namespace api.Application.Services
 {
     public class EmpresaService : ServiceBase<Empresa, EmpresaDto>, IEmpresaService
     {
-        public EmpresaService(IEmpresaRepository repository) : base(repository) { }
+        private readonly IEmpresaRepository _empresaRepository;
+
+        public EmpresaService(IEmpresaRepository repository) : base(repository)
+        {
+            _empresaRepository = repository;
+        }
 
         protected override EmpresaDto ToDto(Empresa entity) => new()
         {
@@ -23,5 +31,53 @@ namespace api.Application.Services
             CriadoEm = entity.CriadoEm,
             AtualizadoEm = entity.AtualizadoEm
         };
+
+        public async Task<PagedResult<ProdutoDto>> GetProdutosAsync(Guid empresaId, int page, int pageSize)
+        {
+            var (items, total) = await _empresaRepository.GetProdutosAsync(empresaId, page, pageSize);
+            return new PagedResult<ProdutoDto>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = total,
+                Items = items.Select(p => new ProdutoDto
+                {
+                    Id = p.Id,
+                    Nome = p.Nome,
+                    Descricao = p.Descricao,
+                    Codigo = p.Codigo,
+                    Status = p.Status,
+                    Preco = p.Preco,
+                    CriadoEm = p.CriadoEm,
+                    AtualizadoEm = p.AtualizadoEm,
+                    EmpresaId = p.EmpresaId
+                })
+            };
+        }
+
+        public async Task<PagedResult<UsuarioDto>> GetUsuariosAsync(Guid empresaId, int page, int pageSize)
+        {
+            var (items, total) = await _empresaRepository.GetUsuariosAsync(empresaId, page, pageSize);
+            return new PagedResult<UsuarioDto>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = total,
+                Items = items.Select(u => new UsuarioDto
+                {
+                    Id = u.Id,
+                    Nome = u.Nome,
+                    Email = u.Email,
+                    Status = u.Status.ToString(),
+                    Cargo = u.Cargo.ToString(),
+                    CriadoEm = u.CriadoEm,
+                    AtualizadoEm = u.AtualizadoEm,
+                    EmpresaId = u.EmpresaId
+                })
+            };
+        }
+
+        public Task<bool> AdicionarUsuarioAsync(Guid empresaId, Guid usuarioId)
+            => _empresaRepository.AdicionarUsuarioAsync(empresaId, usuarioId);
     }
 }

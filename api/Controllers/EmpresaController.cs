@@ -128,5 +128,59 @@ namespace api.Controllers
                 return StatusCode(500, new { mensagem = ex.Message });
             }
         }
+
+        [HttpGet("{id}/produtos")]
+        [Authorize(Policy = "Empresa.Read")]
+        public async Task<ActionResult> GetProdutos(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 20;
+
+                var produtos = await _service.GetProdutosAsync(id, page, pageSize);
+                return Ok(produtos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/usuarios")]
+        [Authorize(Policy = "Empresa.Read")]
+        public async Task<ActionResult> GetUsuarios(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 50;
+
+                var usuarios = await _service.GetUsuariosAsync(id, page, pageSize);
+                return Ok(usuarios);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpPatch("{id}/usuario/{usuarioId}")]
+        [Authorize(Policy = "Empresa.Update")]
+        public async Task<ActionResult> AdicionarUsuario(Guid id, Guid usuarioId)
+        {
+            try
+            {
+                var ok = await _service.AdicionarUsuarioAsync(id, usuarioId);
+                if (!ok)
+                    return NotFound(new { mensagem = "Empresa ou usuário não encontrado." });
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
     }
 }

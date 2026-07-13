@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { Empresa, PagedResult } from '@/types'
+import type { Empresa, PagedResult, Produto, Usuario } from '@/types'
 
 export const empresasApi = {
   list: (page = 1, pageSize = 10) =>
@@ -38,4 +38,13 @@ export const empresasApi = {
 
   delete: (id: string) =>
     apiFetch<void>(`/empresa/${id}`, { method: 'DELETE' }),
+
+  getProdutos: (id: string, page = 1, pageSize = 20) =>
+    apiFetch<PagedResult<Produto>>(`/empresa/${id}/produtos?page=${page}&pageSize=${pageSize}`),
+
+  getUsuarios: (id: string, page = 1, pageSize = 50) =>
+    apiFetch<PagedResult<Usuario>>(`/empresa/${id}/usuarios?page=${page}&pageSize=${pageSize}`),
+
+  adicionarUsuario: (empresaId: string, usuarioId: string) =>
+    apiFetch<void>(`/empresa/${empresaId}/usuario/${usuarioId}`, { method: 'PATCH' }),
 }
