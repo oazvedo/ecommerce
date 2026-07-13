@@ -15,6 +15,12 @@ namespace api.Application.DTOs.Pedido
         [JsonProperty("contratacao")]
         public PedidoTipoContratacaoEnum Contracacao { get; set; }
 
+        [JsonProperty("forma_pagamento")]
+        public FormaPagamentoEnum FormaPagamento { get; set; }
+
+        [JsonProperty("parcelas")]
+        public int? Parcelas { get; set; }
+
         [JsonProperty("itens")]
         public List<PedidoItemDto> Itens { get; set; } = new();
 

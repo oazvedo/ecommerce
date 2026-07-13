@@ -102,6 +102,7 @@ builder.Services.AddHangfireServer(options =>
 builder.Services.AddScoped<PedidoProgressaoJob>();
 builder.Services.AddScoped<PedidoProgressaoRecurringJob>();
 builder.Services.AddScoped<CarteiraReembolsoJob>();
+builder.Services.AddScoped<PagamentoParcelasJob>();
 builder.Services.AddScoped<PedidosPresosJob>();
 
 builder.Services.AddAuthentication(options =>

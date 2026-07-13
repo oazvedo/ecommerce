@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { Pedido, PagedResult, PedidoStatus, PedidoContratacao, RelatorioVendas } from '@/types'
+import type { Pedido, PagedResult, PedidoStatus, PedidoContratacao, FormaPagamento, RelatorioVendas } from '@/types'
 
 type PedidoItemApi = Partial<Pedido['itens'][number]> & {
   produtoId?: string
@@ -14,6 +14,7 @@ type PedidoItemApi = Partial<Pedido['itens'][number]> & {
 
 type PedidoApi = Partial<Pedido> & {
   contracacao?: PedidoContratacao
+  formaPagamento?: FormaPagamento
   valorTotal?: number
   empresaId?: string
   empresaNome?: string
@@ -40,6 +41,8 @@ function normalizePedido(pedido: PedidoApi): Pedido {
     id: pedido.id ?? '',
     status: (pedido.status ?? 'Criado') as PedidoStatus,
     contratacao: (pedido.contratacao ?? pedido.contracacao ?? 'Mensal') as PedidoContratacao,
+    forma_pagamento: (pedido.forma_pagamento ?? pedido.formaPagamento ?? 'Carteira') as FormaPagamento,
+    parcelas: pedido.parcelas ?? null,
     valor_total: pedido.valor_total ?? pedido.valorTotal ?? 0,
     empresa_id: pedido.empresa_id ?? pedido.empresaId ?? '',
     empresa_nome: pedido.empresa_nome ?? pedido.empresaNome ?? '',
@@ -84,6 +87,8 @@ export const pedidosApi = {
   create: (data: {
     empresa_id: string
     contratacao: PedidoContratacao
+    forma_pagamento?: 'Carteira' | 'Parcelado'
+    parcelas?: number | null
     itens: { produto_id: string; quantidade: number }[]
   }) => apiFetch<PedidoApi>('/pedido', { method: 'POST', body: JSON.stringify(data) }).then(normalizePedido),
 

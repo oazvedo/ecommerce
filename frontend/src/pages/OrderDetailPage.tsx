@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, XCircle, Check, Building2, CalendarDays, User } from 'lucide-react'
+import { ArrowLeft, XCircle, Check, Building2, CalendarDays, CreditCard, User, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -187,6 +187,32 @@ export function OrderDetailPage() {
                     })}
                   </p>
                 </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Pagamento */}
+            <div className="flex items-start gap-2">
+              {pedido.forma_pagamento === 'Parcelado'
+                ? <CreditCard className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                : <Wallet className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+              }
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Pagamento</p>
+                {pedido.forma_pagamento === 'Parcelado' && pedido.parcelas ? (
+                  <p className="text-sm font-semibold mt-0.5">
+                    {pedido.parcelas}× de{' '}
+                    {(pedido.valor_total / pedido.parcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    {' '}
+                    <span className="text-xs font-normal text-muted-foreground">sem juros</span>
+                  </p>
+                ) : (
+                  <p className="text-sm font-semibold mt-0.5">Carteira digital</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Total: {pedido.valor_total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </p>
               </div>
             </div>
 

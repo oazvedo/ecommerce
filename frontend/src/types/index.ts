@@ -45,10 +45,14 @@ export interface PedidoItem {
 export type PedidoStatus = 'Cancelado' | 'Criado' | 'EmProcessamento' | 'Suporte' | 'Finalizado'
 export type PedidoContratacao = 'Mensal' | 'Anual'
 
+export type FormaPagamento = 'Carteira' | 'Parcelado'
+
 export interface Pedido {
   id: string
   status: PedidoStatus
   contratacao: PedidoContratacao
+  forma_pagamento: FormaPagamento
+  parcelas: number | null
   valor_total: number
   empresa_id: string
   empresa_nome: string

@@ -1,5 +1,6 @@
 using api.domain;
 using api.Domain;
+using api.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.infra
@@ -165,6 +166,16 @@ namespace api.infra
 
                 entity.Property(u => u.Contracacao)
                     .HasColumnName("contratacao");
+
+                entity.Property(u => u.FormaPagamento)
+                    .HasColumnName("forma_pagamento")
+                    .IsRequired()
+                    .HasDefaultValue(FormaPagamentoEnum.Carteira)
+                    .HasConversion<int>();
+
+                entity.Property(u => u.Parcelas)
+                    .HasColumnName("parcelas")
+                    .IsRequired(false);
 
                 entity.Property(u => u.UsuarioId)
                     .HasColumnName("usuario_id");

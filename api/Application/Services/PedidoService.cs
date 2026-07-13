@@ -109,7 +109,8 @@ namespace api.Application.Services
 
         public async Task<PedidoDto> CreatePedido(Guid usuarioId, CreatePedidoRequest request)
         {
-            var pedido = new Pedido(request.EmpresaId, usuarioId, new List<PedidoItem>(), request.contratacao);
+            var pedido = new Pedido(request.EmpresaId, usuarioId, new List<PedidoItem>(), request.contratacao,
+                                    request.FormaPagamento, request.Parcelas);
 
             foreach (var item in request.itens)
             {
@@ -125,14 +126,36 @@ namespace api.Application.Services
             }
             var carteiraUsuario = await _carteiraService.GetCarteiraByUsuarioId(usuarioId);
 
-            if (((double)pedido.ValorTotal) > carteiraUsuario!.Saldo)
+            if (request.FormaPagamento == FormaPagamentoEnum.Carteira)
             {
-                throw new KeyNotFoundException("Saldo insuficiente");
-            }
-            else
-            {
+                if (((double)pedido.ValorTotal) > carteiraUsuario!.Saldo)
+                    throw new InvalidOperationException("Saldo insuficiente na carteira.");
+
                 carteiraUsuario.UpdateBalance(-(double)pedido.ValorTotal);
                 await _carteiraService.UpdateAsync(carteiraUsuario);
+            }
+            else if (request.FormaPagamento == FormaPagamentoEnum.Parcelado && request.Parcelas.HasValue)
+            {
+                var numeroParcelas = request.Parcelas.Value;
+                var valorParcela = pedido.ValorTotal / numeroParcelas;
+
+                if ((double)valorParcela > carteiraUsuario!.Saldo)
+                    throw new InvalidOperationException(
+                        $"Saldo insuficiente para a 1ª parcela de {valorParcela:C}. Saldo atual: {carteiraUsuario.Saldo:C}.");
+
+                carteiraUsuario.UpdateBalance(-(double)valorParcela);
+                await _carteiraService.UpdateAsync(carteiraUsuario);
+
+                for (int i = 2; i <= numeroParcelas; i++)
+                {
+                    var delay = TimeSpan.FromDays(30 * (i - 1));
+                    _backgroundJobs.Schedule<PagamentoParcelasJob>(
+                        job => job.Executar(pedido.Id, usuarioId, valorParcela, i, numeroParcelas),
+                        delay);
+                }
+            }
+
+            {
                 await _repository.AdicionarPedido(pedido);
 
                 var eventoCriado = new PedidoStatusAlteradoEvent
@@ -232,7 +255,19 @@ namespace api.Application.Services
             var pedido = await _repository.GetPedidoById(pedidoId);
             if (pedido == null) throw new KeyNotFoundException("Pedido não encontrado.");
 
-            var valorTotal = (double)pedido.ValorTotal;
+            double valorReembolso;
+            if (pedido.FormaPagamento == FormaPagamentoEnum.Parcelado && pedido.Parcelas.HasValue && pedido.Parcelas.Value > 0)
+            {
+                var valorParcela = pedido.ValorTotal / pedido.Parcelas.Value;
+                var diasDecorridos = (DateTime.UtcNow - pedido.CriadoEm).TotalDays;
+                var parcelasPagas = Math.Min((int)Math.Floor(diasDecorridos / 30) + 1, pedido.Parcelas.Value);
+                valorReembolso = (double)valorParcela * parcelasPagas;
+            }
+            else
+            {
+                valorReembolso = (double)pedido.ValorTotal;
+            }
+
             var usuarioId = pedido.UsuarioId;
             var statusAnterior = pedido.Status;
 
@@ -248,10 +283,10 @@ namespace api.Application.Services
 
             if (updated != null)
             {
-                if (valorTotal > 0)
+                if (valorReembolso > 0)
                 {
                     _backgroundJobs.Enqueue<CarteiraReembolsoJob>(
-                        job => job.Executar(usuarioId, valorTotal));
+                        job => job.Executar(usuarioId, valorReembolso));
                 }
 
                 var eventoCancelado = new PedidoStatusAlteradoEvent
@@ -283,6 +318,8 @@ namespace api.Application.Services
             UsuarioNome = p.Usuario?.Nome,
             Status = p.Status,
             Contracacao = p.Contracacao,
+            FormaPagamento = p.FormaPagamento,
+            Parcelas = p.Parcelas,
             ValorTotal = p.ValorTotal,
             CriadoEm = p.CriadoEm,
             AtualizadoEm = p.AtualizadoEm,
