@@ -74,6 +74,26 @@ namespace api.Controllers
             }
         }
 
+        [HttpGet("empresa/minha-empresa")]
+        [Authorize(Policy = "Pedido.Read")]
+        public async Task <ActionResult<PagedResult<PedidoDto>>> GetByMinhaEmpresa([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var empresaId = User.GetEmpresaId();
+                var pedidos = await _service.GetPedidosByEmpresaId(empresaId, page, pageSize);
+                return Ok(pedidos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+
         [HttpGet("empresa/{empresaId}")]
         [Authorize(Policy = "Pedido.Read")]
         public async Task<ActionResult<PagedResult<PedidoDto>>> GetByEmpresa(Guid empresaId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
