@@ -44,6 +44,10 @@ builder.Services.AddDbContext<DatabaseContext>(options =>
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 
+var abacatePaySettings = builder.Configuration.GetSection("AbacatePay").Get<AbacatePaySettings>()
+    ?? new AbacatePaySettings();
+builder.Services.AddSingleton(abacatePaySettings);
+
 //services
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IPermissaoService, PermissaoService>();
@@ -51,6 +55,7 @@ builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<IProdutoService, ProdutoService>();
 builder.Services.AddScoped<ICarteiraService, CarteiraService>();
 builder.Services.AddScoped<IEmpresaService, EmpresaService>();
+builder.Services.AddHttpClient<IAbacatePayService, AbacatePayService>();
 // repositories
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IPermissaoRepository, PermissaoRepository>();
@@ -62,6 +67,7 @@ builder.Services.AddScoped<ICarteiraTransacaoRepository, CarteiraTransacaoReposi
 builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<ICargoPermissaoRepository, CargoPermissaoRepository>();
+builder.Services.AddScoped<IPixRecargaRepository, PixRecargaRepository>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();

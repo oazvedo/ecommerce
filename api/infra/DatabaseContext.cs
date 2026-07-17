@@ -2,6 +2,7 @@ using api.domain;
 using api.Domain;
 using api.Domain.Enums;
 using api.Domain.Enums.CarteiraEnums;
+using api.Domain.Enums.PixRecargaEnums;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.infra
@@ -24,6 +25,7 @@ namespace api.infra
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<CargoPermissao> CargoPermissoes { get; set; }
         public DbSet<CarteiraTransacao> CarteiraTransacoes { get; set; }
+        public DbSet<PixRecarga> PixRecargas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -429,6 +431,24 @@ namespace api.infra
                     .WithMany()
                     .HasForeignKey(t => t.CarteiraId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PixRecarga>(entity =>
+            {
+                entity.ToTable("pix_recargas");
+                entity.HasKey(p => p.Id);
+                entity.Property(p => p.Id).HasColumnName("id").IsRequired();
+                entity.Property(p => p.CarteiraId).HasColumnName("carteira_id").IsRequired();
+                entity.Property(p => p.AbacatePayId).HasColumnName("abacate_pay_id").IsRequired().HasMaxLength(200);
+                entity.Property(p => p.Valor).HasColumnName("valor").IsRequired();
+                entity.Property(p => p.Status).HasColumnName("status").IsRequired().HasConversion<int>().HasDefaultValue(PixRecargaStatus.Pendente);
+                entity.Property(p => p.CriadoEm).HasColumnName("criado_em").IsRequired();
+                entity.Property(p => p.PagoEm).HasColumnName("pago_em").IsRequired(false);
+                entity.HasOne<Carteira>()
+                    .WithMany()
+                    .HasForeignKey(p => p.CarteiraId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(p => p.AbacatePayId).IsUnique();
             });
         }
     }

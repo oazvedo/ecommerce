@@ -1,3 +1,4 @@
+using api.Application.DTOs.AbacatePay;
 using api.Application.DTOs.Carteira;
 using api.Application.Services.Interfaces;
 using api.Application.Utils;
@@ -119,6 +120,26 @@ namespace api.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { mensagem = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpPost("minha-carteira/pix/recarregar")]
+        [Authorize(Policy = "Carteira.Update")]
+        public async Task<IActionResult> IniciarRecargaPix([FromBody] PixRecargaRequest request)
+        {
+            try
+            {
+                var usuarioId = User.GetId();
+                var result = await _service.IniciarRecargaPixAsync(usuarioId, request.Valor);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
             }
             catch (Exception ex)
             {
