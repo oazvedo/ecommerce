@@ -85,6 +85,14 @@ export interface CarteiraTransacao {
   ocorrido_em: string
 }
 
+export interface PixRecargaResponse {
+  pix_recarga_id: string
+  br_code: string
+  br_code_base64: string
+  valor: number
+  criado_em: string
+}
+
 export interface AuthTokens {
   access_token: string
   refresh_token: string

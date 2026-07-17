@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { Carteira, CarteiraTransacao, PagedResult } from '@/types'
+import type { Carteira, CarteiraTransacao, PagedResult, PixRecargaResponse } from '@/types'
 
 export const carteiraApi = {
   list: (page = 1, pageSize = 10) =>
@@ -25,4 +25,10 @@ export const carteiraApi = {
     apiFetch<void>(`/carteira/${id}`, { method: 'DELETE' }),
 
   transacoes: () => apiFetch<CarteiraTransacao[]>('/carteira/minha-carteira/transacoes'),
+
+  iniciarRecargaPix: (valor: number) =>
+    apiFetch<PixRecargaResponse>('/carteira/minha-carteira/pix/recarregar', {
+      method: 'POST',
+      body: JSON.stringify({ valor }),
+    }),
 }

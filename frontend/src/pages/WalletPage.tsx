@@ -2,16 +2,20 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   ArrowUpRight,
   CalendarClock,
+  CheckCircle2,
+  Copy,
   CreditCard,
   Mail,
   MinusCircle,
   Plus,
   PlusCircle,
+  QrCode,
   RefreshCw,
   ShieldCheck,
   Tag,
   User,
   WalletCards,
+  Zap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,7 +30,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Navbar } from '@/components/Navbar'
 import { carteiraApi } from '@/api/carteira'
-import type { Carteira, CarteiraTransacao } from '@/types'
+import type { Carteira, CarteiraTransacao, PixRecargaResponse } from '@/types'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +47,10 @@ export function WalletPage() {
   const [transacoes, setTransacoes] = useState<CarteiraTransacao[]>([])
   const [loadingTransacoes, setLoadingTransacoes] = useState(true)
   const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<'pix' | 'direto'>('pix')
+  const [pixStep, setPixStep] = useState<'form' | 'qr'>('form')
+  const [pixData, setPixData] = useState<PixRecargaResponse | null>(null)
+  const [copied, setCopied] = useState(false)
   const [saldo, setSaldo] = useState('')
   const [cupom, setCupom] = useState('')
   const [saving, setSaving] = useState(false)
@@ -51,6 +59,36 @@ export function WalletPage() {
     carteiraApi.minha().then(setCarteira).catch(console.error).finally(() => setLoading(false))
     carteiraApi.transacoes().then(setTransacoes).catch(console.error).finally(() => setLoadingTransacoes(false))
   }, [])
+
+  function handleDialogChange(v: boolean) {
+    setOpen(v)
+    if (!v) {
+      setSaldo('')
+      setCupom('')
+      setPixStep('form')
+      setPixData(null)
+      setCopied(false)
+      setMode('pix')
+    }
+  }
+
+  async function handleGerarPix() {
+    const valor = parseFloat(saldo)
+    if (isNaN(valor) || valor < 1) {
+      toast.error('Valor mínimo para recarga via PIX é R$ 1,00.')
+      return
+    }
+    setSaving(true)
+    try {
+      const data = await carteiraApi.iniciarRecargaPix(valor)
+      setPixData(data)
+      setPixStep('qr')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao gerar PIX')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleTopUp() {
     const valor = parseFloat(saldo)
@@ -64,15 +102,20 @@ export function WalletPage() {
       const updated = await carteiraApi.updateMinha(valor, cupom || undefined)
       setCarteira(updated)
       carteiraApi.transacoes().then(setTransacoes).catch(console.error)
-      setOpen(false)
-      setSaldo('')
-      setCupom('')
+      handleDialogChange(false)
       toast.success('Saldo adicionado com sucesso!')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao atualizar saldo')
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleCopyBrCode() {
+    if (!pixData) return
+    await navigator.clipboard.writeText(pixData.br_code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
   }
 
   const bonus = useMemo(() => {
@@ -220,76 +263,197 @@ export function WalletPage() {
         </section>
       </main>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogChange}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Adicionar saldo</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 pt-1">
-            <div>
-              <Label className="mb-2 block text-xs text-muted-foreground">Valor rápido</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {QUICK_AMOUNTS.map(v => (
+          {/* Mode tabs */}
+          {pixStep === 'form' && (
+            <div className="flex rounded-lg border border-border bg-muted/40 p-1 gap-1">
+              <button
+                onClick={() => setMode('pix')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-semibold transition-colors',
+                  mode === 'pix'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <QrCode className="h-3.5 w-3.5" />
+                PIX
+              </button>
+              <button
+                onClick={() => setMode('direto')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-semibold transition-colors',
+                  mode === 'direto'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Direto
+              </button>
+            </div>
+          )}
+
+          {/* PIX — QR screen */}
+          {pixStep === 'qr' && pixData && (
+            <div className="flex min-w-0 flex-col items-center gap-4 pt-1">
+              <div className="rounded-xl border border-border bg-white p-3 shadow-sm">
+                <img
+                  src={
+                    pixData.br_code_base64.startsWith('data:')
+                      ? pixData.br_code_base64
+                      : `data:image/png;base64,${pixData.br_code_base64}`
+                  }
+                  alt="QR Code PIX"
+                  className="h-52 w-52"
+                />
+              </div>
+
+              <div className="w-full space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground">Copia e cola PIX</p>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2">
+                  <p className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
+                    {pixData.br_code}
+                  </p>
                   <button
-                    key={v}
-                    onClick={() => setSaldo(String(v))}
-                    className={cn(
-                      'rounded-lg border px-2 py-2 text-sm font-semibold transition-colors',
-                      saldo === String(v)
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-background hover:border-primary/50 hover:bg-primary/5'
-                    )}
+                    onClick={handleCopyBrCode}
+                    className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    R$ {v}
+                    {copied
+                      ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      : <Copy className="h-4 w-4" />}
                   </button>
-                ))}
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="valor">Valor (R$)</Label>
-              <Input
-                id="valor"
-                type="number"
-                min="0.01"
-                step="0.01"
-                placeholder="0,00"
-                value={saldo}
-                onChange={e => setSaldo(e.target.value)}
-                className="h-11"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="cupom" className="flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5" />
-                Cupom de bônus
-              </Label>
-              <Input
-                id="cupom"
-                placeholder="BONUS10 · BONUS20 · BONUS35"
-                value={cupom}
-                onChange={e => setCupom(e.target.value.toUpperCase())}
-                className="h-11 font-mono tracking-wide"
-              />
-            </div>
-
-            {bonus !== null && (
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-sm">
-                <p className="font-medium text-emerald-700 dark:text-emerald-300">
-                  Você receberá{' '}
-                  <span className="font-black">
-                    {formatBRL(bonus)}
-                  </span>
-                </p>
+              <div className="w-full rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-300">
+                Seu saldo será creditado automaticamente após a confirmação do pagamento.
               </div>
-            )}
 
-            <Button className="h-11 w-full" onClick={handleTopUp} disabled={saving}>
-              {saving ? 'Processando...' : 'Confirmar depósito'}
-            </Button>
-          </div>
+              <p className="text-center text-sm font-semibold">
+                Valor: <span className="text-primary">{formatBRL(pixData.valor)}</span>
+              </p>
+
+              <Button variant="outline" className="h-10 w-full" onClick={() => handleDialogChange(false)}>
+                Fechar
+              </Button>
+            </div>
+          )}
+
+          {/* PIX — form */}
+          {pixStep === 'form' && mode === 'pix' && (
+            <div className="space-y-4 pt-1">
+              <div>
+                <Label className="mb-2 block text-xs text-muted-foreground">Valor rápido</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {QUICK_AMOUNTS.map(v => (
+                    <button
+                      key={v}
+                      onClick={() => setSaldo(String(v))}
+                      className={cn(
+                        'rounded-lg border px-2 py-2 text-sm font-semibold transition-colors',
+                        saldo === String(v)
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background hover:border-primary/50 hover:bg-primary/5'
+                      )}
+                    >
+                      R$ {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="valor-pix">Valor (R$)</Label>
+                <Input
+                  id="valor-pix"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={saldo}
+                  onChange={e => setSaldo(e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <Button className="h-11 w-full gap-2" onClick={handleGerarPix} disabled={saving}>
+                <QrCode className="h-4 w-4" />
+                {saving ? 'Gerando...' : 'Gerar QR Code PIX'}
+              </Button>
+            </div>
+          )}
+
+          {/* Direto — form */}
+          {pixStep === 'form' && mode === 'direto' && (
+            <div className="space-y-4 pt-1">
+              <div>
+                <Label className="mb-2 block text-xs text-muted-foreground">Valor rápido</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {QUICK_AMOUNTS.map(v => (
+                    <button
+                      key={v}
+                      onClick={() => setSaldo(String(v))}
+                      className={cn(
+                        'rounded-lg border px-2 py-2 text-sm font-semibold transition-colors',
+                        saldo === String(v)
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background hover:border-primary/50 hover:bg-primary/5'
+                      )}
+                    >
+                      R$ {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="valor">Valor (R$)</Label>
+                <Input
+                  id="valor"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={saldo}
+                  onChange={e => setSaldo(e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="cupom" className="flex items-center gap-1.5">
+                  <Tag className="h-3.5 w-3.5" />
+                  Cupom de bônus
+                </Label>
+                <Input
+                  id="cupom"
+                  placeholder="BONUS10 · BONUS20 · BONUS35"
+                  value={cupom}
+                  onChange={e => setCupom(e.target.value.toUpperCase())}
+                  className="h-11 font-mono tracking-wide"
+                />
+              </div>
+
+              {bonus !== null && (
+                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2.5 text-sm">
+                  <p className="font-medium text-emerald-700 dark:text-emerald-300">
+                    Você receberá{' '}
+                    <span className="font-black">{formatBRL(bonus)}</span>
+                  </p>
+                </div>
+              )}
+
+              <Button className="h-11 w-full" onClick={handleTopUp} disabled={saving}>
+                {saving ? 'Processando...' : 'Confirmar depósito'}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
