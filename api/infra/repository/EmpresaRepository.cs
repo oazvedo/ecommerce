@@ -29,6 +29,16 @@ namespace api.infra.repository
             return (items, total);
         }
 
+        public async Task<(IEnumerable<Empresa> Items, int TotalCount)> GetFiliaisAsync(Guid empresaPaiId, int page, int pageSize)
+        {
+            var query = _context.Empresas.AsNoTracking()
+                .Where(e => e.EmpresaPaiId == empresaPaiId)
+                .OrderBy(e => e.Nome);
+            var total = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return (items, total);
+        }
+
         public async Task<bool> AdicionarUsuarioAsync(Guid empresaId, Guid usuarioId)
         {
             var empresa = await _context.Empresas.FindAsync(empresaId);
@@ -91,7 +101,7 @@ namespace api.infra.repository
             return true;
         }
 
-        public async Task<Empresa?> UpdateCamposAsync(Guid id, string nome, string cnpj, string responsavel, Guid responsavelId, string telefone, api.Domain.Enums.EmpresaTipo tipo, bool status)
+        public async Task<Empresa?> UpdateCamposAsync(Guid id, string nome, string cnpj, string responsavel, Guid responsavelId, string telefone, api.Domain.Enums.EmpresaTipo tipo, bool status, Guid? empresaPaiId)
         {
             var empresa = await _context.Empresas.FindAsync(id);
             if (empresa == null) return null;
@@ -103,6 +113,7 @@ namespace api.infra.repository
             empresa.Telefone = telefone;
             empresa.Tipo = tipo;
             empresa.Status = status;
+            empresa.EmpresaPaiId = empresaPaiId;
             empresa.AtualizadoEm = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

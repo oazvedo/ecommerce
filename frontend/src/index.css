@@ -129,4 +129,10 @@
   html {
     @apply font-sans;
     }
+
+  /* Olho nativo de exibir senha (Edge) — invertido no tema escuro para ficar visível */
+  .dark input::-ms-reveal,
+  .dark input::-ms-clear {
+    filter: invert(1) brightness(1.6);
+    }
 }

@@ -6,8 +6,7 @@ namespace api.Application.DTOs.Pedido
 {
     public class CreatePedidoRequest
     {
-        [JsonPropertyName("empresa_id")]
-        public Guid EmpresaId { get; set; }
+        // A loja vendedora é derivada de produto.EmpresaId no servidor — não vem do cliente.
 
         [JsonPropertyName("contratacao")]
         public PedidoTipoContratacaoEnum contratacao {get;set;}

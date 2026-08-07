@@ -14,6 +14,13 @@ export const usuariosApi = {
     apiFetch<Usuario>(`/usuario?cargo=${encodeURIComponent(cargo)}`, {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+
+  // Auto-cadastro público de cliente. Cargo e empresa são definidos pelo backend.
+  register: (data: { nome: string; email: string; password: string }) =>
+    apiFetch<Usuario>('/usuario/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
       skipAuth: true,
     }),
 

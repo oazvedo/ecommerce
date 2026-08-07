@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { empresasApi } from '@/api/empresas'
 import { usuariosApi } from '@/api/usuarios'
@@ -34,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Building2, Phone, Hash, Pencil, KeyRound, UserX, PowerOff, Power, MoreHorizontal } from 'lucide-react'
+import { Building2, Phone, Hash, Pencil, KeyRound, UserX, PowerOff, Power, MoreHorizontal, Store, Plus, ChevronRight, ArrowLeft, UserPlus } from 'lucide-react'
 import { ImageUpload } from '@/components/ImageUpload'
 import { resolveImageUrl } from '@/api/upload'
 import {
@@ -57,10 +58,25 @@ interface UsuarioEditForm {
 
 export function MinhaEmpresaPage() {
   const { empresaId, hasPermission, usuario: me } = useAuth()
+  const { id: routeId } = useParams<{ id: string }>()
+  // Gerencia a própria empresa por padrão, ou uma filial quando a rota traz :id.
+  const targetId = routeId ?? empresaId
+  const isFilialView = !!routeId && routeId !== empresaId
 
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
   const [usuarios, setUsuarios] = useState<PagedResult<Usuario> | null>(null)
+  const [filiais, setFiliais] = useState<PagedResult<Empresa> | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Criar filial
+  const [createFilialOpen, setCreateFilialOpen] = useState(false)
+  const [filialForm, setFilialForm] = useState({ nome: '', cnpj: '', telefone: '', status: true })
+  const [savingFilial, setSavingFilial] = useState(false)
+
+  // Adicionar usuário
+  const [createUsuarioOpen, setCreateUsuarioOpen] = useState(false)
+  const [novoUsuarioForm, setNovoUsuarioForm] = useState({ nome: '', email: '', password: '', cargo: 'Operador' })
+  const [savingNovoUsuario, setSavingNovoUsuario] = useState(false)
 
   // Edit empresa
   const [editEmpresaOpen, setEditEmpresaOpen] = useState(false)
@@ -87,21 +103,23 @@ export function MinhaEmpresaPage() {
   const canResetSenha = hasPermission('Usuario.PasswordUpdate')
 
   function load() {
-    if (!empresaId) return
+    if (!targetId) return
     setLoading(true)
     Promise.all([
-      empresasApi.get(empresaId),
-      empresasApi.getUsuarios(empresaId, 1, 50),
+      empresasApi.get(targetId),
+      empresasApi.getUsuarios(targetId, 1, 50),
+      empresasApi.getFiliais(targetId, 1, 50),
     ])
-      .then(([emp, usrs]) => {
+      .then(([emp, usrs, fils]) => {
         setEmpresa(emp)
         setUsuarios(usrs)
+        setFiliais(fils)
       })
       .catch(() => toast.error('Erro ao carregar dados da empresa'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [empresaId])
+  useEffect(load, [targetId])
 
   // ── Empresa ──────────────────────────────────────────
   function openEditEmpresa() {
@@ -117,13 +135,14 @@ export function MinhaEmpresaPage() {
   }
 
   async function handleSaveEmpresa() {
-    if (!empresaId || !empresa) return
+    if (!targetId || !empresa) return
     setSavingEmpresa(true)
     try {
-      await empresasApi.update(empresaId, {
+      await empresasApi.update(targetId, {
         ...empresaForm,
         responsavel: empresa.empresa_responsavel,
         responsavel_id: empresa.empresa_responsavel_id,
+        empresa_pai_id: empresa.empresa_pai_id,
       })
       toast.success('Empresa atualizada.')
       setEditEmpresaOpen(false)
@@ -132,6 +151,44 @@ export function MinhaEmpresaPage() {
       toast.error('Erro ao salvar empresa.')
     } finally {
       setSavingEmpresa(false)
+    }
+  }
+
+  // ── Filial: criar ─────────────────────────────────────
+  async function handleCreateFilial() {
+    if (!targetId) return
+    setSavingFilial(true)
+    try {
+      await empresasApi.createFilial(targetId, filialForm)
+      toast.success('Filial criada.')
+      setCreateFilialOpen(false)
+      setFilialForm({ nome: '', cnpj: '', telefone: '', status: true })
+      load()
+    } catch {
+      toast.error('Erro ao criar filial.')
+    } finally {
+      setSavingFilial(false)
+    }
+  }
+
+  // ── Usuário: criar ────────────────────────────────────
+  async function handleCreateUsuario() {
+    if (!targetId) return
+    if (novoUsuarioForm.password.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+    setSavingNovoUsuario(true)
+    try {
+      await empresasApi.criarUsuario(targetId, novoUsuarioForm)
+      toast.success('Usuário adicionado.')
+      setCreateUsuarioOpen(false)
+      setNovoUsuarioForm({ nome: '', email: '', password: '', cargo: 'Operador' })
+      load()
+    } catch {
+      toast.error('Erro ao adicionar usuário.')
+    } finally {
+      setSavingNovoUsuario(false)
     }
   }
 
@@ -196,9 +253,9 @@ export function MinhaEmpresaPage() {
 
   // ── Usuário: desalocar ────────────────────────────────
   async function handleDesalocar() {
-    if (!desalocarTarget || !empresaId) return
+    if (!desalocarTarget || !targetId) return
     try {
-      await empresasApi.desalocarUsuario(empresaId, desalocarTarget.id)
+      await empresasApi.desalocarUsuario(targetId, desalocarTarget.id)
       toast.success(`${desalocarTarget.nome} desalocado da empresa.`)
       setDesalocarTarget(null)
       load()
@@ -211,7 +268,15 @@ export function MinhaEmpresaPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="mx-auto max-w-3xl px-4 py-8 space-y-6">
-        <h1 className="text-2xl font-bold">Minha Empresa</h1>
+        {isFilialView && (
+          <Button variant="ghost" size="sm" asChild className="-ml-2">
+            <Link to="/minha-empresa">
+              <ArrowLeft className="h-4 w-4" />
+              Voltar à minha empresa
+            </Link>
+          </Button>
+        )}
+        <h1 className="text-2xl font-bold">{isFilialView ? 'Gerenciar filial' : 'Minha Empresa'}</h1>
 
         {loading ? (
           <div className="space-y-4">
@@ -268,9 +333,17 @@ export function MinhaEmpresaPage() {
             {/* Lista de usuários */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Usuários ({usuarios?.totalCount ?? 0})
-                </CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    Usuários ({usuarios?.totalCount ?? 0})
+                  </CardTitle>
+                  {canEditEmpresa && (
+                    <Button variant="outline" size="sm" onClick={() => setCreateUsuarioOpen(true)}>
+                      <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                      Adicionar usuário
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 {usuarios?.items.length === 0 ? (
@@ -343,6 +416,59 @@ export function MinhaEmpresaPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Filiais — só faz sentido gerenciar a partir de uma central (não numa filial) */}
+            {!isFilialView && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-3">
+                    <CardTitle className="text-base">
+                      Filiais ({filiais?.totalCount ?? 0})
+                    </CardTitle>
+                    {canEditEmpresa && (
+                      <Button variant="outline" size="sm" onClick={() => setCreateFilialOpen(true)}>
+                        <Plus className="mr-1.5 h-3.5 w-3.5" />
+                        Nova filial
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {(filiais?.items.length ?? 0) === 0 ? (
+                    <p className="px-6 py-4 text-sm text-muted-foreground">Nenhuma filial vinculada.</p>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {filiais?.items.map(f => (
+                        <Link
+                          key={f.empresa_id}
+                          to={`/minha-empresa/${f.empresa_id}`}
+                          className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            {resolveImageUrl(f.empresa_logo_url)
+                              ? <img src={resolveImageUrl(f.empresa_logo_url)!} alt="logo" className="h-9 w-9 rounded-lg object-cover shrink-0" />
+                              : <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                                  <Store className="h-4 w-4" />
+                                </div>
+                            }
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{f.empresa_nome}</p>
+                              <p className="text-xs text-muted-foreground truncate">{f.empresa_cnpj}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant={f.empresa_status ? 'default' : 'secondary'} className="text-xs">
+                              {f.empresa_status ? 'Ativo' : 'Inativo'}
+                            </Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
       </main>
@@ -393,6 +519,84 @@ export function MinhaEmpresaPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog: criar filial */}
+      <Dialog open={createFilialOpen} onOpenChange={setCreateFilialOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nova filial</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={filialForm.nome} onChange={e => setFilialForm(f => ({ ...f, nome: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>CNPJ</Label>
+              <Input value={filialForm.cnpj} onChange={e => setFilialForm(f => ({ ...f, cnpj: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Telefone</Label>
+              <Input value={filialForm.telefone} onChange={e => setFilialForm(f => ({ ...f, telefone: e.target.value }))} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Ativo</Label>
+              <Switch checked={filialForm.status} onCheckedChange={v => setFilialForm(f => ({ ...f, status: v }))} />
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleCreateFilial}
+              disabled={savingFilial || !filialForm.nome || !filialForm.cnpj}
+            >
+              {savingFilial ? 'Criando...' : 'Criar filial'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: adicionar usuário */}
+      <Dialog open={createUsuarioOpen} onOpenChange={setCreateUsuarioOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Adicionar usuário</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={novoUsuarioForm.nome} onChange={e => setNovoUsuarioForm(f => ({ ...f, nome: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>E-mail</Label>
+              <Input type="email" value={novoUsuarioForm.email} onChange={e => setNovoUsuarioForm(f => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Senha</Label>
+              <Input
+                type="password"
+                value={novoUsuarioForm.password}
+                onChange={e => setNovoUsuarioForm(f => ({ ...f, password: e.target.value }))}
+                placeholder="Mínimo 6 caracteres"
+                aria-invalid={novoUsuarioForm.password.length > 0 && novoUsuarioForm.password.length < 6}
+              />
+              {novoUsuarioForm.password.length > 0 && novoUsuarioForm.password.length < 6 && (
+                <p className="text-xs text-destructive">A senha deve ter pelo menos 6 caracteres.</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Cargo</Label>
+              <Select value={novoUsuarioForm.cargo} onValueChange={v => setNovoUsuarioForm(f => ({ ...f, cargo: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['Operador', 'Gerente', 'Diretor'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleCreateUsuario}
+              disabled={savingNovoUsuario || !novoUsuarioForm.nome || !novoUsuarioForm.email || novoUsuarioForm.password.length < 6}
+            >
+              {savingNovoUsuario ? 'Adicionando...' : 'Adicionar usuário'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog: editar usuário */}
       <Dialog open={editUsuarioOpen} onOpenChange={setEditUsuarioOpen}>
         <DialogContent>
@@ -434,7 +638,11 @@ export function MinhaEmpresaPage() {
                 value={novaSenha}
                 onChange={e => setNovaSenha(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
+                aria-invalid={novaSenha.length > 0 && novaSenha.length < 6}
               />
+              {novaSenha.length > 0 && novaSenha.length < 6 && (
+                <p className="text-xs text-destructive">A senha deve ter pelo menos 6 caracteres.</p>
+              )}
             </div>
             <Button className="w-full" onClick={handleResetSenha} disabled={savingSenha || novaSenha.length < 6}>
               {savingSenha ? 'Salvando...' : 'Redefinir senha'}

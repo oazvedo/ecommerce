@@ -30,7 +30,8 @@ namespace api.Application.Services
             Status = entity.Status,
             CriadoEm = entity.CriadoEm,
             AtualizadoEm = entity.AtualizadoEm,
-            LogoUrl = entity.LogoUrl
+            LogoUrl = entity.LogoUrl,
+            EmpresaPaiId = entity.EmpresaPaiId
         };
 
         public async Task<PagedResult<ProdutoDto>> GetProdutosAsync(Guid empresaId, int page, int pageSize)
@@ -80,6 +81,28 @@ namespace api.Application.Services
             };
         }
 
+        public async Task<PagedResult<EmpresaDto>> GetFiliaisAsync(Guid empresaPaiId, int page, int pageSize)
+        {
+            var (items, total) = await _empresaRepository.GetFiliaisAsync(empresaPaiId, page, pageSize);
+            return new PagedResult<EmpresaDto>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = total,
+                Items = items.Select(ToDto)
+            };
+        }
+
+        public async Task<bool> PodeGerenciarAsync(Guid usuarioEmpresaId, Guid targetEmpresaId)
+        {
+            // A própria empresa sempre pode gerenciar a si mesma.
+            if (usuarioEmpresaId == targetEmpresaId) return true;
+
+            // 1 nível: a central gerencia suas filiais diretas.
+            var target = await _repository.GetByIdAsync(targetEmpresaId);
+            return target?.EmpresaPaiId == usuarioEmpresaId;
+        }
+
         public Task<bool> AdicionarUsuarioAsync(Guid empresaId, Guid usuarioId)
             => _empresaRepository.AdicionarUsuarioAsync(empresaId, usuarioId);
 
@@ -88,7 +111,7 @@ namespace api.Application.Services
 
         public async Task<EmpresaDto?> UpdateCamposAsync(Guid id, UpdateEmpresaRequest request)
         {
-            var entity = await _empresaRepository.UpdateCamposAsync(id, request.Nome, request.Cnpj, request.Responsavel, request.ResponsavelId, request.Telefone, request.Tipo, request.Status);
+            var entity = await _empresaRepository.UpdateCamposAsync(id, request.Nome, request.Cnpj, request.Responsavel, request.ResponsavelId, request.Telefone, request.Tipo, request.Status, request.EmpresaPaiId);
             return entity == null ? null : ToDto(entity);
         }
 

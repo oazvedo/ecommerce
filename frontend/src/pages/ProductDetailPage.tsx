@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   Sparkles,
   Star,
+  Store,
   Tag,
   Truck,
   XCircle,
@@ -20,9 +21,10 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Navbar } from '@/components/Navbar'
 import { produtosApi } from '@/api/produtos'
+import { empresasApi } from '@/api/empresas'
 import { useCart } from '@/context/CartContext'
 import { resolveImageUrl } from '@/api/upload'
-import type { Produto } from '@/types'
+import type { Loja, Produto } from '@/types'
 import { toast } from 'sonner'
 
 const GRADIENTS = [
@@ -55,6 +57,7 @@ export function ProductDetailPage() {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const [produto, setProduto] = useState<Produto | null>(null)
+  const [loja, setLoja] = useState<Loja | null>(null)
   const [loading, setLoading] = useState(true)
   const [qty, setQty] = useState(1)
 
@@ -63,6 +66,11 @@ export function ProductDetailPage() {
     setLoading(true)
     produtosApi.get(id).then(setProduto).catch(console.error).finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    if (!produto?.empresaId) { setLoja(null); return }
+    empresasApi.getVitrine(produto.empresaId).then(setLoja).catch(() => setLoja(null))
+  }, [produto?.empresaId])
 
   function handleAdd() {
     if (!produto) return
@@ -140,6 +148,16 @@ export function ProductDetailPage() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-primary">{produto.codigo}</p>
                   <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">{produto.nome}</h1>
+
+                  {loja && (
+                    <Link
+                      to={`/loja/${loja.empresa_id}`}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                    >
+                      <Store className="h-3.5 w-3.5" />
+                      {loja.empresa_nome}
+                    </Link>
+                  )}
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     {!produto.status ? (
