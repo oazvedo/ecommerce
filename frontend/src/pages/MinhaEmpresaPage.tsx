@@ -3,7 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { empresasApi } from '@/api/empresas'
 import { usuariosApi } from '@/api/usuarios'
-import type { Empresa, Usuario, PagedResult } from '@/types'
+import { produtosApi, type ProdutoPayload } from '@/api/produtos'
+import type { Empresa, Usuario, Produto, PagedResult } from '@/types'
 import { Navbar } from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -35,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Building2, Phone, Hash, Pencil, KeyRound, UserX, PowerOff, Power, MoreHorizontal, Store, Plus, ChevronRight, ArrowLeft, UserPlus } from 'lucide-react'
+import { Building2, Phone, Hash, Pencil, KeyRound, UserX, PowerOff, Power, MoreHorizontal, Store, Plus, ChevronRight, ArrowLeft, UserPlus, Package, Trash2 } from 'lucide-react'
 import { ImageUpload } from '@/components/ImageUpload'
 import { resolveImageUrl } from '@/api/upload'
 import {
@@ -49,6 +50,11 @@ import { toast } from 'sonner'
 
 const TIPOS = ['Central', 'Filial', 'Parceira', 'Representante']
 const CARGOS = ['Operador', 'Gerente', 'Diretor', 'Administrador']
+const EMPTY_PRODUTO: ProdutoPayload = { nome: '', descricao: '', preco: 0, codigo: '', status: true, estoque: 0, freteGratis: false, variantes: null }
+
+function formatBRL(v: number) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
 
 interface UsuarioEditForm {
   nome: string
@@ -78,6 +84,14 @@ export function MinhaEmpresaPage() {
   const [novoUsuarioForm, setNovoUsuarioForm] = useState({ nome: '', email: '', password: '', cargo: 'Operador' })
   const [savingNovoUsuario, setSavingNovoUsuario] = useState(false)
 
+  // Produtos
+  const [produtos, setProdutos] = useState<PagedResult<Produto> | null>(null)
+  const [produtoDialogOpen, setProdutoDialogOpen] = useState(false)
+  const [editingProduto, setEditingProduto] = useState<Produto | null>(null)
+  const [produtoForm, setProdutoForm] = useState<ProdutoPayload>(EMPTY_PRODUTO)
+  const [savingProduto, setSavingProduto] = useState(false)
+  const [deleteProdutoId, setDeleteProdutoId] = useState<string | null>(null)
+
   // Edit empresa
   const [editEmpresaOpen, setEditEmpresaOpen] = useState(false)
   const [empresaForm, setEmpresaForm] = useState({ nome: '', cnpj: '', telefone: '', tipo: 'Central', status: true })
@@ -101,6 +115,9 @@ export function MinhaEmpresaPage() {
   const canEditEmpresa = hasPermission('Empresa.Update')
   const canEditUsuario = hasPermission('Usuario.Update')
   const canResetSenha = hasPermission('Usuario.PasswordUpdate')
+  const canCreateProduto = hasPermission('Produto.Create')
+  const canEditProduto = hasPermission('Produto.Update')
+  const canDeleteProduto = hasPermission('Produto.Delete')
 
   function load() {
     if (!targetId) return
@@ -109,11 +126,13 @@ export function MinhaEmpresaPage() {
       empresasApi.get(targetId),
       empresasApi.getUsuarios(targetId, 1, 50),
       empresasApi.getFiliais(targetId, 1, 50),
+      produtosApi.list(1, 50, targetId),
     ])
-      .then(([emp, usrs, fils]) => {
+      .then(([emp, usrs, fils, prods]) => {
         setEmpresa(emp)
         setUsuarios(usrs)
         setFiliais(fils)
+        setProdutos(prods)
       })
       .catch(() => toast.error('Erro ao carregar dados da empresa'))
       .finally(() => setLoading(false))
@@ -189,6 +208,51 @@ export function MinhaEmpresaPage() {
       toast.error('Erro ao adicionar usuário.')
     } finally {
       setSavingNovoUsuario(false)
+    }
+  }
+
+  // ── Produtos ──────────────────────────────────────────
+  function openCreateProduto() {
+    setEditingProduto(null)
+    setProdutoForm(EMPTY_PRODUTO)
+    setProdutoDialogOpen(true)
+  }
+
+  function openEditProduto(p: Produto) {
+    setEditingProduto(p)
+    setProdutoForm({ nome: p.nome, descricao: p.descricao, preco: p.preco, codigo: p.codigo, status: p.status, estoque: p.estoque, freteGratis: p.freteGratis, variantes: p.variantes })
+    setProdutoDialogOpen(true)
+  }
+
+  async function handleSaveProduto() {
+    if (!targetId) return
+    setSavingProduto(true)
+    try {
+      if (editingProduto) {
+        await produtosApi.update(editingProduto.id, produtoForm)
+        toast.success('Produto atualizado.')
+      } else {
+        await empresasApi.criarProduto(targetId, produtoForm)
+        toast.success('Produto criado.')
+      }
+      setProdutoDialogOpen(false)
+      load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar produto.')
+    } finally {
+      setSavingProduto(false)
+    }
+  }
+
+  async function handleDeleteProduto() {
+    if (!deleteProdutoId) return
+    try {
+      await produtosApi.delete(deleteProdutoId)
+      toast.success('Produto removido.')
+      setDeleteProdutoId(null)
+      load()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao remover produto.')
     }
   }
 
@@ -412,6 +476,83 @@ export function MinhaEmpresaPage() {
                         </div>
                       )
                     })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Produtos da loja */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="text-base">
+                    Produtos ({produtos?.totalCount ?? 0})
+                  </CardTitle>
+                  {canCreateProduto && (
+                    <Button variant="outline" size="sm" onClick={openCreateProduto}>
+                      <Plus className="mr-1.5 h-3.5 w-3.5" />
+                      Novo produto
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {(produtos?.items.length ?? 0) === 0 ? (
+                  <p className="px-6 py-4 text-sm text-muted-foreground">Nenhum produto nesta loja.</p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {produtos?.items.map(p => (
+                      <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                        {resolveImageUrl(p.imagemUrl)
+                          ? <img src={resolveImageUrl(p.imagemUrl)!} alt={p.nome} className="h-10 w-10 rounded-lg object-cover shrink-0" />
+                          : <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0"><Package className="h-4 w-4" /></div>
+                        }
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{p.nome}</p>
+                          <p className="text-xs text-muted-foreground font-mono truncate">{p.codigo}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-sm font-semibold">{formatBRL(p.preco)}</span>
+                          {p.estoque === 0 ? (
+                            <Badge variant="destructive" className="text-xs">Sem estoque</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">{p.estoque} un.</Badge>
+                          )}
+                          <Badge variant={p.status ? 'default' : 'secondary'} className="text-xs">
+                            {p.status ? 'Ativo' : 'Pausado'}
+                          </Badge>
+                          {(canEditProduto || canDeleteProduto) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {canEditProduto && (
+                                  <DropdownMenuItem onClick={() => openEditProduto(p)}>
+                                    <Pencil className="mr-2 h-4 w-4 text-violet-500" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                )}
+                                {canDeleteProduto && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => setDeleteProdutoId(p.id)}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Excluir
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
@@ -650,6 +791,87 @@ export function MinhaEmpresaPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog: criar/editar produto */}
+      <Dialog open={produtoDialogOpen} onOpenChange={setProdutoDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editingProduto ? 'Editar produto' : 'Novo produto'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2">
+            {editingProduto && (
+              <div className="flex justify-center">
+                <ImageUpload
+                  entidade="produto"
+                  id={editingProduto.id}
+                  currentUrl={resolveImageUrl(editingProduto.imagemUrl)}
+                  variant="produto"
+                  onSuccess={url => setProdutos(prev => prev ? {
+                    ...prev,
+                    items: prev.items.map(p => p.id === editingProduto.id ? { ...p, imagemUrl: url } : p)
+                  } : prev)}
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={produtoForm.nome} onChange={e => setProdutoForm(f => ({ ...f, nome: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Descrição</Label>
+              <Input value={produtoForm.descricao} onChange={e => setProdutoForm(f => ({ ...f, descricao: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Código</Label>
+                <Input value={produtoForm.codigo} onChange={e => setProdutoForm(f => ({ ...f, codigo: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Preço (R$)</Label>
+                <Input type="number" min="0" step="0.01" value={produtoForm.preco}
+                  onChange={e => setProdutoForm(f => ({ ...f, preco: parseFloat(e.target.value) || 0 }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Estoque</Label>
+                <Input type="number" min="0" value={produtoForm.estoque}
+                  onChange={e => setProdutoForm(f => ({ ...f, estoque: parseInt(e.target.value) || 0 }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Variantes</Label>
+                <Input placeholder="Ex: Azul, Preto, 128GB" value={produtoForm.variantes ?? ''}
+                  onChange={e => setProdutoForm(f => ({ ...f, variantes: e.target.value || null }))} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Ativo</Label>
+              <Switch checked={produtoForm.status} onCheckedChange={v => setProdutoForm(f => ({ ...f, status: v }))} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Frete grátis</Label>
+              <Switch checked={produtoForm.freteGratis} onCheckedChange={v => setProdutoForm(f => ({ ...f, freteGratis: v }))} />
+            </div>
+            <Button className="w-full" onClick={handleSaveProduto} disabled={savingProduto || !produtoForm.nome || !produtoForm.codigo}>
+              {savingProduto ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação: excluir produto */}
+      <AlertDialog open={!!deleteProdutoId} onOpenChange={open => !open && setDeleteProdutoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover produto?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteProduto} className="bg-destructive hover:bg-destructive/90">
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirmação: desalocar */}
       <AlertDialog open={!!desalocarTarget} onOpenChange={open => !open && setDesalocarTarget(null)}>

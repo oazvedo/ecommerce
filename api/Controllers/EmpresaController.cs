@@ -1,5 +1,6 @@
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Empresa;
+using api.Application.DTOs.Produto;
 using api.application.dtos.usuario;
 using api.application.services.interfaces;
 using api.Application.DTOs.Usuario;
@@ -21,11 +22,13 @@ namespace api.Controllers
     {
         private readonly IEmpresaService _service;
         private readonly IUsuarioService _usuarioService;
+        private readonly IProdutoService _produtoService;
 
-        public EmpresaController(IEmpresaService service, IUsuarioService usuarioService)
+        public EmpresaController(IEmpresaService service, IUsuarioService usuarioService, IProdutoService produtoService)
         {
             _service = service;
             _usuarioService = usuarioService;
+            _produtoService = produtoService;
         }
 
         // Admin da plataforma acessa qualquer empresa; demais só a própria e as filiais diretas.
@@ -285,6 +288,32 @@ namespace api.Controllers
                 var usuario = new Usuario(request.Nome, request.Email, request.Password, cargo, id);
                 var dto = await _usuarioService.CreateAsync(usuario);
                 return CreatedAtAction(nameof(GetUsuarios), new { id }, dto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        // Cria um produto diretamente na empresa {id} (própria ou filial no escopo).
+        // A loja vendedora é a empresa da rota — não a do usuário logado.
+        [HttpPost("{id}/produto")]
+        [Authorize(Policy = "Produto.Create")]
+        public async Task<ActionResult<ProdutoDto>> CriarProduto(Guid id, CreateProdutoRequest request)
+        {
+            try
+            {
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
+                var entity = new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, id, request.Status)
+                {
+                    Estoque = request.Estoque,
+                    FreteGratis = request.FreteGratis,
+                    Variantes = request.Variantes
+                };
+                var produto = await _produtoService.CreateAsync(entity);
+                return CreatedAtAction(nameof(GetProdutos), new { id }, produto);
             }
             catch (Exception ex)
             {
