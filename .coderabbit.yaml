@@ -26,7 +26,7 @@ reviews:
 
   # Ignore generated / build artifacts
   path_filters:
-    - "!**/Migrations/**"
+    - "!**/Migrations/**/*ModelSnapshot.cs"
     - "!**/*.Designer.cs"
     - "!**/bin/**"
     - "!**/obj/**"
@@ -45,7 +45,10 @@ reviews:
         every endpoint that reads or mutates a resource must have an [Authorize]
         policy AND, where relevant, an ownership/scope check (e.g. empresa
         hierarchy via PodeAcessarAsync/PodeGerenciarAsync, order ownership).
-        Flag any public/[AllowAnonymous] endpoint that exposes or mutates data.
+        Flag any [AllowAnonymous] or public endpoint that lacks an explicit
+        comment/XML doc clearly documenting it as intentionally public (e.g.
+        public marketplace catalog reads). Endpoints that read or mutate
+        protected/private resources must have authorization AND ownership checks.
         Watch for nullable reference warnings and unhandled exceptions.
     - path: "frontend/src/**/*.{ts,tsx}"
       instructions: >-
@@ -59,7 +62,9 @@ reviews:
       instructions: >-
         These are thin API client wrappers over apiFetch. Ensure request/response
         types stay in sync with the backend DTOs and that auth is only skipped
-        (skipAuth) for genuinely public endpoints.
+        (skipAuth) for endpoints documented as intentionally public (e.g. public
+        marketplace catalog reads). Ensure skipAuth is not used for endpoints that
+        should require authentication.
 
 chat:
   auto_reply: true
