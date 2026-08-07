@@ -4,6 +4,12 @@ language: en-US
 tone_instructions: >-
   Be concise and pragmatic. Focus on correctness, security and clear bugs over
   style nitpicks. This is an early-stage marketplace app under active refactor.
+  COMMIT SIZE RULE: every commit must change at most 500 lines (additions +
+  deletions combined), excluding generated/vendored files (Migrations/,
+  *.Designer.cs, lockfiles, dist/, node_modules/). In every review, inspect each
+  commit in the PR and, if any single commit exceeds 500 changed lines, clearly
+  flag it as a blocking concern and ask the author to split it into smaller
+  commits.
 
 early_access: false
 
