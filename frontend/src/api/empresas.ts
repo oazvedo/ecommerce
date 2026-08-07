@@ -1,4 +1,5 @@
 import { apiFetch } from './client'
+import type { ProdutoPayload } from './produtos'
 import type { Empresa, Loja, PagedResult, Produto, Usuario } from '@/types'
 
 export const empresasApi = {
@@ -59,6 +60,14 @@ export const empresasApi = {
 
   getProdutos: (id: string, page = 1, pageSize = 20) =>
     apiFetch<PagedResult<Produto>>(`/empresa/${id}/produtos?page=${page}&pageSize=${pageSize}`),
+
+  // Cria um produto dentro da empresa (própria ou filial no escopo) — a loja
+  // vendedora é a empresa da rota, não a do usuário logado.
+  criarProduto: (empresaId: string, data: ProdutoPayload) =>
+    apiFetch<Produto>(`/empresa/${empresaId}/produto`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   getUsuarios: (id: string, page = 1, pageSize = 50) =>
     apiFetch<PagedResult<Usuario>>(`/empresa/${id}/usuarios?page=${page}&pageSize=${pageSize}`),
