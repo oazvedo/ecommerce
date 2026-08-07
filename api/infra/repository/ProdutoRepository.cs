@@ -19,5 +19,16 @@ namespace api.infra.repository
 
             return (items, totalCount);
         }
+
+        public async Task<bool> TryDecrementarEstoqueAsync(Guid produtoId, int quantidade)
+        {
+            // UPDATE atômico: só baixa se houver saldo. A condição estoque >= quantidade
+            // no WHERE garante que dois pedidos simultâneos não zerem/negativem o estoque.
+            var linhasAfetadas = await _dbSet
+                .Where(p => p.Id == produtoId && p.Estoque >= quantidade)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.Estoque, p => p.Estoque - quantidade));
+
+            return linhasAfetadas > 0;
+        }
     }
 }
