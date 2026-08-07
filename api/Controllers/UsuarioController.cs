@@ -3,10 +3,13 @@ using api.Application.DTOs.Common;
 using api.Application.DTOs.Usuario;
 using api.application.services.interfaces;
 using api.domain;
+using api.domain.enums;
 using api.domain.interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using api.Domain.Enums.UsuarioEnums;
+using api.Application.Utils;
+using api.infra;
 
 namespace api.controllers
 {
@@ -40,11 +43,15 @@ namespace api.controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Policy = "Usuario.Read")]
+        [Authorize]
         public async Task<ActionResult<UsuarioDto>> GetUsuario(Guid id)
         {
             try
             {
+                // Qualquer autenticado lê o próprio perfil; ler outros exige Usuario.Read.
+                if (id != User.GetId() && !User.HasPermissao("Usuario.Read"))
+                    return Forbid();
+
                 var usuario = await _service.GetByIdAsync(id);
                 if (usuario == null)
                     return NotFound();
@@ -57,12 +64,35 @@ namespace api.controllers
         }
 
         [HttpPost]
-        // [Authorize(Policy = "Usuario.Create")]
-        public async Task<ActionResult<UsuarioDto>> CreateUsuario(UsuarioCargo cargo,CreateUsuarioRequest request)
+        [Authorize(Policy = "Usuario.Create")]
+        public async Task<ActionResult<UsuarioDto>> CreateUsuario(UsuarioCargo cargo, CreateUsuarioRequest request)
         {
             try
             {
                 var usuario = new Usuario(request.Nome, request.Email, request.Password, cargo, request.EmpresaId);
+                var usuarioDto = await _service.CreateAsync(usuario);
+                return CreatedAtAction(nameof(GetUsuario), new { id = usuarioDto.Id }, usuarioDto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        // Auto-cadastro público de cliente. Cargo e empresa são forçados pelo
+        // servidor — o cliente não pode escolher virar admin/lojista.
+        [HttpPost("register")]
+        [AllowAnonymous]
+        public async Task<ActionResult<UsuarioDto>> Register(RegisterUsuarioRequest request)
+        {
+            try
+            {
+                var usuario = new Usuario(
+                    request.Nome,
+                    request.Email,
+                    request.Password,
+                    UsuarioCargo.Cliente,
+                    EmpresaSeed.DefaultEmpresaId);
                 var usuarioDto = await _service.CreateAsync(usuario);
                 return CreatedAtAction(nameof(GetUsuario), new { id = usuarioDto.Id }, usuarioDto);
             }
@@ -85,6 +115,27 @@ namespace api.controllers
                 var updatedUsuario = await _service.UpdateAsync(id, request);
                 if (updatedUsuario == null)
                     return NotFound();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpPatch("{id}/status")]
+        [Authorize(Policy = "Usuario.Update")]
+        public async Task<IActionResult> UpdateUsuarioStatus(Guid id, [FromBody] UpdateUsuarioStatusRequest request)
+        {
+            try
+            {
+                var usuario = await _service.GetByIdAsync(id);
+                if (usuario == null) return NotFound();
+
+                var atualizado = await _service.UpdateStatusAsync(id, request.Status);
+                if (!atualizado)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
 
                 return NoContent();
             }

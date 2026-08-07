@@ -7,6 +7,7 @@ using api.domain;
 using api.domain.interfaces;
 using api.Domain;
 using api.Domain.Enums;
+using api.Domain.Enums.CarteiraEnums;
 using api.Domain.Interfaces;
 using Hangfire;
 using MassTransit;
@@ -18,6 +19,7 @@ namespace api.Application.Services
         private readonly IPedidoRepository _repository;
         private readonly IRepositoryBase<Produto> _produtoRepository;
         private readonly ICarteiraRepository _carteiraService;
+        private readonly ICarteiraTransacaoRepository _transacaoRepository;
         private readonly IBackgroundJobClient _backgroundJobs;
         private readonly IPublishEndpoint _publishEndpoint;
         private readonly ILogger<PedidoService> _logger;
@@ -26,6 +28,7 @@ namespace api.Application.Services
             IPedidoRepository repository,
             IRepositoryBase<Produto> produtoRepository,
             ICarteiraRepository carteiraService,
+            ICarteiraTransacaoRepository transacaoRepository,
             IBackgroundJobClient backgroundJobs,
             IPublishEndpoint publishEndpoint,
             ILogger<PedidoService> logger)
@@ -33,6 +36,7 @@ namespace api.Application.Services
             _repository = repository;
             _produtoRepository = produtoRepository;
             _carteiraService = carteiraService;
+            _transacaoRepository = transacaoRepository;
             _backgroundJobs = backgroundJobs;
             _publishEndpoint = publishEndpoint;
             _logger = logger;
@@ -107,26 +111,64 @@ namespace api.Application.Services
             };
         }
 
-        public async Task<PedidoDto> CreatePedido(Guid usuarioId, CreatePedidoRequest request)
+        public async Task<IReadOnlyList<PedidoDto>> CreatePedido(Guid usuarioId, CreatePedidoRequest request)
         {
-            var pedido = new Pedido(request.EmpresaId, usuarioId, new List<PedidoItem>(), request.contratacao);
+            if (request.itens == null || request.itens.Count == 0)
+                throw new InvalidOperationException("O pedido não contém itens.");
 
+            // Carrega produtos, valida estoque e agrupa os itens pela loja vendedora
+            // (produto.EmpresaId) — carrinho multi-loja vira um pedido por loja.
+            var itensPorLoja = new Dictionary<Guid, List<(Produto produto, int quantidade)>>();
             foreach (var item in request.itens)
             {
                 var produto = await _produtoRepository.GetByIdAsync(item.produtoId)
                     ?? throw new KeyNotFoundException($"Produto '{item.produtoId}' não encontrado.");
-                pedido.AdicionarItem(produto, item.quantidade);
+
+                if (produto.Estoque < item.quantidade)
+                    throw new InvalidOperationException(
+                        $"Estoque insuficiente para '{produto.Nome}'. Disponível: {produto.Estoque}.");
+
+                if (!itensPorLoja.TryGetValue(produto.EmpresaId, out var lista))
+                    itensPorLoja[produto.EmpresaId] = lista = new();
+                lista.Add((produto, item.quantidade));
             }
+
+            // Monta um pedido por loja e baixa o estoque.
+            var pedidos = new List<Pedido>();
+            foreach (var (lojaId, itens) in itensPorLoja)
+            {
+                var pedido = new Pedido(lojaId, usuarioId, new List<PedidoItem>(), request.contratacao,
+                                        request.FormaPagamento, request.Parcelas);
+                foreach (var (produto, quantidade) in itens)
+                {
+                    pedido.AdicionarItem(produto, quantidade);
+                    produto.Estoque -= quantidade;
+                }
+                pedidos.Add(pedido);
+            }
+
             var carteiraUsuario = await _carteiraService.GetCarteiraByUsuarioId(usuarioId);
 
-            if (((double)pedido.ValorTotal) > carteiraUsuario!.Saldo)
+            // Valida saldo contra o total geral (soma de todas as lojas) antes de debitar.
+            if (request.FormaPagamento == FormaPagamentoEnum.Carteira)
             {
-                throw new KeyNotFoundException("Saldo insuficiente");
+                var totalGeral = pedidos.Sum(p => p.ValorTotal);
+                if ((double)totalGeral > carteiraUsuario!.Saldo)
+                    throw new InvalidOperationException("Saldo insuficiente na carteira.");
             }
-            else
+            else if (request.FormaPagamento == FormaPagamentoEnum.Parcelado && request.Parcelas.HasValue)
             {
-                carteiraUsuario.UpdateBalance(-(double)pedido.ValorTotal);
-                await _carteiraService.UpdateAsync(carteiraUsuario);
+                var numeroParcelas = request.Parcelas.Value;
+                var primeiraParcelaGeral = pedidos.Sum(p => p.ValorTotal / numeroParcelas);
+                if ((double)primeiraParcelaGeral > carteiraUsuario!.Saldo)
+                    throw new InvalidOperationException(
+                        $"Saldo insuficiente para a 1ª parcela de {primeiraParcelaGeral:C}. Saldo atual: {carteiraUsuario.Saldo:C}.");
+            }
+
+            // Persiste e cobra cada pedido individualmente.
+            foreach (var pedido in pedidos)
+            {
+                await ProcessarPagamentoAsync(pedido, carteiraUsuario, request, usuarioId);
                 await _repository.AdicionarPedido(pedido);
 
                 var eventoCriado = new PedidoStatusAlteradoEvent
@@ -141,12 +183,43 @@ namespace api.Application.Services
                 };
                 await _publishEndpoint.Publish(eventoCriado);
                 _logger.LogInformation(
-                    "[RabbitMQ] Publicado PedidoStatusAlteradoEvent — pedido {PedidoId} criado, valor R$ {ValorTotal:F2}.",
-                    pedido.Id, pedido.ValorTotal);
-
-                return ToDto(pedido);
+                    "[RabbitMQ] Publicado PedidoStatusAlteradoEvent — pedido {PedidoId} criado (loja {EmpresaId}), valor R$ {ValorTotal:F2}.",
+                    pedido.Id, pedido.EmpresaId, pedido.ValorTotal);
             }
 
+            return pedidos.Select(ToDto).ToList();
+        }
+
+        private async Task ProcessarPagamentoAsync(Pedido pedido, Carteira? carteiraUsuario,
+                                                   CreatePedidoRequest request, Guid usuarioId)
+        {
+            if (request.FormaPagamento == FormaPagamentoEnum.Carteira)
+            {
+                carteiraUsuario!.UpdateBalance(-(double)pedido.ValorTotal);
+                await _carteiraService.UpdateAsync(carteiraUsuario);
+                await _transacaoRepository.AddAsync(new CarteiraTransacao(
+                    carteiraUsuario.Id, CarteiraTransacaoTipo.Debito, (double)pedido.ValorTotal,
+                    $"Pedido #{pedido.Id.ToString()[..8].ToUpper()}", pedido.Id));
+            }
+            else if (request.FormaPagamento == FormaPagamentoEnum.Parcelado && request.Parcelas.HasValue)
+            {
+                var numeroParcelas = request.Parcelas.Value;
+                var valorParcela = pedido.ValorTotal / numeroParcelas;
+
+                carteiraUsuario!.UpdateBalance(-(double)valorParcela);
+                await _carteiraService.UpdateAsync(carteiraUsuario);
+                await _transacaoRepository.AddAsync(new CarteiraTransacao(
+                    carteiraUsuario.Id, CarteiraTransacaoTipo.Parcela, (double)valorParcela,
+                    $"Parcela 1/{numeroParcelas} — Pedido #{pedido.Id.ToString()[..8].ToUpper()}", pedido.Id));
+
+                for (int i = 2; i <= numeroParcelas; i++)
+                {
+                    var delay = TimeSpan.FromDays(30 * (i - 1));
+                    _backgroundJobs.Schedule<PagamentoParcelasJob>(
+                        job => job.Executar(pedido.Id, usuarioId, valorParcela, i, numeroParcelas),
+                        delay);
+                }
+            }
         }
 
         public async Task<PedidoDto?> UpdatePedidoStatus(Guid id, PedidoStatus newStatus)
@@ -226,19 +299,38 @@ namespace api.Application.Services
             var pedido = await _repository.GetPedidoById(pedidoId);
             if (pedido == null) throw new KeyNotFoundException("Pedido não encontrado.");
 
-            var valorTotal = (double)pedido.ValorTotal;
+            double valorReembolso;
+            if (pedido.FormaPagamento == FormaPagamentoEnum.Parcelado && pedido.Parcelas.HasValue && pedido.Parcelas.Value > 0)
+            {
+                var valorParcela = pedido.ValorTotal / pedido.Parcelas.Value;
+                var diasDecorridos = (DateTime.UtcNow - pedido.CriadoEm).TotalDays;
+                var parcelasPagas = Math.Min((int)Math.Floor(diasDecorridos / 30) + 1, pedido.Parcelas.Value);
+                valorReembolso = (double)valorParcela * parcelasPagas;
+            }
+            else
+            {
+                valorReembolso = (double)pedido.ValorTotal;
+            }
+
             var usuarioId = pedido.UsuarioId;
             var statusAnterior = pedido.Status;
+
+            foreach (var item in pedido.Itens)
+            {
+                var produto = await _produtoRepository.GetByIdAsync(item.ProdutoId);
+                if (produto != null)
+                    produto.Estoque += item.Quantidade;
+            }
 
             pedido.CancelarPedido();
             var updated = await _repository.AtualizarPedido(pedidoId, pedido);
 
             if (updated != null)
             {
-                if (valorTotal > 0)
+                if (valorReembolso > 0)
                 {
                     _backgroundJobs.Enqueue<CarteiraReembolsoJob>(
-                        job => job.Executar(usuarioId, valorTotal));
+                        job => job.Executar(usuarioId, valorReembolso, pedidoId));
                 }
 
                 var eventoCancelado = new PedidoStatusAlteradoEvent
@@ -270,6 +362,8 @@ namespace api.Application.Services
             UsuarioNome = p.Usuario?.Nome,
             Status = p.Status,
             Contracacao = p.Contracacao,
+            FormaPagamento = p.FormaPagamento,
+            Parcelas = p.Parcelas,
             ValorTotal = p.ValorTotal,
             CriadoEm = p.CriadoEm,
             AtualizadoEm = p.AtualizadoEm,

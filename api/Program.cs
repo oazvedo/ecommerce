@@ -44,6 +44,10 @@ builder.Services.AddDbContext<DatabaseContext>(options =>
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 
+var abacatePaySettings = builder.Configuration.GetSection("AbacatePay").Get<AbacatePaySettings>()
+    ?? new AbacatePaySettings();
+builder.Services.AddSingleton(abacatePaySettings);
+
 //services
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 builder.Services.AddScoped<IPermissaoService, PermissaoService>();
@@ -51,6 +55,7 @@ builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<IProdutoService, ProdutoService>();
 builder.Services.AddScoped<ICarteiraService, CarteiraService>();
 builder.Services.AddScoped<IEmpresaService, EmpresaService>();
+builder.Services.AddHttpClient<IAbacatePayService, AbacatePayService>();
 // repositories
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IPermissaoRepository, PermissaoRepository>();
@@ -58,8 +63,11 @@ builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<IRepositoryBase<Produto>, ProdutoRepository>();
 builder.Services.AddScoped<ICarteiraRepository, CarteiraRepository>();
+builder.Services.AddScoped<ICarteiraTransacaoRepository, CarteiraTransacaoRepository>();
 builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<ICargoPermissaoRepository, CargoPermissaoRepository>();
+builder.Services.AddScoped<IPixRecargaRepository, PixRecargaRepository>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();
@@ -101,6 +109,7 @@ builder.Services.AddHangfireServer(options =>
 builder.Services.AddScoped<PedidoProgressaoJob>();
 builder.Services.AddScoped<PedidoProgressaoRecurringJob>();
 builder.Services.AddScoped<CarteiraReembolsoJob>();
+builder.Services.AddScoped<PagamentoParcelasJob>();
 builder.Services.AddScoped<PedidosPresosJob>();
 
 builder.Services.AddAuthentication(options =>
@@ -179,6 +188,8 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+    await db.Database.MigrateAsync();
     await DatabaseSeeder.SeedAsync(scope.ServiceProvider);
 }
 
@@ -205,6 +216,14 @@ RecurringJob.AddOrUpdate<PedidosPresosJob>(
 
 app.UseHttpsRedirection();
 app.UseCors();
+
+var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(wwwrootPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath),
+    RequestPath = ""
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

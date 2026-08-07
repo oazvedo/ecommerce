@@ -6,11 +6,16 @@ namespace api.Application.DTOs.Pedido
 {
     public class CreatePedidoRequest
     {
-        [JsonPropertyName("empresa_id")]
-        public Guid EmpresaId { get; set; }
+        // A loja vendedora é derivada de produto.EmpresaId no servidor — não vem do cliente.
 
         [JsonPropertyName("contratacao")]
         public PedidoTipoContratacaoEnum contratacao {get;set;}
+
+        [JsonPropertyName("forma_pagamento")]
+        public FormaPagamentoEnum FormaPagamento { get; set; } = FormaPagamentoEnum.Carteira;
+
+        [JsonPropertyName("parcelas")]
+        public int? Parcelas { get; set; }
 
         [JsonPropertyName("itens")]
         public List<CreatePedidoItemRequest> itens { get; set; } = new();

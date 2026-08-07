@@ -32,7 +32,8 @@ namespace api.application.services
                 AtualizadoEm = usuario.AtualizadoEm,
                 Status = usuario.Status.ToString(),
                 Cargo = usuario.Cargo.ToString(),
-                EmpresaId = usuario.EmpresaId
+                EmpresaId = usuario.EmpresaId,
+                FotoUrl = usuario.FotoUrl
             });
         }
 
@@ -82,6 +83,8 @@ namespace api.application.services
 
             usuario.Nome = request.Nome;
             usuario.Email = request.Email;
+            if (request.Cargo.HasValue)
+                usuario.Cargo = request.Cargo.Value;
             usuario.AtualizadoEm = DateTime.UtcNow;
 
             await _repository.UpdateAsync(usuario);
@@ -118,12 +121,30 @@ namespace api.application.services
                 AtualizadoEm = usuario.AtualizadoEm,
                 Status = usuario.Status.ToString(),
                 Cargo = usuario.Cargo.ToString(),
-                EmpresaId = usuario.EmpresaId
+                EmpresaId = usuario.EmpresaId,
+                FotoUrl = usuario.FotoUrl
             });
+        }
+
+        public async Task AtualizarFotoAsync(Guid id, string url)
+        {
+            var usuario = await _repository.GetByIdAsync(id);
+            if (usuario == null) return;
+            usuario.FotoUrl = url;
+            await _repository.UpdateAsync(usuario);
         }
 
         public Task<bool> UpdatePasswordAsync(Guid id, string password)
             => _repository.UpdatePasswordAsync(id, password);
+
+        public async Task<bool> UpdateStatusAsync(Guid id, api.domain.enums.UsuarioStatus status)
+        {
+            var usuario = await _repository.GetByIdAsync(id);
+            if (usuario == null) return false;
+            usuario.UpdateStatus(status);
+            await _repository.UpdateAsync(usuario);
+            return true;
+        }
 
         
         private static UsuarioDto ToDto(Usuario u) => new()
@@ -135,7 +156,8 @@ namespace api.application.services
             AtualizadoEm = u.AtualizadoEm,
             Status = u.Status.ToString(),
             Cargo = u.Cargo.ToString(),
-            EmpresaId = u.EmpresaId
+            EmpresaId = u.EmpresaId,
+            FotoUrl = u.FotoUrl
         };
         
     }

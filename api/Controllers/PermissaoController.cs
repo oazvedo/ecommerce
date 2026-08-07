@@ -1,6 +1,8 @@
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Permissao;
 using api.application.services.interfaces;
+using api.Domain.Enums.UsuarioEnums;
+using api.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +13,12 @@ namespace api.Controllers
     public class PermissaoController : ControllerBase
     {
         private readonly IPermissaoService _service;
+        private readonly ICargoPermissaoRepository _cargoPermissaoRepository;
 
-        public PermissaoController(IPermissaoService service)
+        public PermissaoController(IPermissaoService service, ICargoPermissaoRepository cargoPermissaoRepository)
         {
             _service = service;
+            _cargoPermissaoRepository = cargoPermissaoRepository;
         }
 
         [HttpGet]
@@ -96,6 +100,47 @@ namespace api.Controllers
                 if (!removido)
                     return NotFound(new { mensagem = "Usuário não encontrado ou sem permissões atribuídas." });
 
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpGet("cargo")]
+        [Authorize(Policy = "Permissao.Read")]
+        public async Task<ActionResult<Dictionary<string, IEnumerable<PermissaoDto>>>> GetByCargo()
+        {
+            try
+            {
+                var all = await _cargoPermissaoRepository.GetAllAsync();
+                var grouped = all
+                    .GroupBy(cp => cp.Cargo.ToString())
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(cp => new PermissaoDto
+                        {
+                            Id = cp.Permissao.Id,
+                            Nome = cp.Permissao.Nome,
+                            Descricao = cp.Permissao.Descricao
+                        })
+                    );
+                return Ok(grouped);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpPut("cargo/{cargo}")]
+        [Authorize(Policy = "Permissao.Assign")]
+        public async Task<IActionResult> SetByCargo(UsuarioCargo cargo, [FromBody] List<Guid> permissaoIds)
+        {
+            try
+            {
+                await _cargoPermissaoRepository.SetCargoPermissoesAsync(cargo, permissaoIds);
                 return NoContent();
             }
             catch (Exception ex)

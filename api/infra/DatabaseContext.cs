@@ -1,5 +1,8 @@
 using api.domain;
 using api.Domain;
+using api.Domain.Enums;
+using api.Domain.Enums.CarteiraEnums;
+using api.Domain.Enums.PixRecargaEnums;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.infra
@@ -20,6 +23,9 @@ namespace api.infra
         public DbSet<Empresa> Empresas { get; set; }
         public DbSet<PedidoHistorico> PedidoHistoricos { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<CargoPermissao> CargoPermissoes { get; set; }
+        public DbSet<CarteiraTransacao> CarteiraTransacoes { get; set; }
+        public DbSet<PixRecarga> PixRecargas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -64,6 +70,11 @@ namespace api.infra
                 entity.Property(u => u.AtualizadoEm)
                     .HasColumnName("atualizado_em")
                     .IsRequired(false);
+
+                entity.Property(u => u.FotoUrl)
+                    .HasColumnName("foto_url")
+                    .IsRequired(false)
+                    .HasMaxLength(500);
 
                 entity.HasOne(u => u.Carteira)
                     .WithOne(c => c.Usuario)
@@ -159,6 +170,16 @@ namespace api.infra
 
                 entity.Property(u => u.Contracacao)
                     .HasColumnName("contratacao");
+
+                entity.Property(u => u.FormaPagamento)
+                    .HasColumnName("forma_pagamento")
+                    .IsRequired()
+                    .HasDefaultValue(FormaPagamentoEnum.Carteira)
+                    .HasConversion<int>();
+
+                entity.Property(u => u.Parcelas)
+                    .HasColumnName("parcelas")
+                    .IsRequired(false);
 
                 entity.Property(u => u.UsuarioId)
                     .HasColumnName("usuario_id");
@@ -276,6 +297,20 @@ namespace api.infra
                 entity.Property(e => e.AtualizadoEm)
                     .HasColumnName("atualizado_em")
                     .IsRequired(false);
+
+                entity.Property(e => e.LogoUrl)
+                    .HasColumnName("logo_url")
+                    .IsRequired(false)
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.EmpresaPaiId)
+                    .HasColumnName("empresa_pai_id")
+                    .IsRequired(false);
+
+                entity.HasOne(e => e.EmpresaPai)
+                    .WithMany(e => e.Filiais)
+                    .HasForeignKey(e => e.EmpresaPaiId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<PedidoHistorico>(entity =>
@@ -349,6 +384,25 @@ namespace api.infra
                     .HasColumnName("atualizado_em")
                     .IsRequired(false);
 
+                entity.Property(u => u.ImagemUrl)
+                    .HasColumnName("imagem_url")
+                    .IsRequired(false)
+                    .HasMaxLength(500);
+
+                entity.Property(u => u.Estoque)
+                    .HasColumnName("estoque")
+                    .IsRequired()
+                    .HasDefaultValue(0);
+
+                entity.Property(u => u.FreteGratis)
+                    .HasColumnName("frete_gratis")
+                    .IsRequired()
+                    .HasDefaultValue(false);
+
+                entity.Property(u => u.Variantes)
+                    .HasColumnName("variantes")
+                    .IsRequired(false);
+
                 entity.Property(u => u.EmpresaId)
                     .HasColumnName("empresa_id")
                     .IsRequired();
@@ -357,6 +411,53 @@ namespace api.infra
                     .WithMany(e => e.Produtos)
                     .HasForeignKey(u => u.EmpresaId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<CargoPermissao>(entity =>
+            {
+                entity.ToTable("cargo_permissoes");
+                entity.HasKey(cp => new { cp.Cargo, cp.PermissaoId });
+                entity.Property(cp => cp.Cargo).HasColumnName("cargo").IsRequired();
+                entity.Property(cp => cp.PermissaoId).HasColumnName("permissao_id").IsRequired();
+                entity.HasOne(cp => cp.Permissao)
+                    .WithMany()
+                    .HasForeignKey(cp => cp.PermissaoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CarteiraTransacao>(entity =>
+            {
+                entity.ToTable("carteira_transacoes");
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.Id).HasColumnName("id").IsRequired();
+                entity.Property(t => t.CarteiraId).HasColumnName("carteira_id").IsRequired();
+                entity.Property(t => t.Tipo).HasColumnName("tipo").IsRequired().HasConversion<int>();
+                entity.Property(t => t.Valor).HasColumnName("valor").IsRequired();
+                entity.Property(t => t.Descricao).HasColumnName("descricao").IsRequired(false);
+                entity.Property(t => t.ReferenciaId).HasColumnName("referencia_id").IsRequired(false);
+                entity.Property(t => t.OcorridoEm).HasColumnName("ocorrido_em").IsRequired();
+                entity.HasOne<Carteira>()
+                    .WithMany()
+                    .HasForeignKey(t => t.CarteiraId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PixRecarga>(entity =>
+            {
+                entity.ToTable("pix_recargas");
+                entity.HasKey(p => p.Id);
+                entity.Property(p => p.Id).HasColumnName("id").IsRequired();
+                entity.Property(p => p.CarteiraId).HasColumnName("carteira_id").IsRequired();
+                entity.Property(p => p.AbacatePayId).HasColumnName("abacate_pay_id").IsRequired().HasMaxLength(200);
+                entity.Property(p => p.Valor).HasColumnName("valor").IsRequired();
+                entity.Property(p => p.Status).HasColumnName("status").IsRequired().HasConversion<int>().HasDefaultValue(PixRecargaStatus.Pendente);
+                entity.Property(p => p.CriadoEm).HasColumnName("criado_em").IsRequired();
+                entity.Property(p => p.PagoEm).HasColumnName("pago_em").IsRequired(false);
+                entity.HasOne<Carteira>()
+                    .WithMany()
+                    .HasForeignKey(p => p.CarteiraId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(p => p.AbacatePayId).IsUnique();
             });
         }
     }

@@ -1,3 +1,4 @@
+using api.Application.DTOs.AbacatePay;
 using api.Application.DTOs.Carteira;
 using api.Application.Services.Interfaces;
 using api.Application.Utils;
@@ -38,9 +39,31 @@ namespace api.Controllers
             {
                 var usuarioId = User.GetId();
                 var result = await _service.GetMyCarteiraAsync(usuarioId);
-                if (result == null)
-                    return NotFound();
                 return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensagem = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpGet("minha-carteira/transacoes")]
+        [Authorize(Policy = "Carteira.Read")]
+        public async Task<IActionResult> GetMinhasTransacoes()
+        {
+            try
+            {
+                var usuarioId = User.GetId();
+                var result = await _service.GetMinhasTransacoesAsync(usuarioId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { mensagem = ex.Message });
             }
             catch (Exception ex)
             {
@@ -97,6 +120,43 @@ namespace api.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { mensagem = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpPost("minha-carteira/pix/recarregar")]
+        [Authorize(Policy = "Carteira.Update")]
+        public async Task<IActionResult> IniciarRecargaPix([FromBody] PixRecargaRequest request)
+        {
+            try
+            {
+                var usuarioId = User.GetId();
+                var result = await _service.IniciarRecargaPixAsync(usuarioId, request.Valor);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Policy = "Carteira.Delete")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            try
+            {
+                var removido = await _service.DeleteAsync(id);
+                if (!removido)
+                    return NotFound(new { mensagem = "Carteira não encontrada." });
+                return NoContent();
             }
             catch (Exception ex)
             {

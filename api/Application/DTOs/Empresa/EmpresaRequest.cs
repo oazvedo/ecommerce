@@ -20,6 +20,11 @@ namespace api.Application.DTOs.Empresa
 
         [JsonPropertyName("status")]
         public bool Status { get; set; } = true;
+
+        // Opcional: vincula a nova empresa a uma central (só o admin da plataforma
+        // pode definir livremente; a central usa o endpoint de filial).
+        [JsonPropertyName("empresa_pai_id")]
+        public Guid? EmpresaPaiId { get; set; }
     }
 
     public class UpdateEmpresaRequest
@@ -44,5 +49,8 @@ namespace api.Application.DTOs.Empresa
 
         [JsonPropertyName("status")]
         public bool Status { get; set; }
+
+        [JsonPropertyName("empresa_pai_id")]
+        public Guid? EmpresaPaiId { get; set; }
     }
 }

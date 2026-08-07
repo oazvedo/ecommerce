@@ -14,15 +14,18 @@ namespace api.controllers
     {
         private readonly IUsuarioRepository _usuarioRepository;
         private readonly IRefreshTokenRepository _refreshTokenRepository;
+        private readonly ICargoPermissaoRepository _cargoPermissaoRepository;
         private readonly JwtSettings _jwtSettings;
 
         public AuthController(
             IUsuarioRepository usuarioRepository,
             IRefreshTokenRepository refreshTokenRepository,
+            ICargoPermissaoRepository cargoPermissaoRepository,
             JwtSettings jwtSettings)
         {
             _usuarioRepository = usuarioRepository;
             _refreshTokenRepository = refreshTokenRepository;
+            _cargoPermissaoRepository = cargoPermissaoRepository;
             _jwtSettings = jwtSettings;
         }
 
@@ -36,7 +39,9 @@ namespace api.controllers
                 if (usuario == null || !usuario.VerifyPassword(request.Password))
                     return Unauthorized();
 
-                var accessToken = TokenService.GenerateToken(usuario, _jwtSettings);
+                var cargoPerms = await _cargoPermissaoRepository.GetByCargoAsync(usuario.Cargo);
+                var cargoPermNames = cargoPerms.Select(cp => cp.Permissao.Nome);
+                var accessToken = TokenService.GenerateToken(usuario, _jwtSettings, cargoPermNames);
                 var refreshTokenValue = TokenService.GenerateRefreshToken();
 
                 var refreshToken = new RefreshToken(usuario.Id, refreshTokenValue, _jwtSettings.RefreshTokenExpiryDays);
@@ -70,7 +75,10 @@ namespace api.controllers
             var novoRefreshToken = new RefreshToken(refreshToken.UsuarioId, novoRefreshTokenValue, _jwtSettings.RefreshTokenExpiryDays);
             await _refreshTokenRepository.CreateAsync(novoRefreshToken);
 
-            var accessToken = TokenService.GenerateToken(refreshToken.Usuario!, _jwtSettings);
+            var usuarioRefresh = await _usuarioRepository.GetByIdAsync(refreshToken.UsuarioId);
+            if (usuarioRefresh == null) return Unauthorized(new { mensagem = "Usuário não encontrado." });
+            var cargoPermsRefresh = await _cargoPermissaoRepository.GetByCargoAsync(usuarioRefresh.Cargo);
+            var accessToken = TokenService.GenerateToken(usuarioRefresh, _jwtSettings, cargoPermsRefresh.Select(cp => cp.Permissao.Nome));
 
             return Ok(new
             {

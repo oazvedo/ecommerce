@@ -74,6 +74,26 @@ namespace api.Controllers
             }
         }
 
+        [HttpGet("empresa/minha-empresa")]
+        [Authorize(Policy = "Pedido.Read")]
+        public async Task <ActionResult<PagedResult<PedidoDto>>> GetByMinhaEmpresa([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var empresaId = User.GetEmpresaId();
+                var pedidos = await _service.GetPedidosByEmpresaId(empresaId, page, pageSize);
+                return Ok(pedidos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+
         [HttpGet("empresa/{empresaId}")]
         [Authorize(Policy = "Pedido.Read")]
         public async Task<ActionResult<PagedResult<PedidoDto>>> GetByEmpresa(Guid empresaId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
@@ -150,17 +170,22 @@ namespace api.Controllers
 
         [HttpPost]
         [Authorize(Policy = "Pedido.Create")]
-        public async Task<ActionResult<PedidoDto>> Create(CreatePedidoRequest request)
+        public async Task<ActionResult<IReadOnlyList<PedidoDto>>> Create(CreatePedidoRequest request)
         {
             try
             {
                 var usuarioId = User.GetId();
-                var pedido = await _service.CreatePedido(usuarioId, request);
-                return CreatedAtAction(nameof(GetById), new { id = pedido.Id }, pedido);
+                // Carrinho multi-loja gera um pedido por loja vendedora.
+                var pedidos = await _service.CreatePedido(usuarioId, request);
+                return StatusCode(201, pedidos);
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { mensagem = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
             }
             catch (Exception ex)
             {
@@ -248,10 +273,18 @@ namespace api.Controllers
         }
 
         [HttpPost("cancelar")]
+        [Authorize]
         public async Task<IActionResult> Cancelar(Guid id)
         {
             try
             {
+                // Só o dono do pedido cancela; gestores precisam de Pedido.Update.
+                var existente = await _service.GetPedidoById(id);
+                if (existente == null)
+                    return NotFound(new { mensagem = "Pedido não encontrado." });
+                if (existente.UsuarioId != User.GetId() && !User.HasPermissao("Pedido.Update"))
+                    return Forbid();
+
                 var pedido = await _service.CancelarPedido(id);
                 if (pedido == null)
                     return NotFound(new { mensagem = "Pedido não encontrado." });

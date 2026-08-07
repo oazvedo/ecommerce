@@ -1,8 +1,15 @@
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Empresa;
+using api.application.dtos.usuario;
+using api.application.services.interfaces;
+using api.Application.DTOs.Usuario;
 using api.Application.Services.Interfaces;
 using api.Application.Utils;
+using api.domain;
 using api.Domain;
+using api.Domain.Enums;
+using api.Domain.Enums.UsuarioEnums;
+using api.infra;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,11 +20,19 @@ namespace api.Controllers
     public class EmpresaController : ControllerBase
     {
         private readonly IEmpresaService _service;
+        private readonly IUsuarioService _usuarioService;
 
-        public EmpresaController(IEmpresaService service)
+        public EmpresaController(IEmpresaService service, IUsuarioService usuarioService)
         {
             _service = service;
+            _usuarioService = usuarioService;
         }
+
+        // Admin da plataforma acessa qualquer empresa; demais só a própria e as filiais diretas.
+        private bool IsPlataformaAdmin() => User.GetCargo() == UsuarioCargo.Administrador.ToString();
+
+        private async Task<bool> PodeAcessarAsync(Guid empresaId)
+            => IsPlataformaAdmin() || await _service.PodeGerenciarAsync(User.GetEmpresaId(), empresaId);
 
         [HttpGet]
         [Authorize(Policy = "Empresa.Read")]
@@ -43,6 +58,9 @@ namespace api.Controllers
         {
             try
             {
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
                 var empresa = await _service.GetByIdAsync(id);
                 if (empresa == null)
                     return NotFound(new { mensagem = "Empresa não encontrada." });
@@ -71,9 +89,42 @@ namespace api.Controllers
                     usuarioId,
                     request.Telefone,
                     request.Tipo,
-                    request.Status));
+                    request.Status,
+                    request.EmpresaPaiId));
 
                 return CreatedAtAction(nameof(GetById), new { id = empresa.Id }, empresa);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        // Cria uma filial vinculada a uma central. A central (via Empresa.Update) cria
+        // filiais dentro do seu escopo; o admin da plataforma cria em qualquer central.
+        [HttpPost("{paiId}/filial")]
+        [Authorize(Policy = "Empresa.Update")]
+        public async Task<ActionResult<EmpresaDto>> CreateFilial(Guid paiId, CreateEmpresaRequest request)
+        {
+            try
+            {
+                if (!await PodeAcessarAsync(paiId))
+                    return Forbid();
+
+                var usuarioId = User.GetId();
+                var usuarioNome = User.GetNome();
+
+                var filial = await _service.CreateAsync(new Empresa(
+                    request.Nome,
+                    request.Cnpj,
+                    usuarioNome!,
+                    usuarioId,
+                    request.Telefone,
+                    EmpresaTipo.Filial,
+                    request.Status,
+                    paiId));
+
+                return CreatedAtAction(nameof(GetById), new { id = filial.Id }, filial);
             }
             catch (Exception ex)
             {
@@ -87,19 +138,10 @@ namespace api.Controllers
         {
             try
             {
-                var entity = new Empresa(
-                    request.Nome,
-                    request.Cnpj,
-                    request.Responsavel,
-                    request.ResponsavelId,
-                    request.Telefone,
-                    request.Tipo,
-                    request.Status)
-                {
-                    Id = id
-                };
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
 
-                var empresa = await _service.UpdateAsync(entity);
+                var empresa = await _service.UpdateCamposAsync(id, request);
                 if (empresa == null)
                     return NotFound(new { mensagem = "Empresa não encontrada." });
 
@@ -117,9 +159,172 @@ namespace api.Controllers
         {
             try
             {
-                var removido = await _service.DeleteAsync(id);
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
+                var removido = await _service.DeleteComCascadeAsync(id);
                 if (!removido)
                     return NotFound(new { mensagem = "Empresa não encontrada." });
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        // Vitrine pública da loja — acessível a qualquer autenticado (inclusive Cliente,
+        // que não tem Empresa.Read). Expõe só os dados públicos da loja.
+        [HttpGet("{id}/vitrine")]
+        [Authorize]
+        public async Task<ActionResult<LojaPublicaDto>> GetVitrine(Guid id)
+        {
+            try
+            {
+                var empresa = await _service.GetByIdAsync(id);
+                if (empresa == null)
+                    return NotFound(new { mensagem = "Loja não encontrada." });
+
+                return Ok(new LojaPublicaDto
+                {
+                    Id = empresa.Id,
+                    Nome = empresa.Nome,
+                    Tipo = empresa.Tipo,
+                    LogoUrl = empresa.LogoUrl
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/produtos")]
+        [Authorize(Policy = "Empresa.Read")]
+        public async Task<ActionResult> GetProdutos(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 20;
+
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
+                var produtos = await _service.GetProdutosAsync(id, page, pageSize);
+                return Ok(produtos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/usuarios")]
+        [Authorize(Policy = "Empresa.Read")]
+        public async Task<ActionResult> GetUsuarios(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 50;
+
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
+                var usuarios = await _service.GetUsuariosAsync(id, page, pageSize);
+                return Ok(usuarios);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        // Filiais diretas de uma central (hierarquia de 1 nível).
+        [HttpGet("{id}/filiais")]
+        [Authorize(Policy = "Empresa.Read")]
+        public async Task<ActionResult<PagedResult<EmpresaDto>>> GetFiliais(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 20;
+
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
+                var filiais = await _service.GetFiliaisAsync(id, page, pageSize);
+                return Ok(filiais);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        // Cria um usuário diretamente na empresa {id} (própria ou filial no escopo).
+        // Usa Empresa.Update (gestão da empresa); só o admin da plataforma pode criar Administrador.
+        [HttpPost("{id}/usuario")]
+        [Authorize(Policy = "Empresa.Update")]
+        public async Task<ActionResult<UsuarioDto>> CriarUsuario(Guid id, [FromBody] CriarUsuarioEmpresaRequest request)
+        {
+            try
+            {
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
+                if (!Enum.TryParse<UsuarioCargo>(request.Cargo, out var cargo))
+                    return BadRequest(new { mensagem = "Cargo inválido." });
+
+                // Um não-admin da plataforma não pode criar um Administrador.
+                if (cargo == UsuarioCargo.Administrador && !IsPlataformaAdmin())
+                    return Forbid();
+
+                var usuario = new Usuario(request.Nome, request.Email, request.Password, cargo, id);
+                var dto = await _usuarioService.CreateAsync(usuario);
+                return CreatedAtAction(nameof(GetUsuarios), new { id }, dto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpPatch("{id}/usuario/{usuarioId}")]
+        [Authorize(Policy = "Empresa.Update")]
+        public async Task<ActionResult> AdicionarUsuario(Guid id, Guid usuarioId)
+        {
+            try
+            {
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
+                var ok = await _service.AdicionarUsuarioAsync(id, usuarioId);
+                if (!ok)
+                    return NotFound(new { mensagem = "Empresa ou usuário não encontrado." });
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}/usuario/{usuarioId}")]
+        [Authorize(Policy = "Usuario.Update")]
+        public async Task<ActionResult> DesalocarUsuario(Guid id, Guid usuarioId)
+        {
+            try
+            {
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
+                var ok = await _service.AdicionarUsuarioAsync(infra.EmpresaSeed.DefaultEmpresaId, usuarioId);
+                if (!ok)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
 
                 return NoContent();
             }

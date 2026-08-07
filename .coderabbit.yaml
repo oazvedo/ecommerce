@@ -1,0 +1,71 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit configuration — monorepo: api/ (.NET) + frontend/ (React + Vite + TS)
+language: en-US
+tone_instructions: >-
+  Be concise and pragmatic; prioritize correctness and security over style
+  nitpicks. Early-stage marketplace under active refactor. Flag any commit
+  changing >500 lines (excluding generated files) and ask to split it.
+
+early_access: false
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  poem: false
+  collapse_walkthrough: false
+  changed_files_summary: true
+  sequence_diagrams: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+      - dev
+
+  # Ignore generated / build artifacts
+  path_filters:
+    - "!**/Migrations/**/*ModelSnapshot.cs"
+    - "!**/*.Designer.cs"
+    - "!**/bin/**"
+    - "!**/obj/**"
+    - "!frontend/dist/**"
+    - "!**/node_modules/**"
+    - "!**/*.lock"
+    - "!**/package-lock.json"
+
+  path_instructions:
+    - path: "api/**/*.cs"
+      instructions: >-
+        Backend is a layered .NET app: Controllers -> Application/Services ->
+        infra/repository -> Domain. Keep that separation — no EF Core / DbContext
+        usage directly in controllers. Prefer returning DTOs, never expose Domain
+        entities with sensitive fields. Pay special attention to authorization:
+        every endpoint that reads or mutates a resource must have an [Authorize]
+        policy AND, where relevant, an ownership/scope check (e.g. empresa
+        hierarchy via PodeAcessarAsync/PodeGerenciarAsync, order ownership).
+        Flag any [AllowAnonymous] or public endpoint that lacks an explicit
+        comment/XML doc clearly documenting it as intentionally public (e.g.
+        public marketplace catalog reads). Endpoints that read or mutate
+        protected/private resources must have authorization AND ownership checks.
+        Watch for nullable reference warnings and unhandled exceptions.
+    - path: "frontend/src/**/*.{ts,tsx}"
+      instructions: >-
+        Frontend is React + Vite + TypeScript with shadcn/ui. Use the existing
+        typed API modules in src/api and the apiFetch client — do not call fetch
+        directly or hardcode tokens/URLs. Respect role gating via useAuth
+        (role/hasPermission) and ProtectedRoute. Keep TypeScript strict; avoid
+        `any`. User-facing strings are in Brazilian Portuguese (pt-BR) — keep new
+        UI copy consistent with that.
+    - path: "frontend/src/api/**/*.ts"
+      instructions: >-
+        These are thin API client wrappers over apiFetch. Ensure request/response
+        types stay in sync with the backend DTOs and that auth is only skipped
+        (skipAuth) for endpoints documented as intentionally public (e.g. public
+        marketplace catalog reads). Ensure skipAuth is not used for endpoints that
+        should require authentication.
+
+chat:
+  auto_reply: true

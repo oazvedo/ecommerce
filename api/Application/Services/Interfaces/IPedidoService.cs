@@ -10,7 +10,7 @@ namespace api.Application.Services.Interfaces
         Task<IEnumerable<PedidoDto>> GetPedidosByUsuarioId(Guid usuarioId);
         Task<PagedResult<PedidoDto>> GetPedidosByUsuarioId(Guid usuarioId, int page, int pageSize);
         Task<PedidoDto?> GetPedidoById(Guid id);
-        Task<PedidoDto> CreatePedido(Guid usuarioId, CreatePedidoRequest request);
+        Task<IReadOnlyList<PedidoDto>> CreatePedido(Guid usuarioId, CreatePedidoRequest request);
         Task<PedidoDto?> UpdatePedido(Guid pedidoId, UpdatePedidoRequest request);
         Task<PedidoDto?> UpdatePedidoStatus(Guid id, PedidoStatus newStatus);
         Task<PedidoDto?> UpdatePedidoContratacao(Guid id, PedidoTipoContratacaoEnum novaContratacao);

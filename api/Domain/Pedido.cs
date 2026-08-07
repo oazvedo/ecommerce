@@ -1,6 +1,7 @@
 using api.domain;
 using api.Domain.Enums;
 using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace api.Domain
 {
@@ -20,6 +21,12 @@ namespace api.Domain
 
         [JsonProperty("contratacao")]
         public PedidoTipoContratacaoEnum Contracacao { get; set; }
+
+        [JsonPropertyName("forma_pagamento")]
+        public FormaPagamentoEnum FormaPagamento { get; set; }
+
+        [JsonPropertyName("parcelas")]
+        public int? Parcelas { get; set; }
 
         [JsonProperty("usuario_id")]
         public Guid UsuarioId { get; set; }
@@ -41,12 +48,15 @@ namespace api.Domain
 
         public Pedido() { }
 
-        public Pedido(Guid empresa, Guid usuarioId, List<PedidoItem> itens, PedidoTipoContratacaoEnum contratacao)
+        public Pedido(Guid empresa, Guid usuarioId, List<PedidoItem> itens, PedidoTipoContratacaoEnum contratacao,
+                      FormaPagamentoEnum formaPagamento = FormaPagamentoEnum.Carteira, int? parcelas = null)
         {
             Id = Guid.NewGuid();
             EmpresaId = empresa;
             Status = PedidoStatus.Criado;
             Contracacao = contratacao;
+            FormaPagamento = formaPagamento;
+            Parcelas = parcelas;
             UsuarioId = usuarioId;
             Itens = itens;
             CriadoEm = DateTime.UtcNow;

@@ -22,6 +22,23 @@ namespace api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("api.Domain.CargoPermissao", b =>
+                {
+                    b.Property<int>("Cargo")
+                        .HasColumnType("integer")
+                        .HasColumnName("cargo");
+
+                    b.Property<Guid>("PermissaoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("permissao_id");
+
+                    b.HasKey("Cargo", "PermissaoId");
+
+                    b.HasIndex("PermissaoId");
+
+                    b.ToTable("cargo_permissoes", (string)null);
+                });
+
             modelBuilder.Entity("api.Domain.Carteira", b =>
                 {
                     b.Property<Guid>("Id")
@@ -58,6 +75,44 @@ namespace api.Migrations
                     b.ToTable("carteiras", (string)null);
                 });
 
+            modelBuilder.Entity("api.Domain.CarteiraTransacao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CarteiraId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("carteira_id");
+
+                    b.Property<string>("Descricao")
+                        .HasColumnType("text")
+                        .HasColumnName("descricao");
+
+                    b.Property<DateTime>("OcorridoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocorrido_em");
+
+                    b.Property<Guid?>("ReferenciaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("referencia_id");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer")
+                        .HasColumnName("tipo");
+
+                    b.Property<double>("Valor")
+                        .HasColumnType("double precision")
+                        .HasColumnName("valor");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarteiraId");
+
+                    b.ToTable("carteira_transacoes", (string)null);
+                });
+
             modelBuilder.Entity("api.Domain.Empresa", b =>
                 {
                     b.Property<Guid>("Id")
@@ -82,6 +137,17 @@ namespace api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("criado_em")
                         .HasJsonPropertyName("empresa_criado_em");
+
+                    b.Property<Guid?>("EmpresaPaiId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("empresa_pai_id")
+                        .HasJsonPropertyName("empresa_pai_id");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("logo_url")
+                        .HasJsonPropertyName("empresa_logo_url");
 
                     b.Property<string>("Nome")
                         .IsRequired()
@@ -121,6 +187,8 @@ namespace api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EmpresaPaiId");
+
                     b.ToTable("empresas", (string)null);
                 });
 
@@ -146,6 +214,18 @@ namespace api.Migrations
                     b.Property<Guid?>("EmpresaId")
                         .HasColumnType("uuid")
                         .HasColumnName("empresa_id");
+
+                    b.Property<int>("FormaPagamento")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("forma_pagamento")
+                        .HasJsonPropertyName("forma_pagamento");
+
+                    b.Property<int?>("Parcelas")
+                        .HasColumnType("integer")
+                        .HasColumnName("parcelas")
+                        .HasJsonPropertyName("parcelas");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -236,6 +316,51 @@ namespace api.Migrations
                     b.ToTable("pedido_itens", (string)null);
                 });
 
+            modelBuilder.Entity("api.Domain.PixRecarga", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AbacatePayId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("abacate_pay_id");
+
+                    b.Property<Guid>("CarteiraId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("carteira_id");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<DateTime?>("PagoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("pago_em");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("status");
+
+                    b.Property<double>("Valor")
+                        .HasColumnType("double precision")
+                        .HasColumnName("valor");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AbacatePayId")
+                        .IsUnique();
+
+                    b.HasIndex("CarteiraId");
+
+                    b.ToTable("pix_recargas", (string)null);
+                });
+
             modelBuilder.Entity("api.Domain.Produto", b =>
                 {
                     b.Property<Guid>("Id")
@@ -271,6 +396,24 @@ namespace api.Migrations
                         .HasColumnName("empresa_id")
                         .HasJsonPropertyName("empresa_id");
 
+                    b.Property<int>("Estoque")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("estoque");
+
+                    b.Property<bool>("FreteGratis")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("frete_gratis");
+
+                    b.Property<string>("ImagemUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("imagem_url")
+                        .HasJsonPropertyName("imagem_url");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasColumnType("text")
@@ -284,6 +427,10 @@ namespace api.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("status")
                         .HasJsonPropertyName("status");
+
+                    b.Property<string>("Variantes")
+                        .HasColumnType("text")
+                        .HasColumnName("variantes");
 
                     b.HasKey("Id");
 
@@ -390,6 +537,12 @@ namespace api.Migrations
                         .HasColumnName("empresa_id")
                         .HasJsonPropertyName("empresa_id");
 
+                    b.Property<string>("FotoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("foto_url")
+                        .HasJsonPropertyName("foto_url");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -429,6 +582,17 @@ namespace api.Migrations
                     b.ToTable("usuario_permissoes", (string)null);
                 });
 
+            modelBuilder.Entity("api.Domain.CargoPermissao", b =>
+                {
+                    b.HasOne("api.domain.Permissao", "Permissao")
+                        .WithMany()
+                        .HasForeignKey("PermissaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permissao");
+                });
+
             modelBuilder.Entity("api.Domain.Carteira", b =>
                 {
                     b.HasOne("api.domain.Usuario", "Usuario")
@@ -438,6 +602,25 @@ namespace api.Migrations
                         .IsRequired();
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("api.Domain.CarteiraTransacao", b =>
+                {
+                    b.HasOne("api.Domain.Carteira", null)
+                        .WithMany()
+                        .HasForeignKey("CarteiraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("api.Domain.Empresa", b =>
+                {
+                    b.HasOne("api.Domain.Empresa", "EmpresaPai")
+                        .WithMany("Filiais")
+                        .HasForeignKey("EmpresaPaiId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("EmpresaPai");
                 });
 
             modelBuilder.Entity("api.Domain.Pedido", b =>
@@ -473,6 +656,15 @@ namespace api.Migrations
                         .IsRequired();
 
                     b.Navigation("Produto");
+                });
+
+            modelBuilder.Entity("api.Domain.PixRecarga", b =>
+                {
+                    b.HasOne("api.Domain.Carteira", null)
+                        .WithMany()
+                        .HasForeignKey("CarteiraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("api.Domain.Produto", b =>
@@ -529,6 +721,8 @@ namespace api.Migrations
 
             modelBuilder.Entity("api.Domain.Empresa", b =>
                 {
+                    b.Navigation("Filiais");
+
                     b.Navigation("Pedidos");
 
                     b.Navigation("Produtos");

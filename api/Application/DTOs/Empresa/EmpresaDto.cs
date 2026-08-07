@@ -34,5 +34,11 @@ namespace api.Application.DTOs.Empresa
 
         [JsonPropertyName("empresa_tipo")]
         public EmpresaTipo Tipo { get; set; }
+
+        [JsonPropertyName("empresa_logo_url")]
+        public string? LogoUrl { get; set; }
+
+        [JsonPropertyName("empresa_pai_id")]
+        public Guid? EmpresaPaiId { get; set; }
     }
 }
