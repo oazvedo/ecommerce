@@ -1,0 +1,59 @@
+name: Commit Size
+
+on:
+  pull_request:
+
+jobs:
+  commit-size:
+    name: Max 500 changed lines per commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check each commit's changed line count
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          MAX=500
+
+          # Generated / vendored files are excluded from the line count.
+          EXCLUDES=(
+            ':(exclude)**/Migrations/**'
+            ':(exclude)**/*.Designer.cs'
+            ':(exclude)**/package-lock.json'
+            ':(exclude)**/*.lock'
+            ':(exclude)**/dist/**'
+            ':(exclude)**/node_modules/**'
+            ':(exclude)**/bin/**'
+            ':(exclude)**/obj/**'
+          )
+
+          commits=$(git rev-list --no-merges "$BASE_SHA".."$HEAD_SHA")
+          if [ -z "$commits" ]; then
+            echo "No non-merge commits to check."
+            exit 0
+          fi
+
+          fail=0
+          for sha in $commits; do
+            total=$(git show --numstat --format= "$sha" -- . "${EXCLUDES[@]}" \
+              | awk '{ a = ($1=="-"?0:$1); d = ($2=="-"?0:$2); s += a + d } END { print s+0 }')
+            subject=$(git show -s --format='%h %s' "$sha")
+            if [ "$total" -gt "$MAX" ]; then
+              echo "::error::Commit exceeds ${MAX} changed lines (${total}): ${subject}"
+              fail=1
+            else
+              echo "OK (${total} lines): ${subject}"
+            fi
+          done
+
+          if [ "$fail" -ne 0 ]; then
+            echo ""
+            echo "One or more commits exceed the ${MAX}-line limit (excluding generated/vendored files)."
+            echo "Please split them into smaller commits."
+            exit 1
+          fi

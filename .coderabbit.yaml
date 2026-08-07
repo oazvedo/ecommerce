@@ -2,8 +2,9 @@
 # CodeRabbit configuration — monorepo: api/ (.NET) + frontend/ (React + Vite + TS)
 language: en-US
 tone_instructions: >-
-  Be concise and pragmatic. Focus on correctness, security and clear bugs over
-  style nitpicks. This is an early-stage marketplace app under active refactor.
+  Be concise and pragmatic; prioritize correctness and security over style
+  nitpicks. Early-stage marketplace under active refactor. Flag any commit
+  changing >500 lines (excluding generated files) and ask to split it.
 
 early_access: false
 
