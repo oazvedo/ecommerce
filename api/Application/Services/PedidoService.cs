@@ -17,7 +17,7 @@ namespace api.Application.Services
     public class PedidoService : IPedidoService
     {
         private readonly IPedidoRepository _repository;
-        private readonly IRepositoryBase<Produto> _produtoRepository;
+        private readonly IProdutoRepository _produtoRepository;
         private readonly ICarteiraRepository _carteiraService;
         private readonly ICarteiraTransacaoRepository _transacaoRepository;
         private readonly IBackgroundJobClient _backgroundJobs;
@@ -27,7 +27,7 @@ namespace api.Application.Services
 
         public PedidoService(
             IPedidoRepository repository,
-            IRepositoryBase<Produto> produtoRepository,
+            IProdutoRepository produtoRepository,
             ICarteiraRepository carteiraService,
             ICarteiraTransacaoRepository transacaoRepository,
             IBackgroundJobClient backgroundJobs,
@@ -136,18 +136,16 @@ namespace api.Application.Services
                 lista.Add((produto, item.quantidade));
             }
 
-            // Monta um pedido por loja e baixa o estoque (mutação em memória; só é
-            // persistida no SaveChanges dentro da transação abaixo).
+            // Monta um pedido por loja. A baixa de estoque NÃO é feita aqui: é atômica
+            // dentro da transação (ver TryDecrementarEstoqueAsync) para evitar oversell
+            // sob pedidos concorrentes.
             var pedidos = new List<Pedido>();
             foreach (var (lojaId, itens) in itensPorLoja)
             {
                 var pedido = new Pedido(lojaId, usuarioId, new List<PedidoItem>(), request.contratacao,
                                         request.FormaPagamento, request.Parcelas);
                 foreach (var (produto, quantidade) in itens)
-                {
                     pedido.AdicionarItem(produto, quantidade);
-                    produto.Estoque -= quantidade;
-                }
                 pedidos.Add(pedido);
             }
 
@@ -173,6 +171,19 @@ namespace api.Application.Services
             // pedidos) numa única transação: ou tudo é gravado, ou nada (rollback).
             await _unitOfWork.ExecuteInTransactionAsync(async () =>
             {
+                // Baixa atômica de estoque de todos os itens. Se algum não tiver saldo
+                // (inclusive por concorrência), lança e a transação inteira reverte.
+                foreach (var (_, itens) in itensPorLoja)
+                {
+                    foreach (var (produto, quantidade) in itens)
+                    {
+                        var baixou = await _produtoRepository.TryDecrementarEstoqueAsync(produto.Id, quantidade);
+                        if (!baixou)
+                            throw new InvalidOperationException(
+                                $"Estoque insuficiente para '{produto.Nome}'.");
+                    }
+                }
+
                 foreach (var pedido in pedidos)
                 {
                     await ProcessarPagamentoDbAsync(pedido, carteiraUsuario, request);
