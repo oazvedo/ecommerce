@@ -68,6 +68,7 @@ builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<ICargoPermissaoRepository, CargoPermissaoRepository>();
 builder.Services.AddScoped<IPixRecargaRepository, PixRecargaRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();

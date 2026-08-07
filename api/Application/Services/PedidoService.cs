@@ -22,6 +22,7 @@ namespace api.Application.Services
         private readonly ICarteiraTransacaoRepository _transacaoRepository;
         private readonly IBackgroundJobClient _backgroundJobs;
         private readonly IPublishEndpoint _publishEndpoint;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<PedidoService> _logger;
 
         public PedidoService(
@@ -31,6 +32,7 @@ namespace api.Application.Services
             ICarteiraTransacaoRepository transacaoRepository,
             IBackgroundJobClient backgroundJobs,
             IPublishEndpoint publishEndpoint,
+            IUnitOfWork unitOfWork,
             ILogger<PedidoService> logger)
         {
             _repository = repository;
@@ -39,6 +41,7 @@ namespace api.Application.Services
             _transacaoRepository = transacaoRepository;
             _backgroundJobs = backgroundJobs;
             _publishEndpoint = publishEndpoint;
+            _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
@@ -133,7 +136,8 @@ namespace api.Application.Services
                 lista.Add((produto, item.quantidade));
             }
 
-            // Monta um pedido por loja e baixa o estoque.
+            // Monta um pedido por loja e baixa o estoque (mutação em memória; só é
+            // persistida no SaveChanges dentro da transação abaixo).
             var pedidos = new List<Pedido>();
             foreach (var (lojaId, itens) in itensPorLoja)
             {
@@ -165,11 +169,23 @@ namespace api.Application.Services
                         $"Saldo insuficiente para a 1ª parcela de {primeiraParcelaGeral:C}. Saldo atual: {carteiraUsuario.Saldo:C}.");
             }
 
-            // Persiste e cobra cada pedido individualmente.
+            // Todas as escritas (baixa de estoque, débito de carteira, transações e
+            // pedidos) numa única transação: ou tudo é gravado, ou nada (rollback).
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                foreach (var pedido in pedidos)
+                {
+                    await ProcessarPagamentoDbAsync(pedido, carteiraUsuario, request);
+                    await _repository.AdicionarPedido(pedido);
+                }
+                return true;
+            });
+
+            // Efeitos colaterais externos (agendar parcelas no Hangfire e publicar no
+            // RabbitMQ) só após o commit — não seriam revertidos por um rollback.
             foreach (var pedido in pedidos)
             {
-                await ProcessarPagamentoAsync(pedido, carteiraUsuario, request, usuarioId);
-                await _repository.AdicionarPedido(pedido);
+                AgendarParcelasFuturas(pedido, request, usuarioId);
 
                 var eventoCriado = new PedidoStatusAlteradoEvent
                 {
@@ -190,8 +206,8 @@ namespace api.Application.Services
             return pedidos.Select(ToDto).ToList();
         }
 
-        private async Task ProcessarPagamentoAsync(Pedido pedido, Carteira? carteiraUsuario,
-                                                   CreatePedidoRequest request, Guid usuarioId)
+        // Débito da carteira + registro da transação (apenas banco — roda dentro da transação).
+        private async Task ProcessarPagamentoDbAsync(Pedido pedido, Carteira? carteiraUsuario, CreatePedidoRequest request)
         {
             if (request.FormaPagamento == FormaPagamentoEnum.Carteira)
             {
@@ -211,14 +227,24 @@ namespace api.Application.Services
                 await _transacaoRepository.AddAsync(new CarteiraTransacao(
                     carteiraUsuario.Id, CarteiraTransacaoTipo.Parcela, (double)valorParcela,
                     $"Parcela 1/{numeroParcelas} — Pedido #{pedido.Id.ToString()[..8].ToUpper()}", pedido.Id));
+            }
+        }
 
-                for (int i = 2; i <= numeroParcelas; i++)
-                {
-                    var delay = TimeSpan.FromDays(30 * (i - 1));
-                    _backgroundJobs.Schedule<PagamentoParcelasJob>(
-                        job => job.Executar(pedido.Id, usuarioId, valorParcela, i, numeroParcelas),
-                        delay);
-                }
+        // Agenda as parcelas 2..N no Hangfire (roda após o commit da transação).
+        private void AgendarParcelasFuturas(Pedido pedido, CreatePedidoRequest request, Guid usuarioId)
+        {
+            if (request.FormaPagamento != FormaPagamentoEnum.Parcelado || !request.Parcelas.HasValue)
+                return;
+
+            var numeroParcelas = request.Parcelas.Value;
+            var valorParcela = pedido.ValorTotal / numeroParcelas;
+
+            for (int i = 2; i <= numeroParcelas; i++)
+            {
+                var delay = TimeSpan.FromDays(30 * (i - 1));
+                _backgroundJobs.Schedule<PagamentoParcelasJob>(
+                    job => job.Executar(pedido.Id, usuarioId, valorParcela, i, numeroParcelas),
+                    delay);
             }
         }
 
