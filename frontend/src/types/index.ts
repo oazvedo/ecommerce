@@ -11,7 +11,7 @@ export interface Usuario {
   nome: string
   email: string
   status: 'Ativo' | 'Desativado'
-  cargo: 'Operador' | 'Administrador' | 'Gerente' | 'Diretor'
+  cargo: 'Operador' | 'Administrador' | 'Gerente' | 'Diretor' | 'Cliente'
   empresa_id: string
   foto_url: string | null
   criado_em: string
@@ -134,6 +134,7 @@ export interface Empresa {
   empresa_tipo: string
   empresa_status: boolean
   empresa_logo_url: string | null
+  empresa_pai_id: string | null
   empresa_criado_em: string
   empresa_atualizado_em: string | null
 }
@@ -142,4 +143,12 @@ export interface Permissao {
   id: string
   nome: string
   descricao: string
+}
+
+/** Dados públicos de uma loja (vitrine do marketplace). */
+export interface Loja {
+  empresa_id: string
+  empresa_nome: string
+  empresa_tipo: string
+  empresa_logo_url: string | null
 }

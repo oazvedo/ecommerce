@@ -6,5 +6,6 @@ namespace api.Domain.Enums.UsuarioEnums
         Administrador = 2,
         Gerente = 3,
         Diretor = 4,
+        Cliente = 5,
     }
 }

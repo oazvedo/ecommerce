@@ -8,26 +8,31 @@ import { useAuth } from '@/context/AuthContext'
 import { toast } from 'sonner'
 
 const features = [
-  { icon: ShoppingBag, text: 'Gerencie todos os seus pedidos' },
-  { icon: TrendingUp, text: 'Acompanhe relatórios em tempo real' },
-  { icon: Zap, text: 'Processamento rápido e seguro' },
+  { icon: ShoppingBag, text: 'Compre de várias lojas em um só lugar' },
+  { icon: TrendingUp, text: 'Acompanhe seus pedidos em tempo real' },
+  { icon: Zap, text: 'Recarregue e pague com a carteira digital' },
 ]
 
-export function LoginPage() {
-  const { login } = useAuth()
+export function RegisterPage() {
+  const { register } = useAuth()
   const navigate = useNavigate()
+  const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (password.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
     setLoading(true)
     try {
-      await login(email, password)
+      await register({ nome, email, password })
       navigate('/')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Credenciais inválidas')
+      toast.error(err instanceof Error ? err.message : 'Não foi possível criar a conta')
     } finally {
       setLoading(false)
     }
@@ -37,7 +42,6 @@ export function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left panel — branding */}
       <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-violet-600 via-purple-700 to-violet-900 p-12 text-white relative overflow-hidden">
-        {/* Decorative circles */}
         <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-white/10" />
         <div className="absolute -bottom-16 -right-16 h-80 w-80 rounded-full bg-white/5" />
         <div className="absolute top-1/2 left-1/4 h-32 w-32 rounded-full bg-white/5" />
@@ -50,7 +54,7 @@ export function LoginPage() {
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight">Fluxus</h1>
           <p className="mt-3 text-lg text-purple-100 leading-relaxed">
-            Sua central de gerenciamento de pedidos e produtos
+            Crie sua conta e comece a comprar
           </p>
 
           <div className="mt-10 space-y-3 text-left">
@@ -69,16 +73,31 @@ export function LoginPage() {
       {/* Right panel — form */}
       <div className="flex flex-1 flex-col items-center justify-center bg-background px-6 py-12">
         <div className="w-full max-w-sm">
-          {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2 md:hidden">
             <Package className="h-7 w-7 text-primary" />
             <span className="text-xl font-bold">Fluxus</span>
           </div>
 
-          <h2 className="text-2xl font-bold">Bem-vindo de volta</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Entre com suas credenciais para continuar</p>
+          <h2 className="text-2xl font-bold">Criar conta</h2>
+          <p className="mt-1 text-sm text-muted-foreground">É rápido e gratuito</p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="nome" className="text-sm font-medium">
+                Nome
+              </Label>
+              <Input
+                id="nome"
+                type="text"
+                placeholder="Seu nome"
+                value={nome}
+                onChange={e => setNome(e.target.value)}
+                required
+                autoFocus
+                className="h-11"
+              />
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-medium">
                 E-mail
@@ -90,7 +109,6 @@ export function LoginPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                autoFocus
                 className="h-11"
               />
             </div>
@@ -102,7 +120,7 @@ export function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
@@ -115,14 +133,14 @@ export function LoginPage() {
               className="h-11 w-full font-semibold text-sm"
               disabled={loading}
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? 'Criando conta...' : 'Criar conta'}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Não tem conta?{' '}
-            <Link to="/register" className="font-semibold text-primary hover:underline">
-              Criar conta
+            Já tem conta?{' '}
+            <Link to="/login" className="font-semibold text-primary hover:underline">
+              Entrar
             </Link>
           </p>
         </div>

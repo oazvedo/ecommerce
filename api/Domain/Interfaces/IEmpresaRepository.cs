@@ -7,8 +7,9 @@ namespace api.Domain.Interfaces
     {
         Task<(IEnumerable<Produto> Items, int TotalCount)> GetProdutosAsync(Guid empresaId, int page, int pageSize);
         Task<(IEnumerable<Usuario> Items, int TotalCount)> GetUsuariosAsync(Guid empresaId, int page, int pageSize);
+        Task<(IEnumerable<Empresa> Items, int TotalCount)> GetFiliaisAsync(Guid empresaPaiId, int page, int pageSize);
         Task<bool> AdicionarUsuarioAsync(Guid empresaId, Guid usuarioId);
         Task<bool> DeleteComCascadeAsync(Guid empresaId);
-        Task<Empresa?> UpdateCamposAsync(Guid id, string nome, string cnpj, string responsavel, Guid responsavelId, string telefone, api.Domain.Enums.EmpresaTipo tipo, bool status);
+        Task<Empresa?> UpdateCamposAsync(Guid id, string nome, string cnpj, string responsavel, Guid responsavelId, string telefone, api.Domain.Enums.EmpresaTipo tipo, bool status, Guid? empresaPaiId);
     }
 }

@@ -37,29 +37,29 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: api_app
-    restart: unless-stopped
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=api_pedidos;Username=postgres;Password=postgres"
-      JwtSettings__Issuer: "api-dev"
-      JwtSettings__Audience: "api-dev"
-      JwtSettings__Secret: "dev-secret-key-change-in-production-min32chars"
-      RabbitMQ__Host: rabbitmq
-      RabbitMQ__Username: guest
-      RabbitMQ__Password: guest
-    ports:
-      - "5103:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: api_app
+  #   restart: unless-stopped
+  #   environment:
+  #     ASPNETCORE_ENVIRONMENT: Development
+  #     ASPNETCORE_URLS: http://+:8080
+  #     ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=api_pedidos;Username=postgres;Password=postgres"
+  #     JwtSettings__Issuer: "api-dev"
+  #     JwtSettings__Audience: "api-dev"
+  #     JwtSettings__Secret: "dev-secret-key-change-in-production-min32chars"
+  #     RabbitMQ__Host: rabbitmq
+  #     RabbitMQ__Username: guest
+  #     RabbitMQ__Password: guest
+  #   ports:
+  #     - "5103:8080"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
 
 volumes:
   postgres_data:

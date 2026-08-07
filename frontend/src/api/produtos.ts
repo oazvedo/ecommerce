@@ -13,8 +13,12 @@ export interface ProdutoPayload {
 }
 
 export const produtosApi = {
-  list: (page = 1, pageSize = 12) =>
-    apiFetch<PagedResult<Produto>>(`/produto?page=${page}&pageSize=${pageSize}`),
+  // empresaId filtra o catálogo pela loja vendedora (Fase 4 — catálogo por loja).
+  list: (page = 1, pageSize = 12, empresaId?: string) => {
+    const q = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+    if (empresaId) q.set('empresaId', empresaId)
+    return apiFetch<PagedResult<Produto>>(`/produto?${q}`)
+  },
 
   listAll: (page = 1, pageSize = 20) =>
     apiFetch<PagedResult<Produto>>(`/produto?page=${page}&pageSize=${pageSize}`),

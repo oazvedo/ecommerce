@@ -40,6 +40,17 @@ namespace api.Domain
         [JsonPropertyName("empresa_logo_url")]
         public string? LogoUrl { get; set; }
 
+        // Hierarquia (1 nível): empresa-mãe/central. Filial aponta para a central;
+        // central tem EmpresaPaiId nulo. A central tem domínio sobre suas filiais.
+        [JsonPropertyName("empresa_pai_id")]
+        public Guid? EmpresaPaiId { get; set; }
+
+        [JsonIgnore]
+        public Empresa? EmpresaPai { get; set; }
+
+        [JsonIgnore]
+        public ICollection<Empresa> Filiais { get; set; } = new List<Empresa>();
+
         public ICollection<Pedido> Pedidos { get; set; } = new List<Pedido>();
 
         public ICollection<Produto> Produtos { get; set; } = new List<Produto>();
@@ -47,7 +58,7 @@ namespace api.Domain
         public ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
 
         [SetsRequiredMembers]
-        public Empresa(string nome, string cnpj, string responsavel, Guid responsavelId, string telefone, EmpresaTipo tipo, bool status = true)
+        public Empresa(string nome, string cnpj, string responsavel, Guid responsavelId, string telefone, EmpresaTipo tipo, bool status = true, Guid? empresaPaiId = null)
         {
             Id = Guid.NewGuid();
             Nome = nome;
@@ -58,6 +69,7 @@ namespace api.Domain
             Telefone = telefone;
             CriadoEm = DateTime.UtcNow;
             Tipo = tipo;
+            EmpresaPaiId = empresaPaiId;
         }
     }
 }

@@ -10,16 +10,21 @@ function decodeJwt(token: string): JwtPayload {
   return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as JwtPayload
 }
 
+export type Role = 'admin' | 'lojista' | 'cliente'
+
 interface AuthContextValue {
   user: JwtPayload | null
   usuario: Usuario | null
   isAuthenticated: boolean
   isLoading: boolean
   isAdmin: boolean
+  isLojista: boolean
+  role: Role
   cargo: string | null
   empresaId: string | null
   hasPermission: (perm: string) => boolean
   login: (email: string, password: string) => Promise<void>
+  register: (data: { nome: string; email: string; password: string }) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -85,6 +90,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [handleTokens]
   )
 
+  const register = useCallback(
+    async (data: { nome: string; email: string; password: string }) => {
+      await usuariosApi.register(data)
+      await login(data.email, data.password)
+    },
+    [login]
+  )
+
   const logout = useCallback(async () => {
     const rt = localStorage.getItem(REFRESH_KEY)
     if (rt) await authApi.revoke(rt).catch(() => {})
@@ -101,12 +114,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const isAdmin = user?.Cargo === 'Administrador'
+  // Lojista = pode gerir produtos da própria loja (dono/gestor de empresa vendedora).
+  // Cliente = qualquer usuário logado que só compra.
+  const isLojista = !isAdmin && hasPermission('Produto.Create')
+  const role: Role = isAdmin ? 'admin' : isLojista ? 'lojista' : 'cliente'
   const cargo = user?.Cargo ?? null
   const empresaId = user?.EmpresaId ?? null
 
   return (
     <AuthContext.Provider
-      value={{ user, usuario, isAuthenticated: !!user, isLoading, isAdmin, cargo, empresaId, hasPermission, login, logout }}
+      value={{ user, usuario, isAuthenticated: !!user, isLoading, isAdmin, isLojista, role, cargo, empresaId, hasPermission, login, register, logout }}
     >
       {children}
     </AuthContext.Provider>

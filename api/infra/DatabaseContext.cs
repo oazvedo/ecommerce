@@ -302,6 +302,15 @@ namespace api.infra
                     .HasColumnName("logo_url")
                     .IsRequired(false)
                     .HasMaxLength(500);
+
+                entity.Property(e => e.EmpresaPaiId)
+                    .HasColumnName("empresa_pai_id")
+                    .IsRequired(false);
+
+                entity.HasOne(e => e.EmpresaPai)
+                    .WithMany(e => e.Filiais)
+                    .HasForeignKey(e => e.EmpresaPaiId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<PedidoHistorico>(entity =>

@@ -24,14 +24,17 @@ namespace api.Controllers
 
         [HttpGet]
         [Authorize(Policy = "Produto.Read")]
-        public async Task<ActionResult<PagedResult<ProdutoDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<ActionResult<PagedResult<ProdutoDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] Guid? empresaId = null)
         {
             try
             {
                 if (page < 1) page = 1;
                 if (pageSize < 1) pageSize = 10;
 
-                var produtos = await _service.GetPagedAsync(page, pageSize);
+                // Catálogo por loja: filtra pela loja vendedora quando empresaId é informado.
+                var produtos = empresaId.HasValue
+                    ? await _service.GetPagedByEmpresaAsync(empresaId.Value, page, pageSize)
+                    : await _service.GetPagedAsync(page, pageSize);
                 return Ok(produtos);
             }
             catch (Exception ex)

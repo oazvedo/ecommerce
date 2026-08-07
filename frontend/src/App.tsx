@@ -4,7 +4,9 @@ import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { LoginPage } from '@/pages/LoginPage'
+import { RegisterPage } from '@/pages/RegisterPage'
 import { CatalogPage } from '@/pages/CatalogPage'
+import { LojaPage } from '@/pages/LojaPage'
 import { ProductDetailPage } from '@/pages/ProductDetailPage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
 import { MyOrdersPage } from '@/pages/MyOrdersPage'
@@ -27,6 +29,7 @@ function App() {
       <CartProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route
             path="/"
             element={
@@ -40,6 +43,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProductDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/loja/:id"
+            element={
+              <ProtectedRoute>
+                <LojaPage />
               </ProtectedRoute>
             }
           />
@@ -78,7 +89,15 @@ function App() {
           <Route
             path="/minha-empresa"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={['lojista', 'admin']}>
+                <MinhaEmpresaPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/minha-empresa/:id"
+            element={
+              <ProtectedRoute roles={['lojista', 'admin']}>
                 <MinhaEmpresaPage />
               </ProtectedRoute>
             }

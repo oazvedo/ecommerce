@@ -69,22 +69,26 @@ export function CheckoutPage() {
   const isParcelado = isMensal && formaPagamento === 'Parcelado'
 
   async function handleConfirm() {
-    if (!usuario?.empresa_id) { toast.error('Empresa não encontrada no seu perfil.'); return }
     if (items.length === 0) { toast.error('Carrinho vazio.'); return }
     if (formaPagamento === 'Carteira' && !saldoSuficiente) { toast.error('Saldo insuficiente na carteira.'); return }
 
     setLoading(true)
     try {
-      const pedido = await pedidosApi.create({
-        empresa_id: usuario.empresa_id,
+      // O carrinho pode ter itens de várias lojas → um pedido por loja.
+      const pedidos = await pedidosApi.create({
         contratacao,
         forma_pagamento: formaPagamento,
         parcelas: isParcelado ? parcelas : null,
         itens: items.map(i => ({ produto_id: i.produto.id, quantidade: i.quantidade })),
       })
       clear()
-      toast.success('Pedido criado com sucesso!')
-      navigate(`/pedido/${pedido.id}`)
+      if (pedidos.length === 1) {
+        toast.success('Pedido criado com sucesso!')
+        navigate(`/pedido/${pedidos[0].id}`)
+      } else {
+        toast.success(`${pedidos.length} pedidos criados (um por loja).`)
+        navigate('/meus-pedidos')
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao criar pedido')
     } finally {

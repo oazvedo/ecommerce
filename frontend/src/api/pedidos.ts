@@ -84,13 +84,15 @@ export const pedidosApi = {
 
   get: (id: string) => apiFetch<PedidoApi>(`/pedido/${id}`).then(normalizePedido),
 
+  // A loja vendedora é derivada dos produtos no backend; um pedido é criado por loja.
   create: (data: {
-    empresa_id: string
     contratacao: PedidoContratacao
     forma_pagamento?: 'Carteira' | 'Parcelado'
     parcelas?: number | null
     itens: { produto_id: string; quantidade: number }[]
-  }) => apiFetch<PedidoApi>('/pedido', { method: 'POST', body: JSON.stringify(data) }).then(normalizePedido),
+  }) =>
+    apiFetch<PedidoApi[]>('/pedido', { method: 'POST', body: JSON.stringify(data) })
+      .then(pedidos => pedidos.map(normalizePedido)),
 
   updateStatus: (id: string, status: PedidoStatus) =>
     apiFetch<PedidoApi>(`/pedido/${id}/status`, {
@@ -102,7 +104,7 @@ export const pedidosApi = {
     apiFetch<void>(`/pedido/${id}`, { method: 'DELETE' }),
 
   cancelar: (id: string) =>
-    apiFetch<PedidoApi>(`/pedido/cancelar?id=${id}`, { method: 'POST', skipAuth: true }).then(normalizePedido),
+    apiFetch<PedidoApi>(`/pedido/cancelar?id=${id}`, { method: 'POST' }).then(normalizePedido),
 
   relatorio: (data_inicio: string, data_fim: string) =>
     apiFetch<RelatorioVendas>(

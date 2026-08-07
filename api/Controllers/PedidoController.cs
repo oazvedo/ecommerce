@@ -170,13 +170,14 @@ namespace api.Controllers
 
         [HttpPost]
         [Authorize(Policy = "Pedido.Create")]
-        public async Task<ActionResult<PedidoDto>> Create(CreatePedidoRequest request)
+        public async Task<ActionResult<IReadOnlyList<PedidoDto>>> Create(CreatePedidoRequest request)
         {
             try
             {
                 var usuarioId = User.GetId();
-                var pedido = await _service.CreatePedido(usuarioId, request);
-                return CreatedAtAction(nameof(GetById), new { id = pedido.Id }, pedido);
+                // Carrinho multi-loja gera um pedido por loja vendedora.
+                var pedidos = await _service.CreatePedido(usuarioId, request);
+                return StatusCode(201, pedidos);
             }
             catch (KeyNotFoundException ex)
             {
@@ -272,10 +273,18 @@ namespace api.Controllers
         }
 
         [HttpPost("cancelar")]
+        [Authorize]
         public async Task<IActionResult> Cancelar(Guid id)
         {
             try
             {
+                // Só o dono do pedido cancela; gestores precisam de Pedido.Update.
+                var existente = await _service.GetPedidoById(id);
+                if (existente == null)
+                    return NotFound(new { mensagem = "Pedido não encontrado." });
+                if (existente.UsuarioId != User.GetId() && !User.HasPermissao("Pedido.Update"))
+                    return Forbid();
+
                 var pedido = await _service.CancelarPedido(id);
                 if (pedido == null)
                     return NotFound(new { mensagem = "Pedido não encontrado." });

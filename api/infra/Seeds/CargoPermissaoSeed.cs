@@ -32,6 +32,14 @@ namespace api.infra
                 "Produto.Read",
                 "Carteira.Read",
                 "Empresa.Read"
+            ],
+            // Cliente do marketplace: compra e vê a própria carteira/pedidos.
+            // Sem Empresa.Read — não pertence a uma loja vendedora.
+            [UsuarioCargo.Cliente] =
+            [
+                "Pedido.Read", "Pedido.Create",
+                "Produto.Read",
+                "Carteira.Read"
             ]
         };
 
