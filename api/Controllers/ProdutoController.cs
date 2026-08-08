@@ -15,11 +15,13 @@ namespace api.Controllers
     {
         private readonly IProdutoService _service;
         private readonly IUsuarioService _usuarioService;
+        private readonly IAuditoriaService _auditoriaService;
 
-        public ProdutoController(IProdutoService service, IUsuarioService usuarioService)
+        public ProdutoController(IProdutoService service, IUsuarioService usuarioService, IAuditoriaService auditoriaService)
         {
             _service = service;
             _usuarioService = usuarioService;
+            _auditoriaService = auditoriaService;
         }
 
         [HttpGet]
@@ -87,6 +89,7 @@ namespace api.Controllers
                     Variantes = request.Variantes
                 };
                 var produto = await _service.CreateAsync(entity);
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Criar", "Produto", produto.Id, usuario.EmpresaId);
                 return CreatedAtAction(nameof(GetProdutoById), new { id = produto.Id }, produto);
             }
             catch (Exception ex)
@@ -105,6 +108,7 @@ namespace api.Controllers
                 if (produto == null)
                     return NotFound(new { mensagem = "Produto não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Atualizar", "Produto", produto.Id, produto.EmpresaId);
                 return Ok(produto);
             }
             catch (Exception ex)
@@ -119,10 +123,12 @@ namespace api.Controllers
         {
             try
             {
+                var produto = await _service.GetByIdAsync(id);
                 var removido = await _service.DeleteAsync(id);
                 if (!removido)
                     return NotFound(new { mensagem = "Produto não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Excluir", "Produto", id, produto?.EmpresaId);
                 return NoContent();
             }
             catch (Exception ex)

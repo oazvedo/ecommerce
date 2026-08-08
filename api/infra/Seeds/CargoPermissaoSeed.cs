@@ -16,7 +16,8 @@ namespace api.infra
                 "Pedido.Read", "Pedido.Update", "Pedido.UpdateAdmin",
                 "Produto.Read", "Produto.Create", "Produto.Update",
                 "Carteira.Read",
-                "Empresa.Read", "Empresa.Update"
+                "Empresa.Read", "Empresa.Update",
+                "Auditoria.Read"
             ],
             [UsuarioCargo.Gerente] =
             [

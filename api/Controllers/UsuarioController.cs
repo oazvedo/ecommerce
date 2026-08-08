@@ -2,6 +2,7 @@ using api.application.dtos.usuario;
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Usuario;
 using api.application.services.interfaces;
+using api.Application.Services.Interfaces;
 using api.domain;
 using api.domain.enums;
 using api.domain.interfaces;
@@ -18,10 +19,12 @@ namespace api.controllers
     public class UsuarioController : ControllerBase
     {
         private readonly IUsuarioService _service;
+        private readonly IAuditoriaService _auditoriaService;
 
-        public UsuarioController(IUsuarioService usuarioService)
+        public UsuarioController(IUsuarioService usuarioService, IAuditoriaService auditoriaService)
         {
             _service = usuarioService;
+            _auditoriaService = auditoriaService;
         }
 
         [HttpGet]
@@ -137,6 +140,7 @@ namespace api.controllers
                 if (!atualizado)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "AtualizarStatus", "Usuario", id, User.GetEmpresaId(), request.Status.ToString());
                 return NoContent();
             }
             catch (Exception ex)
@@ -155,6 +159,7 @@ namespace api.controllers
                 if (!atualizado)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "RedefinirSenha", "Usuario", id, User.GetEmpresaId());
                 return NoContent();
             }
             catch (Exception ex)
@@ -174,6 +179,7 @@ namespace api.controllers
                     return NotFound();
 
                 await _service.DeleteAsync(id);
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Excluir", "Usuario", id, existingUsuario.EmpresaId);
                 return NoContent();
             }
             catch (Exception ex)
