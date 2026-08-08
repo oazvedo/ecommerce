@@ -12,6 +12,7 @@ import { CheckoutPage } from '@/pages/CheckoutPage'
 import { MyOrdersPage } from '@/pages/MyOrdersPage'
 import { OrderDetailPage } from '@/pages/OrderDetailPage'
 import { WalletPage } from '@/pages/WalletPage'
+import { ContaPage } from '@/pages/ContaPage'
 import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage'
 import { EmpresasPage } from '@/pages/admin/EmpresasPage'
 import { EmpresaDetailPage } from '@/pages/admin/EmpresaDetailPage'
@@ -83,6 +84,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <WalletPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/minha-conta"
+            element={
+              <ProtectedRoute>
+                <ContaPage />
               </ProtectedRoute>
             }
           />

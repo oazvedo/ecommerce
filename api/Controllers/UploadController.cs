@@ -1,5 +1,6 @@
 using api.application.services.interfaces;
 using api.Application.Services.Interfaces;
+using api.Application.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -29,6 +30,10 @@ namespace api.Controllers
         [HttpPost("usuario/{id:guid}")]
         public async Task<IActionResult> UploadUsuario(Guid id, IFormFile file)
         {
+            // Qualquer autenticado troca a própria foto; trocar a de outro exige Usuario.Update.
+            if (id != User.GetId() && !User.HasPermissao("Usuario.Update"))
+                return Forbid();
+
             var usuario = await _usuarioService.GetByIdAsync(id);
             if (usuario is null) return NotFound();
 
