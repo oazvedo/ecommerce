@@ -87,18 +87,24 @@ namespace api.Tests.Controllers
         public async Task Create_DeveRetornar201ComProdutoCriado()
         {
             var usuarioId = Guid.NewGuid();
+            var empresaId = Guid.NewGuid();
             AutenticarComo(usuarioId);
             _usuarioServiceMock.Setup(s => s.GetByIdAsync(usuarioId))
-                .ReturnsAsync(new UsuarioDto { Id = usuarioId, EmpresaId = Guid.NewGuid() });
+                .ReturnsAsync(new UsuarioDto { Id = usuarioId, EmpresaId = empresaId });
 
             var dto = new ProdutoDto { Id = Guid.NewGuid(), Nome = "Produto A", Descricao = "Desc", Codigo = "COD001", Preco = 10m };
             var request = new CreateProdutoRequest { Nome = "Produto A", Descricao = "Desc", Preco = 10m, Codigo = "COD001", Status = true };
-            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<Produto>())).ReturnsAsync(dto);
+            Produto? produtoCriado = null;
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<Produto>()))
+                .Callback<Produto>(p => produtoCriado = p)
+                .ReturnsAsync(dto);
 
             var result = await _controller.Create(request);
 
             var created = Assert.IsType<CreatedAtActionResult>(result.Result);
             Assert.Equal(dto, created.Value);
+            Assert.NotNull(produtoCriado);
+            Assert.Equal(empresaId, produtoCriado!.EmpresaId);
         }
 
         [Fact]
