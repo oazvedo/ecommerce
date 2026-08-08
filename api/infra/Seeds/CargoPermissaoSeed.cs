@@ -17,6 +17,7 @@ namespace api.infra
                 "Produto.Read", "Produto.Create", "Produto.Update",
                 "Carteira.Read",
                 "Empresa.Read", "Empresa.Update",
+                "Avaliacao.Read", "Avaliacao.Create",
                 "Auditoria.Read"
             ],
             [UsuarioCargo.Gerente] =
@@ -25,14 +26,16 @@ namespace api.infra
                 "Pedido.Read", "Pedido.Create", "Pedido.Update",
                 "Produto.Read", "Produto.Create", "Produto.Update",
                 "Carteira.Read",
-                "Empresa.Read"
+                "Empresa.Read",
+                "Avaliacao.Read", "Avaliacao.Create"
             ],
             [UsuarioCargo.Operador] =
             [
                 "Pedido.Read", "Pedido.Create",
                 "Produto.Read",
                 "Carteira.Read",
-                "Empresa.Read"
+                "Empresa.Read",
+                "Avaliacao.Read", "Avaliacao.Create"
             ],
             // Cliente do marketplace: compra e vê a própria carteira/pedidos.
             // Sem Empresa.Read — não pertence a uma loja vendedora.
@@ -40,7 +43,8 @@ namespace api.infra
             [
                 "Pedido.Read", "Pedido.Create",
                 "Produto.Read",
-                "Carteira.Read"
+                "Carteira.Read",
+                "Avaliacao.Read", "Avaliacao.Create"
             ]
         };
 

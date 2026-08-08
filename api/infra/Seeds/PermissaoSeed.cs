@@ -40,6 +40,9 @@ namespace api.infra
             "Empresa.Create",
             "Empresa.Update",
             "Empresa.Delete",
+            // avaliacoes
+            "Avaliacao.Read",
+            "Avaliacao.Create",
             // auditoria
             "Auditoria.Read"
         };

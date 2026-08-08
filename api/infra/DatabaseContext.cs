@@ -26,6 +26,7 @@ namespace api.infra
         public DbSet<CargoPermissao> CargoPermissoes { get; set; }
         public DbSet<CarteiraTransacao> CarteiraTransacoes { get; set; }
         public DbSet<PixRecarga> PixRecargas { get; set; }
+        public DbSet<Avaliacao> Avaliacoes { get; set; }
         public DbSet<AuditoriaLog> AuditoriaLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -459,6 +460,28 @@ namespace api.infra
                     .HasForeignKey(p => p.CarteiraId)
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.HasIndex(p => p.AbacatePayId).IsUnique();
+            });
+
+            modelBuilder.Entity<Avaliacao>(entity =>
+            {
+                entity.ToTable("avaliacoes");
+                entity.HasKey(a => a.Id);
+                entity.Property(a => a.Id).HasColumnName("id").IsRequired();
+                entity.Property(a => a.ProdutoId).HasColumnName("produto_id").IsRequired(false);
+                entity.Property(a => a.EmpresaId).HasColumnName("empresa_id").IsRequired(false);
+                entity.Property(a => a.UsuarioId).HasColumnName("usuario_id").IsRequired();
+                entity.Property(a => a.Nota).HasColumnName("nota").IsRequired();
+                entity.Property(a => a.Comentario).HasColumnName("comentario").IsRequired(false).HasMaxLength(1000);
+                entity.Property(a => a.CriadoEm).HasColumnName("criado_em").IsRequired();
+                entity.Property(a => a.AtualizadoEm).HasColumnName("atualizado_em").IsRequired(false);
+
+                entity.HasOne<Produto>().WithMany().HasForeignKey(a => a.ProdutoId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<Empresa>().WithMany().HasForeignKey(a => a.EmpresaId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.Usuario).WithMany().HasForeignKey(a => a.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+
+                // Um usuario avalia o mesmo produto/loja uma vez só (reavaliar atualiza a nota existente).
+                entity.HasIndex(a => new { a.UsuarioId, a.ProdutoId }).IsUnique().HasFilter("produto_id IS NOT NULL");
+                entity.HasIndex(a => new { a.UsuarioId, a.EmpresaId }).IsUnique().HasFilter("empresa_id IS NOT NULL");
             });
 
             modelBuilder.Entity<AuditoriaLog>(entity =>

@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   ShoppingCart,
   Sparkles,
-  Star,
   Store,
   Tag,
   Truck,
@@ -20,6 +19,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Navbar } from '@/components/Navbar'
+import { StarRating } from '@/components/StarRating'
+import { AvaliacoesSection } from '@/components/AvaliacoesSection'
 import { produtosApi } from '@/api/produtos'
 import { empresasApi } from '@/api/empresas'
 import { useCart } from '@/context/CartContext'
@@ -200,11 +201,8 @@ export function ProductDetailPage() {
                     </div>
                   )}
 
-                  <div className="mt-5 flex items-center gap-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    ))}
-                    <span className="ml-2 text-sm text-muted-foreground">Produto recomendado</span>
+                  <div className="mt-5">
+                    <StarRating nota={produto.notaMedia} total={produto.totalAvaliacoes} size="md" />
                   </div>
 
                   <div className="mt-6 rounded-xl border border-border bg-background p-4">
@@ -275,6 +273,10 @@ export function ProductDetailPage() {
               O pedido usará a quantidade selecionada acima.
             </p>
           </aside>
+        </div>
+
+        <div className="mt-5">
+          <AvaliacoesSection alvo={{ produtoId: produto.id }} />
         </div>
       </main>
     </div>

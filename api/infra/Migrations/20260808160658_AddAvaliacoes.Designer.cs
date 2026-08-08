@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using api.infra;
@@ -11,9 +12,11 @@ using api.infra;
 namespace api.infra.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260808160658_AddAvaliacoes")]
+    partial class AddAvaliacoes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,59 +24,6 @@ namespace api.infra.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("api.Domain.AuditoriaLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Acao")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("acao");
-
-                    b.Property<Guid>("AutorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("autor_id");
-
-                    b.Property<string>("AutorNome")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)")
-                        .HasColumnName("autor_nome");
-
-                    b.Property<string>("Detalhes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("detalhes");
-
-                    b.Property<Guid?>("EmpresaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("empresa_id");
-
-                    b.Property<string>("Entidade")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("entidade");
-
-                    b.Property<Guid?>("EntidadeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("entidade_id");
-
-                    b.Property<DateTime>("OcorridoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("ocorrido_em");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OcorridoEm");
-
-                    b.ToTable("auditoria_logs", (string)null);
-                });
 
             modelBuilder.Entity("api.Domain.Avaliacao", b =>
                 {

@@ -1,8 +1,9 @@
-import { CheckCircle2, Package, ShoppingCart, Star, Truck, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, Package, ShoppingCart, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StarRating } from '@/components/StarRating'
 import type { Produto } from '@/types'
 import { useCart } from '@/context/CartContext'
 import { resolveImageUrl } from '@/api/upload'
@@ -102,11 +103,7 @@ export function ProductCard({ produto }: { produto: Produto }) {
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-0.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            ))}
-          </div>
+          <StarRating nota={produto.notaMedia} total={produto.totalAvaliacoes} />
 
           {produto.freteGratis && (
             <Badge
