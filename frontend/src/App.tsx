@@ -96,6 +96,10 @@ function App() {
             element={
               <ProtectedRoute>
                 <QueroVenderPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/minha-conta"
             element={
               <ProtectedRoute>

@@ -89,7 +89,7 @@ namespace api.infra.repository
                 .Include(p => p.Empresa)
                 .Include(p => p.Usuario)
                 .Include(p => p.Itens).ThenInclude(i => i.Produto)
-                .Where(p => p.Empresa.Cnpj == cnpj)
+                .Where(p => p.Empresa != null && p.Empresa.Cnpj == cnpj)
                 .ToListAsync();
         }
 

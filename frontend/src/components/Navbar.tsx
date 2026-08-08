@@ -1,7 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { Building2, Home, LayoutDashboard, LogOut, Moon, Package, Search, ShoppingCart, Sparkles, Sun, Wallet } from 'lucide-react'
-import { Building2, Heart, Home, LayoutDashboard, LogOut, Moon, Package, Search, ShoppingCart, Sun, Wallet } from 'lucide-react'
-import { Building2, Home, LayoutDashboard, LogOut, Moon, Package, Search, Settings, ShoppingCart, Sun, Wallet } from 'lucide-react'
+import { Building2, Heart, Home, LayoutDashboard, LogOut, Moon, Package, Search, Settings, ShoppingCart, Sparkles, Sun, Wallet } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
