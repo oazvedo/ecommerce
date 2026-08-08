@@ -1,5 +1,6 @@
 using api.Application.DTOs.Carteira;
 using api.Application.Services;
+using api.Application.Services.Interfaces;
 using api.domain;
 using api.Domain;
 using api.Domain.Interfaces;
@@ -11,12 +12,18 @@ namespace api.Tests.Services
     public class CarteiraServiceTests
     {
         private readonly Mock<ICarteiraRepository> _repoMock;
+        private readonly Mock<ICarteiraTransacaoRepository> _transacaoRepoMock;
+        private readonly Mock<IAbacatePayService> _abacatePayMock;
+        private readonly Mock<IPixRecargaRepository> _pixRecargaRepoMock;
         private readonly CarteiraService _service;
 
         public CarteiraServiceTests()
         {
             _repoMock = new Mock<ICarteiraRepository>();
-            _service = new CarteiraService(_repoMock.Object);
+            _transacaoRepoMock = new Mock<ICarteiraTransacaoRepository>();
+            _abacatePayMock = new Mock<IAbacatePayService>();
+            _pixRecargaRepoMock = new Mock<IPixRecargaRepository>();
+            _service = new CarteiraService(_repoMock.Object, _transacaoRepoMock.Object, _abacatePayMock.Object, _pixRecargaRepoMock.Object);
         }
 
         private static Carteira CriarCarteira(Guid? usuarioId = null)

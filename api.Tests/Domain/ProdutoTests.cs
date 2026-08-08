@@ -8,7 +8,7 @@ namespace api.Tests.Domain
         [Fact]
         public void Constructor_DeveInicializarCorretamente()
         {
-            var produto = new Produto("Produto A", "Descricao A", 99.99m, "COD001");
+            var produto = new Produto("Produto A", "Descricao A", 99.99m, "COD001", Guid.NewGuid());
 
             Assert.NotEqual(Guid.Empty, produto.Id);
             Assert.Equal("Produto A", produto.Nome);
@@ -27,20 +27,21 @@ namespace api.Tests.Domain
         public void Constructor_QuandoDadosInvalidos_DeveLancarInvalidOperationException(
             string nome, string descricao, string codigo, decimal preco)
         {
-            Assert.Throws<InvalidOperationException>(() => new Produto(nome, descricao, preco, codigo));
+            Assert.Throws<InvalidOperationException>(() => new Produto(nome, descricao, preco, codigo, Guid.NewGuid()));
         }
 
         [Fact]
         public void AtualizarProduto_DeveAlterarCamposESetarAtualizadoEm()
         {
-            var produto = new Produto("Produto A", "Descricao A", 99.99m, "COD001");
+            var produto = new Produto("Produto A", "Descricao A", 99.99m, "COD001", Guid.NewGuid());
 
-            produto.AtualizarProduto("Produto B", "Descricao B", true, "COD002", 199.99m);
+            produto.AtualizarProduto("Produto B", "Descricao B", true, "COD002", 199.99m, 5, false, null);
 
             Assert.Equal("Produto B", produto.Nome);
             Assert.Equal("Descricao B", produto.Descricao);
             Assert.Equal("COD002", produto.Codigo);
             Assert.Equal(199.99m, produto.Preco);
+            Assert.Equal(5, produto.Estoque);
             Assert.NotNull(produto.AtualizadoEm);
         }
 
@@ -52,9 +53,9 @@ namespace api.Tests.Domain
         public void AtualizarProduto_QuandoDadosInvalidos_DeveLancarInvalidOperationException(
             string nome, string descricao, string codigo, decimal preco)
         {
-            var produto = new Produto("Produto A", "Descricao A", 99.99m, "COD001");
+            var produto = new Produto("Produto A", "Descricao A", 99.99m, "COD001", Guid.NewGuid());
 
-            Assert.Throws<InvalidOperationException>(() => produto.AtualizarProduto(nome, descricao, true, codigo, preco));
+            Assert.Throws<InvalidOperationException>(() => produto.AtualizarProduto(nome, descricao, true, codigo, preco, 5, false, null));
         }
     }
 }

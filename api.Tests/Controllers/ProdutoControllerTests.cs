@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using api.application.services.interfaces;
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Produto;
+using api.Application.DTOs.Usuario;
 using api.Application.Services.Interfaces;
 using api.Controllers;
 using api.Domain;
@@ -15,12 +17,23 @@ namespace api.Tests.Controllers
     public class ProdutoControllerTests
     {
         private readonly Mock<IProdutoService> _serviceMock;
+        private readonly Mock<IUsuarioService> _usuarioServiceMock;
         private readonly ProdutoController _controller;
 
         public ProdutoControllerTests()
         {
             _serviceMock = new Mock<IProdutoService>();
-            _controller = new ProdutoController(_serviceMock.Object);
+            _usuarioServiceMock = new Mock<IUsuarioService>();
+            _controller = new ProdutoController(_serviceMock.Object, _usuarioServiceMock.Object);
+        }
+
+        private void AutenticarComo(Guid usuarioId)
+        {
+            var identity = new ClaimsIdentity(new[] { new Claim(JwtRegisteredClaimNames.Sub, usuarioId.ToString()) }, "TestAuth");
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+            };
         }
 
         // GET /api/produto
@@ -73,6 +86,11 @@ namespace api.Tests.Controllers
         [Fact]
         public async Task Create_DeveRetornar201ComProdutoCriado()
         {
+            var usuarioId = Guid.NewGuid();
+            AutenticarComo(usuarioId);
+            _usuarioServiceMock.Setup(s => s.GetByIdAsync(usuarioId))
+                .ReturnsAsync(new UsuarioDto { Id = usuarioId, EmpresaId = Guid.NewGuid() });
+
             var dto = new ProdutoDto { Id = Guid.NewGuid(), Nome = "Produto A", Descricao = "Desc", Codigo = "COD001", Preco = 10m };
             var request = new CreateProdutoRequest { Nome = "Produto A", Descricao = "Desc", Preco = 10m, Codigo = "COD001", Status = true };
             _serviceMock.Setup(s => s.CreateAsync(It.IsAny<Produto>())).ReturnsAsync(dto);
@@ -83,6 +101,20 @@ namespace api.Tests.Controllers
             Assert.Equal(dto, created.Value);
         }
 
+        [Fact]
+        public async Task Create_QuandoUsuarioNaoEncontrado_DeveRetornar404()
+        {
+            var usuarioId = Guid.NewGuid();
+            AutenticarComo(usuarioId);
+            _usuarioServiceMock.Setup(s => s.GetByIdAsync(usuarioId)).ReturnsAsync((UsuarioDto?)null);
+
+            var request = new CreateProdutoRequest { Nome = "Produto A", Descricao = "Desc", Preco = 10m, Codigo = "COD001", Status = true };
+
+            var result = await _controller.Create(request);
+
+            Assert.IsType<NotFoundObjectResult>(result.Result);
+        }
+
         // PUT /api/produto/{id}
 
         [Fact]
@@ -90,7 +122,7 @@ namespace api.Tests.Controllers
         {
             var dto = new ProdutoDto { Id = Guid.NewGuid() };
             var request = new UpdateProdutoRequest { Nome = "Produto A", Descricao = "Desc", Preco = 10m, Codigo = "COD001", Status = true };
-            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<Produto>())).ReturnsAsync(dto);
+            _serviceMock.Setup(s => s.UpdateAsync(dto.Id, request)).ReturnsAsync(dto);
 
             var result = await _controller.Update(dto.Id, request);
 
@@ -102,7 +134,7 @@ namespace api.Tests.Controllers
         public async Task Update_QuandoNaoExiste_DeveRetornar404()
         {
             var request = new UpdateProdutoRequest { Nome = "Produto A", Descricao = "Desc", Preco = 10m, Codigo = "COD001", Status = true };
-            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<Produto>())).ReturnsAsync((ProdutoDto?)null);
+            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<UpdateProdutoRequest>())).ReturnsAsync((ProdutoDto?)null);
 
             var result = await _controller.Update(Guid.NewGuid(), request);
 

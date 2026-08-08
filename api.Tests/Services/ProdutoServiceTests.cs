@@ -12,7 +12,7 @@ namespace api.Tests.Services
         private readonly Mock<IProdutoRepository> _repoMock;
         private readonly ProdutoService _service;
 
-        private static Produto CriarProduto() => new("Produto A", "Descricao A", 99.99m, "COD001");
+        private static Produto CriarProduto() => new("Produto A", "Descricao A", 99.99m, "COD001", Guid.NewGuid());
 
         public ProdutoServiceTests()
         {
