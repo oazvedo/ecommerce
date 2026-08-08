@@ -140,7 +140,7 @@ namespace api.controllers
                 if (!atualizado)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
-                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "AtualizarStatus", "Usuario", id, User.GetEmpresaId(), request.Status.ToString());
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "AtualizarStatus", "Usuario", id, usuario.EmpresaId, request.Status.ToString());
                 return NoContent();
             }
             catch (Exception ex)
@@ -155,11 +155,15 @@ namespace api.controllers
         {
             try
             {
+                var usuario = await _service.GetByIdAsync(id);
+                if (usuario == null)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
+
                 var atualizado = await _service.UpdatePasswordAsync(id, request.Password);
                 if (!atualizado)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
-                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "RedefinirSenha", "Usuario", id, User.GetEmpresaId());
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "RedefinirSenha", "Usuario", id, usuario.EmpresaId);
                 return NoContent();
             }
             catch (Exception ex)
