@@ -5,6 +5,9 @@ using api.domain.interfaces;
 using api.Domain;
 using api.Domain.Enums;
 using api.Domain.Interfaces;
+using Hangfire;
+using MassTransit;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -13,8 +16,13 @@ namespace api.Tests.Services
     public class PedidoServiceTests
     {
         private readonly Mock<IPedidoRepository> _repoMock;
-        private readonly Mock<IRepositoryBase<Produto>> _produtoRepoMock;
+        private readonly Mock<IProdutoRepository> _produtoRepoMock;
         private readonly Mock<ICarteiraRepository> _carteiraRepoMock;
+        private readonly Mock<ICarteiraTransacaoRepository> _transacaoRepoMock;
+        private readonly Mock<IBackgroundJobClient> _backgroundJobsMock;
+        private readonly Mock<IPublishEndpoint> _publishEndpointMock;
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
+        private readonly Mock<ILogger<PedidoService>> _loggerMock;
         private readonly PedidoService _service;
 
         private static Pedido CriarPedido(Guid? usuarioId = null) =>
@@ -23,9 +31,28 @@ namespace api.Tests.Services
         public PedidoServiceTests()
         {
             _repoMock = new Mock<IPedidoRepository>();
-            _produtoRepoMock = new Mock<IRepositoryBase<Produto>>();
+            _produtoRepoMock = new Mock<IProdutoRepository>();
             _carteiraRepoMock = new Mock<ICarteiraRepository>();
-            _service = new PedidoService(_repoMock.Object, _produtoRepoMock.Object, _carteiraRepoMock.Object);
+            _transacaoRepoMock = new Mock<ICarteiraTransacaoRepository>();
+            _backgroundJobsMock = new Mock<IBackgroundJobClient>();
+            _publishEndpointMock = new Mock<IPublishEndpoint>();
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
+            _loggerMock = new Mock<ILogger<PedidoService>>();
+
+            // Roda o bloco da "transação" de verdade, como a implementação real faria.
+            _unitOfWorkMock
+                .Setup(u => u.ExecuteInTransactionAsync(It.IsAny<Func<Task<bool>>>(), It.IsAny<CancellationToken>()))
+                .Returns<Func<Task<bool>>, CancellationToken>((action, _) => action());
+
+            _service = new PedidoService(
+                _repoMock.Object,
+                _produtoRepoMock.Object,
+                _carteiraRepoMock.Object,
+                _transacaoRepoMock.Object,
+                _backgroundJobsMock.Object,
+                _publishEndpointMock.Object,
+                _unitOfWorkMock.Object,
+                _loggerMock.Object);
         }
 
         [Fact]
@@ -99,13 +126,12 @@ namespace api.Tests.Services
         public async Task CreatePedido_ComSaldoSuficiente_DeveCriarERetornarDto()
         {
             var usuarioId = Guid.NewGuid();
-            var produto = new Produto("Produto A", "Desc A", 50m, "COD001");
+            var produto = new Produto("Produto A", "Desc A", 50m, "COD001", Guid.NewGuid()) { Estoque = 10 };
             var carteira = new Carteira(usuarioId);
             carteira.UpdateBalance(200);
 
             var request = new CreatePedidoRequest
             {
-                EmpresaId = Guid.NewGuid(),
                 contratacao = PedidoTipoContratacaoEnum.Anual,
                 itens = new List<CreatePedidoItemRequest>
                 {
@@ -114,26 +140,28 @@ namespace api.Tests.Services
             };
 
             _produtoRepoMock.Setup(r => r.GetByIdAsync(produto.Id)).ReturnsAsync(produto);
+            _produtoRepoMock.Setup(r => r.TryDecrementarEstoqueAsync(produto.Id, It.IsAny<int>())).ReturnsAsync(true);
             _carteiraRepoMock.Setup(r => r.GetCarteiraByUsuarioId(usuarioId)).ReturnsAsync(carteira);
 
             var result = await _service.CreatePedido(usuarioId, request);
 
-            Assert.Equal(usuarioId, result.UsuarioId);
-            Assert.Equal(PedidoStatus.Criado, result.Status);
-            Assert.Equal(PedidoTipoContratacaoEnum.Anual, result.Contracacao);
-            Assert.Single(result.Itens);
+            var pedido = Assert.Single(result);
+            Assert.Equal(usuarioId, pedido.UsuarioId);
+            Assert.Equal(produto.EmpresaId, pedido.EmpresaId);
+            Assert.Equal(PedidoStatus.Criado, pedido.Status);
+            Assert.Equal(PedidoTipoContratacaoEnum.Anual, pedido.Contracacao);
+            Assert.Single(pedido.Itens);
         }
 
         [Fact]
-        public async Task CreatePedido_ComSaldoInsuficiente_DeveLancarKeyNotFoundException()
+        public async Task CreatePedido_ComSaldoInsuficiente_DeveLancarInvalidOperationException()
         {
             var usuarioId = Guid.NewGuid();
-            var produto = new Produto("Produto A", "Desc A", 50m, "COD001");
+            var produto = new Produto("Produto A", "Desc A", 50m, "COD001", Guid.NewGuid()) { Estoque = 10 };
             var carteira = new Carteira(usuarioId); // saldo = 0
 
             var request = new CreatePedidoRequest
             {
-                EmpresaId = Guid.NewGuid(),
                 contratacao = PedidoTipoContratacaoEnum.Mensal,
                 itens = new List<CreatePedidoItemRequest>
                 {
@@ -144,7 +172,7 @@ namespace api.Tests.Services
             _produtoRepoMock.Setup(r => r.GetByIdAsync(produto.Id)).ReturnsAsync(produto);
             _carteiraRepoMock.Setup(r => r.GetCarteiraByUsuarioId(usuarioId)).ReturnsAsync(carteira);
 
-            await Assert.ThrowsAsync<KeyNotFoundException>(
+            await Assert.ThrowsAsync<InvalidOperationException>(
                 () => _service.CreatePedido(usuarioId, request));
         }
 
@@ -156,7 +184,6 @@ namespace api.Tests.Services
 
             var request = new CreatePedidoRequest
             {
-                EmpresaId = Guid.NewGuid(),
                 contratacao = PedidoTipoContratacaoEnum.Mensal,
                 itens = new List<CreatePedidoItemRequest>
                 {
@@ -167,6 +194,27 @@ namespace api.Tests.Services
             _produtoRepoMock.Setup(r => r.GetByIdAsync(produtoId)).ReturnsAsync((Produto?)null);
 
             await Assert.ThrowsAsync<KeyNotFoundException>(
+                () => _service.CreatePedido(usuarioId, request));
+        }
+
+        [Fact]
+        public async Task CreatePedido_EstoqueInsuficiente_DeveLancarInvalidOperationException()
+        {
+            var usuarioId = Guid.NewGuid();
+            var produto = new Produto("Produto A", "Desc A", 50m, "COD001", Guid.NewGuid()) { Estoque = 1 };
+
+            var request = new CreatePedidoRequest
+            {
+                contratacao = PedidoTipoContratacaoEnum.Mensal,
+                itens = new List<CreatePedidoItemRequest>
+                {
+                    new() { produtoId = produto.Id, quantidade = 2 }
+                }
+            };
+
+            _produtoRepoMock.Setup(r => r.GetByIdAsync(produto.Id)).ReturnsAsync(produto);
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
                 () => _service.CreatePedido(usuarioId, request));
         }
 

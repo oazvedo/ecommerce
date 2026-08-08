@@ -102,7 +102,7 @@ namespace api.Tests.Domain
         public void AdicionarItem_DeveAdicionarItemAosPedidos()
         {
             var pedido = CriarPedido();
-            var produto = new Produto("Prod A", "Desc A", 100m, "COD001");
+            var produto = new Produto("Prod A", "Desc A", 100m, "COD001", Guid.NewGuid());
 
             pedido.AdicionarItem(produto, 2);
 
@@ -115,7 +115,7 @@ namespace api.Tests.Domain
         public void AdicionarItem_MesmoProduto_DeveAcumularQuantidade()
         {
             var pedido = CriarPedido();
-            var produto = new Produto("Prod A", "Desc A", 50m, "COD001");
+            var produto = new Produto("Prod A", "Desc A", 50m, "COD001", Guid.NewGuid());
 
             pedido.AdicionarItem(produto, 1);
             pedido.AdicionarItem(produto, 3);
@@ -128,7 +128,7 @@ namespace api.Tests.Domain
         public void RemoverItem_DeveRemoverItemDosPedidos()
         {
             var pedido = CriarPedido();
-            var produto = new Produto("Prod A", "Desc A", 100m, "COD001");
+            var produto = new Produto("Prod A", "Desc A", 100m, "COD001", Guid.NewGuid());
             pedido.AdicionarItem(produto, 1);
 
             pedido.RemoverItem(produto.Id);

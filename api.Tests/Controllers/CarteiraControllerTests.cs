@@ -71,15 +71,14 @@ namespace api.Tests.Controllers
         }
 
         [Fact]
-        public async Task GetMinhaCarteira_QuandoNaoExiste_DeveRetornar500()
+        public async Task GetMinhaCarteira_QuandoNaoExiste_DeveRetornar404()
         {
             _serviceMock.Setup(s => s.GetMyCarteiraAsync(_usuarioId))
                         .ThrowsAsync(new KeyNotFoundException("Carteira não encontrada"));
 
             var result = await _controller.GetMyCarteira();
 
-            var status = Assert.IsType<ObjectResult>(result);
-            Assert.Equal(500, status.StatusCode);
+            Assert.IsType<NotFoundObjectResult>(result);
         }
 
         // GET /api/carteira/{id}

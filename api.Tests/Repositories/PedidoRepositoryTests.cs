@@ -18,7 +18,7 @@ namespace api.Tests.Repositories
                 .Options);
 
         private static Usuario CriarUsuario() =>
-            new("Test User", $"test{Guid.NewGuid()}@test.com", "Senha123!", UsuarioCargo.Operador);
+            new("Test User", $"test{Guid.NewGuid()}@test.com", "Senha123!", UsuarioCargo.Operador, Guid.NewGuid());
 
         private static Empresa CriarEmpresa() =>
             new("Empresa Test", "00.000.000/0001-00", "Responsavel Test", Guid.NewGuid(), "11999999999", EmpresaTipo.Central);
