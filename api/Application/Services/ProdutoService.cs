@@ -52,9 +52,12 @@ namespace api.Application.Services
             await _repository.UpdateAsync(produto);
         }
 
-        public async Task<PagedResult<ProdutoDto>> SearchPagedAsync(int page, int pageSize, Guid? empresaId, string? nome, bool? disponivel, bool? freteGratis)
+        public async Task<PagedResult<ProdutoDto>> SearchPagedAsync(
+            int page, int pageSize, Guid? empresaId, string? nome, bool? disponivel, bool? freteGratis,
+            decimal? precoMin, decimal? precoMax, string? orderBy)
         {
-            var (produtos, totalCount) = await _produtoRepository.SearchPagedAsync(page, pageSize, empresaId, nome, disponivel, freteGratis);
+            var (produtos, totalCount) = await _produtoRepository.SearchPagedAsync(
+                page, pageSize, empresaId, nome, disponivel, freteGratis, precoMin, precoMax, orderBy);
             return new PagedResult<ProdutoDto>
             {
                 Page = page,

@@ -30,7 +30,10 @@ namespace api.Controllers
             [FromQuery] Guid? empresaId = null,
             [FromQuery] string? nome = null,
             [FromQuery] bool? disponivel = null,
-            [FromQuery] bool? freteGratis = null)
+            [FromQuery] bool? freteGratis = null,
+            [FromQuery] decimal? precoMin = null,
+            [FromQuery] decimal? precoMax = null,
+            [FromQuery] string? orderBy = null)
         {
             try
             {
@@ -38,7 +41,9 @@ namespace api.Controllers
                 if (pageSize < 1) pageSize = 10;
 
                 // empresaId filtra o catálogo pela loja vendedora; nome busca em nome/codigo.
-                var produtos = await _service.SearchPagedAsync(page, pageSize, empresaId, nome, disponivel, freteGratis);
+                // orderBy aceita: preco_asc, preco_desc, nome_asc (padrão: mais recentes).
+                var produtos = await _service.SearchPagedAsync(
+                    page, pageSize, empresaId, nome, disponivel, freteGratis, precoMin, precoMax, orderBy);
                 return Ok(produtos);
             }
             catch (Exception ex)
