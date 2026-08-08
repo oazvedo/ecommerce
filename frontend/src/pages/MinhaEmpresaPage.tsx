@@ -126,7 +126,7 @@ export function MinhaEmpresaPage() {
       empresasApi.get(targetId),
       empresasApi.getUsuarios(targetId, 1, 50),
       empresasApi.getFiliais(targetId, 1, 50),
-      produtosApi.list(1, 50, targetId),
+      produtosApi.list(1, 50, { empresaId: targetId }),
     ])
       .then(([emp, usrs, fils, prods]) => {
         setEmpresa(emp)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BadgeCheck, PackageSearch, SlidersHorizontal, Sparkles, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -30,38 +30,25 @@ export function CatalogPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => { setPage(1) }, [query])
+  useEffect(() => { setPage(1) }, [query, filter])
 
   useEffect(() => {
     setLoading(true)
     setError(null)
     produtosApi
-      .list(page, 20)
+      .list(page, 20, {
+        nome: query || undefined,
+        disponivel: filter === 'available' ? true : undefined,
+        freteGratis: filter === 'freeShipping' ? true : undefined,
+      })
       .then(setResult)
       .catch(err => setError(err instanceof Error ? err.message : 'Erro ao carregar produtos'))
       .finally(() => setLoading(false))
-  }, [page])
+  }, [page, query, filter])
 
-  const items = result?.items ?? EMPTY_PRODUCTS
-  const queryItems = useMemo(() => {
-    const normalizedQuery = query.toLowerCase()
-    return query
-      ? items.filter(
-          p =>
-            p.nome.toLowerCase().includes(normalizedQuery) ||
-            p.codigo.toLowerCase().includes(normalizedQuery)
-        )
-      : items
-  }, [items, query])
-
-  const filtered = useMemo(() => {
-    if (filter === 'available') return queryItems.filter(p => p.status)
-    if (filter === 'freeShipping') return queryItems.filter(p => p.freteGratis)
-    return queryItems
-  }, [filter, queryItems])
-
-  const availableCount = items.filter(p => p.status).length
-  const freeShippingCount = items.filter(p => p.freteGratis).length
+  const filtered = result?.items ?? EMPTY_PRODUCTS
+  const availableCount = filtered.filter(p => p.status).length
+  const freeShippingCount = filtered.filter(p => p.freteGratis).length
   const featured = filtered[0]
 
   return (
@@ -78,8 +65,8 @@ export function CatalogPage() {
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                   {query ? (
                     <>
-                      <span className="font-semibold text-foreground">{filtered.length}</span>
-                      {' '}resultado{filtered.length !== 1 ? 's' : ''} para{' '}
+                      <span className="font-semibold text-foreground">{result?.totalCount ?? 0}</span>
+                      {' '}resultado{(result?.totalCount ?? 0) !== 1 ? 's' : ''} para{' '}
                       <span className="font-semibold text-primary">"{query}"</span>
                     </>
                   ) : (
@@ -171,7 +158,7 @@ export function CatalogPage() {
                 <ProductCard key={p.id} produto={p} />
               ))}
             </div>
-            {!query && result && result.totalPages > 1 && (
+            {result && result.totalPages > 1 && (
               <Pagination page={page} totalPages={result.totalPages} onPageChange={setPage} />
             )}
           </>

@@ -5,7 +5,8 @@ namespace api.Domain.Interfaces
 {
     public interface IProdutoRepository : IRepositoryBase<Produto>
     {
-        Task<(IEnumerable<Produto> Items, int TotalCount)> GetPagedByEmpresaAsync(Guid empresaId, int page, int pageSize);
+        Task<(IEnumerable<Produto> Items, int TotalCount)> SearchPagedAsync(
+            int page, int pageSize, Guid? empresaId, string? nome, bool? disponivel, bool? freteGratis);
 
         /// <summary>
         /// Baixa atômica de estoque: decrementa só se houver saldo suficiente.
