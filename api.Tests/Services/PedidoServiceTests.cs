@@ -170,10 +170,13 @@ namespace api.Tests.Services
             };
 
             _produtoRepoMock.Setup(r => r.GetByIdAsync(produto.Id)).ReturnsAsync(produto);
+            _produtoRepoMock.Setup(r => r.TryDecrementarEstoqueAsync(produto.Id, 1)).ReturnsAsync(true);
             _carteiraRepoMock.Setup(r => r.GetCarteiraByUsuarioId(usuarioId)).ReturnsAsync(carteira);
 
             await Assert.ThrowsAsync<InvalidOperationException>(
                 () => _service.CreatePedido(usuarioId, request));
+
+            _carteiraRepoMock.Verify(r => r.GetCarteiraByUsuarioId(usuarioId), Times.Once);
         }
 
         [Fact]

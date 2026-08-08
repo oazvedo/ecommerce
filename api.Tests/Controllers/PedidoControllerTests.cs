@@ -325,6 +325,19 @@ namespace api.Tests.Controllers
         }
 
         [Fact]
+        public async Task Cancelar_QuandoNaoEhDono_DeveRetornarForbid()
+        {
+            var id = Guid.NewGuid();
+            var dto = new PedidoDto { Id = id, UsuarioId = Guid.NewGuid() };
+            _serviceMock.Setup(s => s.GetPedidoById(id)).ReturnsAsync(dto);
+
+            var result = await _controller.Cancelar(id);
+
+            Assert.IsType<ForbidResult>(result);
+            _serviceMock.Verify(s => s.CancelarPedido(It.IsAny<Guid>()), Times.Never);
+        }
+
+        [Fact]
         public async Task Cancelar_QuandoPedidoJaCancelado_DeveRetornar400()
         {
             var id = Guid.NewGuid();
