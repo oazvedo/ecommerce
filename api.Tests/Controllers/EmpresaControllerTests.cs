@@ -1,11 +1,13 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using api.application.services.interfaces;
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Empresa;
 using api.Application.Services.Interfaces;
 using api.Controllers;
 using api.Domain;
 using api.Domain.Enums;
+using api.Domain.Enums.UsuarioEnums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -16,6 +18,8 @@ namespace api.Tests.Controllers
     public class EmpresaControllerTests
     {
         private readonly Mock<IEmpresaService> _serviceMock;
+        private readonly Mock<IUsuarioService> _usuarioServiceMock;
+        private readonly Mock<IProdutoService> _produtoServiceMock;
         private readonly EmpresaController _controller;
         private readonly Guid _usuarioId = Guid.NewGuid();
         private const string _usuarioNome = "Admin Teste";
@@ -23,12 +27,16 @@ namespace api.Tests.Controllers
         public EmpresaControllerTests()
         {
             _serviceMock = new Mock<IEmpresaService>();
-            _controller = new EmpresaController(_serviceMock.Object);
+            _usuarioServiceMock = new Mock<IUsuarioService>();
+            _produtoServiceMock = new Mock<IProdutoService>();
+            _controller = new EmpresaController(_serviceMock.Object, _usuarioServiceMock.Object, _produtoServiceMock.Object);
 
+            // Cargo Administrador: pula a checagem de PodeGerenciarAsync (IsPlataformaAdmin) nos testes de CRUD abaixo.
             var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, _usuarioId.ToString()),
-                new(JwtRegisteredClaimNames.UniqueName, _usuarioNome)
+                new(JwtRegisteredClaimNames.UniqueName, _usuarioNome),
+                new("Cargo", UsuarioCargo.Administrador.ToString())
             };
             _controller.ControllerContext = new ControllerContext
             {
@@ -125,7 +133,7 @@ namespace api.Tests.Controllers
                 Tipo = EmpresaTipo.Filial,
                 Status = true
             };
-            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<Empresa>())).ReturnsAsync(dto);
+            _serviceMock.Setup(s => s.UpdateCamposAsync(dto.Id, request)).ReturnsAsync(dto);
 
             var result = await _controller.Update(dto.Id, request);
 
@@ -146,7 +154,7 @@ namespace api.Tests.Controllers
                 Tipo = EmpresaTipo.Filial,
                 Status = true
             };
-            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<Empresa>())).ReturnsAsync((EmpresaDto?)null);
+            _serviceMock.Setup(s => s.UpdateCamposAsync(It.IsAny<Guid>(), It.IsAny<UpdateEmpresaRequest>())).ReturnsAsync((EmpresaDto?)null);
 
             var result = await _controller.Update(Guid.NewGuid(), request);
 
@@ -159,7 +167,7 @@ namespace api.Tests.Controllers
         public async Task Delete_QuandoExiste_DeveRetornar204()
         {
             var id = Guid.NewGuid();
-            _serviceMock.Setup(s => s.DeleteAsync(id)).ReturnsAsync(true);
+            _serviceMock.Setup(s => s.DeleteComCascadeAsync(id)).ReturnsAsync(true);
 
             var result = await _controller.Delete(id);
 
@@ -169,7 +177,7 @@ namespace api.Tests.Controllers
         [Fact]
         public async Task Delete_QuandoNaoExiste_DeveRetornar404()
         {
-            _serviceMock.Setup(s => s.DeleteAsync(It.IsAny<Guid>())).ReturnsAsync(false);
+            _serviceMock.Setup(s => s.DeleteComCascadeAsync(It.IsAny<Guid>())).ReturnsAsync(false);
 
             var result = await _controller.Delete(Guid.NewGuid());
 
