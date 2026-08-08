@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { empresasApi } from '@/api/empresas'
 import { usuariosApi } from '@/api/usuarios'
-import { produtosApi, type ProdutoPayload } from '@/api/produtos'
+import { produtosApi } from '@/api/produtos'
 import type { Empresa, Usuario, Produto, PagedResult } from '@/types'
 import { Navbar } from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Building2, Phone, Hash, Pencil, KeyRound, UserX, PowerOff, Power, MoreHorizontal, Store, Plus, ChevronRight, ArrowLeft, UserPlus, Package, Trash2 } from 'lucide-react'
 import { ImageUpload } from '@/components/ImageUpload'
+import { ProdutoFormDialog } from '@/components/ProdutoFormDialog'
 import { resolveImageUrl } from '@/api/upload'
 import {
   DropdownMenu,
@@ -50,7 +51,6 @@ import { toast } from 'sonner'
 
 const TIPOS = ['Central', 'Filial', 'Parceira', 'Representante']
 const CARGOS = ['Operador', 'Gerente', 'Diretor', 'Administrador']
-const EMPTY_PRODUTO: ProdutoPayload = { nome: '', descricao: '', preco: 0, codigo: '', status: true, estoque: 0, freteGratis: false, variantes: null }
 
 function formatBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -88,8 +88,6 @@ export function MinhaEmpresaPage() {
   const [produtos, setProdutos] = useState<PagedResult<Produto> | null>(null)
   const [produtoDialogOpen, setProdutoDialogOpen] = useState(false)
   const [editingProduto, setEditingProduto] = useState<Produto | null>(null)
-  const [produtoForm, setProdutoForm] = useState<ProdutoPayload>(EMPTY_PRODUTO)
-  const [savingProduto, setSavingProduto] = useState(false)
   const [deleteProdutoId, setDeleteProdutoId] = useState<string | null>(null)
 
   // Edit empresa
@@ -214,34 +212,26 @@ export function MinhaEmpresaPage() {
   // ── Produtos ──────────────────────────────────────────
   function openCreateProduto() {
     setEditingProduto(null)
-    setProdutoForm(EMPTY_PRODUTO)
     setProdutoDialogOpen(true)
   }
 
   function openEditProduto(p: Produto) {
     setEditingProduto(p)
-    setProdutoForm({ nome: p.nome, descricao: p.descricao, preco: p.preco, codigo: p.codigo, status: p.status, estoque: p.estoque, freteGratis: p.freteGratis, variantes: p.variantes })
     setProdutoDialogOpen(true)
   }
 
-  async function handleSaveProduto() {
-    if (!targetId) return
-    setSavingProduto(true)
-    try {
-      if (editingProduto) {
-        await produtosApi.update(editingProduto.id, produtoForm)
-        toast.success('Produto atualizado.')
-      } else {
-        await empresasApi.criarProduto(targetId, produtoForm)
-        toast.success('Produto criado.')
+  function handleProdutoSaved(produto: Produto) {
+    setProdutos(prev => {
+      if (!prev) return prev
+      const exists = prev.items.some(p => p.id === produto.id)
+      return {
+        ...prev,
+        items: exists
+          ? prev.items.map(p => p.id === produto.id ? produto : p)
+          : [produto, ...prev.items],
+        totalCount: exists ? prev.totalCount : prev.totalCount + 1,
       }
-      setProdutoDialogOpen(false)
-      load()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar produto.')
-    } finally {
-      setSavingProduto(false)
-    }
+    })
   }
 
   async function handleDeleteProduto() {
@@ -793,69 +783,14 @@ export function MinhaEmpresaPage() {
       </Dialog>
 
       {/* Dialog: criar/editar produto */}
-      <Dialog open={produtoDialogOpen} onOpenChange={setProdutoDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingProduto ? 'Editar produto' : 'Novo produto'}</DialogTitle></DialogHeader>
-          <div className="space-y-4 pt-2">
-            {editingProduto && (
-              <div className="flex justify-center">
-                <ImageUpload
-                  entidade="produto"
-                  id={editingProduto.id}
-                  currentUrl={resolveImageUrl(editingProduto.imagemUrl)}
-                  variant="produto"
-                  onSuccess={url => setProdutos(prev => prev ? {
-                    ...prev,
-                    items: prev.items.map(p => p.id === editingProduto.id ? { ...p, imagemUrl: url } : p)
-                  } : prev)}
-                />
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label>Nome</Label>
-              <Input value={produtoForm.nome} onChange={e => setProdutoForm(f => ({ ...f, nome: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Descrição</Label>
-              <Input value={produtoForm.descricao} onChange={e => setProdutoForm(f => ({ ...f, descricao: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Código</Label>
-                <Input value={produtoForm.codigo} onChange={e => setProdutoForm(f => ({ ...f, codigo: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Preço (R$)</Label>
-                <Input type="number" min="0" step="0.01" value={produtoForm.preco}
-                  onChange={e => setProdutoForm(f => ({ ...f, preco: parseFloat(e.target.value) || 0 }))} />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Estoque</Label>
-                <Input type="number" min="0" value={produtoForm.estoque}
-                  onChange={e => setProdutoForm(f => ({ ...f, estoque: parseInt(e.target.value) || 0 }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Variantes</Label>
-                <Input placeholder="Ex: Azul, Preto, 128GB" value={produtoForm.variantes ?? ''}
-                  onChange={e => setProdutoForm(f => ({ ...f, variantes: e.target.value || null }))} />
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Ativo</Label>
-              <Switch checked={produtoForm.status} onCheckedChange={v => setProdutoForm(f => ({ ...f, status: v }))} />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Frete grátis</Label>
-              <Switch checked={produtoForm.freteGratis} onCheckedChange={v => setProdutoForm(f => ({ ...f, freteGratis: v }))} />
-            </div>
-            <Button className="w-full" onClick={handleSaveProduto} disabled={savingProduto || !produtoForm.nome || !produtoForm.codigo}>
-              {savingProduto ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ProdutoFormDialog
+        open={produtoDialogOpen}
+        onOpenChange={setProdutoDialogOpen}
+        produto={editingProduto}
+        onCreate={payload => empresasApi.criarProduto(targetId!, payload)}
+        onUpdate={(id, payload) => produtosApi.update(id, payload)}
+        onSaved={handleProdutoSaved}
+      />
 
       {/* Confirmação: excluir produto */}
       <AlertDialog open={!!deleteProdutoId} onOpenChange={open => !open && setDeleteProdutoId(null)}>

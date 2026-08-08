@@ -1,18 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,14 +22,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { AdminLayout } from '@/layouts/AdminLayout'
-import { ImageUpload } from '@/components/ImageUpload'
+import { ProdutoFormDialog } from '@/components/ProdutoFormDialog'
 import { resolveImageUrl } from '@/api/upload'
 import { produtosApi } from '@/api/produtos'
 import type { Produto, PagedResult } from '@/types'
-import type { ProdutoPayload } from '@/api/produtos'
 import { toast } from 'sonner'
-
-const EMPTY_FORM: ProdutoPayload = { nome: '', descricao: '', preco: 0, codigo: '', status: true, estoque: 0, freteGratis: false, variantes: null }
 
 export function ProdutosAdminPage() {
   const [result, setResult] = useState<PagedResult<Produto> | null>(null)
@@ -46,8 +34,6 @@ export function ProdutosAdminPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [editing, setEditing] = useState<Produto | null>(null)
-  const [form, setForm] = useState<ProdutoPayload>(EMPTY_FORM)
-  const [saving, setSaving] = useState(false)
 
   function load() {
     setLoading(true)
@@ -58,33 +44,26 @@ export function ProdutosAdminPage() {
 
   function openCreate() {
     setEditing(null)
-    setForm(EMPTY_FORM)
     setDialogOpen(true)
   }
 
   function openEdit(p: Produto) {
     setEditing(p)
-    setForm({ nome: p.nome, descricao: p.descricao, preco: p.preco, codigo: p.codigo, status: p.status, estoque: p.estoque, freteGratis: p.freteGratis, variantes: p.variantes })
     setDialogOpen(true)
   }
 
-  async function handleSave() {
-    setSaving(true)
-    try {
-      if (editing) {
-        await produtosApi.update(editing.id, form)
-        toast.success('Produto atualizado.')
-      } else {
-        await produtosApi.create(form)
-        toast.success('Produto criado.')
+  function handleProdutoSaved(produto: Produto) {
+    setResult(prev => {
+      if (!prev) return prev
+      const exists = prev.items.some(p => p.id === produto.id)
+      return {
+        ...prev,
+        items: exists
+          ? prev.items.map(p => p.id === produto.id ? produto : p)
+          : [produto, ...prev.items],
+        totalCount: exists ? prev.totalCount : prev.totalCount + 1,
       }
-      setDialogOpen(false)
-      load()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar')
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
   async function handleDelete() {
@@ -180,83 +159,14 @@ export function ProdutosAdminPage() {
         </Card>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Editar produto' : 'Novo produto'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            {editing && (
-              <div className="flex justify-center">
-                <ImageUpload
-                  entidade="produto"
-                  id={editing.id}
-                  currentUrl={resolveImageUrl(editing.imagemUrl)}
-                  variant="produto"
-                  onSuccess={url => setResult(prev => prev ? {
-                    ...prev,
-                    items: prev.items.map(p => p.id === editing.id ? { ...p, imagemUrl: url } : p)
-                  } : prev)}
-                />
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <Label>Nome</Label>
-              <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Descrição</Label>
-              <Input value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Código</Label>
-                <Input value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Preço (R$)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.preco}
-                  onChange={e => setForm(f => ({ ...f, preco: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Estoque</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={form.estoque}
-                  onChange={e => setForm(f => ({ ...f, estoque: parseInt(e.target.value) || 0 }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Variantes</Label>
-                <Input
-                  placeholder="Ex: Azul, Preto, 128GB"
-                  value={form.variantes ?? ''}
-                  onChange={e => setForm(f => ({ ...f, variantes: e.target.value || null }))}
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Ativo</Label>
-              <Switch checked={form.status} onCheckedChange={v => setForm(f => ({ ...f, status: v }))} />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Frete grátis</Label>
-              <Switch checked={form.freteGratis} onCheckedChange={v => setForm(f => ({ ...f, freteGratis: v }))} />
-            </div>
-            <Button className="w-full" onClick={handleSave} disabled={saving}>
-              {saving ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ProdutoFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        produto={editing}
+        onCreate={payload => produtosApi.create(payload)}
+        onUpdate={(id, payload) => produtosApi.update(id, payload)}
+        onSaved={handleProdutoSaved}
+      />
 
       <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
         <AlertDialogContent>
