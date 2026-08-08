@@ -36,6 +36,12 @@ export const usuariosApi = {
       body: JSON.stringify({ password }),
     }),
 
+  updateEmail: (id: string, email: string) =>
+    apiFetch<Usuario>(`/usuario/${id}/email`, {
+      method: 'PATCH',
+      body: JSON.stringify({ email }),
+    }),
+
   updateStatus: (id: string, status: 'Ativo' | 'Desativado') =>
     apiFetch<void>(`/usuario/${id}/status`, {
       method: 'PATCH',

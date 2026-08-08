@@ -14,6 +14,7 @@ import { MyOrdersPage } from '@/pages/MyOrdersPage'
 import { OrderDetailPage } from '@/pages/OrderDetailPage'
 import { WalletPage } from '@/pages/WalletPage'
 import { FavoritosPage } from '@/pages/FavoritosPage'
+import { ContaPage } from '@/pages/ContaPage'
 import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage'
 import { EmpresasPage } from '@/pages/admin/EmpresasPage'
 import { EmpresaDetailPage } from '@/pages/admin/EmpresaDetailPage'
@@ -90,10 +91,10 @@ function App() {
             }
           />
           <Route
-            path="/favoritos"
+            path="/minha-conta"
             element={
               <ProtectedRoute>
-                <FavoritosPage />
+                <ContaPage />
               </ProtectedRoute>
             }
           />

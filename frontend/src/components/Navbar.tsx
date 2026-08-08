@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Building2, Heart, Home, LayoutDashboard, LogOut, Moon, Package, Search, ShoppingCart, Sun, Wallet } from 'lucide-react'
+import { Building2, Home, LayoutDashboard, LogOut, Moon, Package, Search, Settings, ShoppingCart, Sun, Wallet } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
@@ -172,6 +173,10 @@ export function Navbar() {
                 <DropdownMenuItem onClick={() => navigate('/carteira')} className="cursor-pointer">
                   <Wallet className="mr-2 h-4 w-4" />
                   Minha Carteira
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/minha-conta')} className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Minha Conta
                 </DropdownMenuItem>
                 {(isLojista || isAdmin) && (
                   <>
