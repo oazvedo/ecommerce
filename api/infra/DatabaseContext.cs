@@ -26,6 +26,7 @@ namespace api.infra
         public DbSet<CargoPermissao> CargoPermissoes { get; set; }
         public DbSet<CarteiraTransacao> CarteiraTransacoes { get; set; }
         public DbSet<PixRecarga> PixRecargas { get; set; }
+        public DbSet<AuditoriaLog> AuditoriaLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -458,6 +459,23 @@ namespace api.infra
                     .HasForeignKey(p => p.CarteiraId)
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.HasIndex(p => p.AbacatePayId).IsUnique();
+            });
+
+            modelBuilder.Entity<AuditoriaLog>(entity =>
+            {
+                entity.ToTable("auditoria_logs");
+                entity.HasKey(a => a.Id);
+                entity.Property(a => a.Id).HasColumnName("id").IsRequired();
+                entity.Property(a => a.AutorId).HasColumnName("autor_id").IsRequired();
+                entity.Property(a => a.AutorNome).HasColumnName("autor_nome").IsRequired().HasMaxLength(150);
+                entity.Property(a => a.Acao).HasColumnName("acao").IsRequired().HasMaxLength(100);
+                entity.Property(a => a.Entidade).HasColumnName("entidade").IsRequired().HasMaxLength(100);
+                entity.Property(a => a.EntidadeId).HasColumnName("entidade_id").IsRequired(false);
+                entity.Property(a => a.EmpresaId).HasColumnName("empresa_id").IsRequired(false);
+                entity.Property(a => a.Detalhes).HasColumnName("detalhes").IsRequired(false).HasMaxLength(1000);
+                entity.Property(a => a.OcorridoEm).HasColumnName("ocorrido_em").IsRequired();
+
+                entity.HasIndex(a => a.OcorridoEm);
             });
         }
     }

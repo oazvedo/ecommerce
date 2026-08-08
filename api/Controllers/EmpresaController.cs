@@ -23,12 +23,14 @@ namespace api.Controllers
         private readonly IEmpresaService _service;
         private readonly IUsuarioService _usuarioService;
         private readonly IProdutoService _produtoService;
+        private readonly IAuditoriaService _auditoriaService;
 
-        public EmpresaController(IEmpresaService service, IUsuarioService usuarioService, IProdutoService produtoService)
+        public EmpresaController(IEmpresaService service, IUsuarioService usuarioService, IProdutoService produtoService, IAuditoriaService auditoriaService)
         {
             _service = service;
             _usuarioService = usuarioService;
             _produtoService = produtoService;
+            _auditoriaService = auditoriaService;
         }
 
         // Admin da plataforma acessa qualquer empresa; demais só a própria e as filiais diretas.
@@ -95,6 +97,7 @@ namespace api.Controllers
                     request.Status,
                     request.EmpresaPaiId));
 
+                await _auditoriaService.RegistrarAsync(usuarioId, usuarioNome ?? "", "Criar", "Empresa", empresa.Id);
                 return CreatedAtAction(nameof(GetById), new { id = empresa.Id }, empresa);
             }
             catch (Exception ex)
@@ -127,6 +130,7 @@ namespace api.Controllers
                     request.Status,
                     paiId));
 
+                await _auditoriaService.RegistrarAsync(usuarioId, usuarioNome ?? "", "Criar", "Empresa", filial.Id, paiId, "Filial");
                 return CreatedAtAction(nameof(GetById), new { id = filial.Id }, filial);
             }
             catch (Exception ex)
@@ -148,6 +152,7 @@ namespace api.Controllers
                 if (empresa == null)
                     return NotFound(new { mensagem = "Empresa não encontrada." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Atualizar", "Empresa", id, id);
                 return Ok(empresa);
             }
             catch (Exception ex)
@@ -169,6 +174,7 @@ namespace api.Controllers
                 if (!removido)
                     return NotFound(new { mensagem = "Empresa não encontrada." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Excluir", "Empresa", id);
                 return NoContent();
             }
             catch (Exception ex)
@@ -313,6 +319,7 @@ namespace api.Controllers
                     Variantes = request.Variantes
                 };
                 var produto = await _produtoService.CreateAsync(entity);
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Criar", "Produto", produto.Id, id);
                 return CreatedAtAction(nameof(GetProdutos), new { id }, produto);
             }
             catch (Exception ex)
@@ -334,6 +341,7 @@ namespace api.Controllers
                 if (!ok)
                     return NotFound(new { mensagem = "Empresa ou usuário não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "AdicionarUsuario", "Empresa", usuarioId, id);
                 return NoContent();
             }
             catch (Exception ex)
@@ -355,6 +363,7 @@ namespace api.Controllers
                 if (!ok)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "DesalocarUsuario", "Empresa", usuarioId, id);
                 return NoContent();
             }
             catch (Exception ex)
