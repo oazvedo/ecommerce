@@ -26,6 +26,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>
   register: (data: { nome: string; email: string; password: string }) => Promise<void>
   logout: () => Promise<void>
+  refreshSession: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -123,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, usuario, isAuthenticated: !!user, isLoading, isAdmin, isLojista, role, cargo, empresaId, hasPermission, login, register, logout }}
+      value={{ user, usuario, isAuthenticated: !!user, isLoading, isAdmin, isLojista, role, cargo, empresaId, hasPermission, login, register, logout, refreshSession: async () => { await doRefresh() } }}
     >
       {children}
     </AuthContext.Provider>

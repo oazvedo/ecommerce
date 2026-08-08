@@ -82,6 +82,13 @@ export const empresasApi = {
       body: JSON.stringify(data),
     }),
 
+  // Onboarding self-service: cliente vira dono de loja sem intervenção de admin.
+  onboarding: (data: { nome: string; cnpj: string; telefone: string }) =>
+    apiFetch<Empresa>('/empresa/onboarding', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   adicionarUsuario: (empresaId: string, usuarioId: string) =>
     apiFetch<void>(`/empresa/${empresaId}/usuario/${usuarioId}`, { method: 'PATCH' }),
 
