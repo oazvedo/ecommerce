@@ -35,7 +35,7 @@ namespace api.application.services
             };
         }
 
-        public async Task<TDto?> GetByIdAsync(Guid id)
+        public virtual async Task<TDto?> GetByIdAsync(Guid id)
         {
             var entity = await _repository.GetByIdAsync(id);
             return entity == null ? null : ToDto(entity);
