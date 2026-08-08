@@ -8,7 +8,7 @@ using api.infra;
 
 #nullable disable
 
-namespace api.Migrations
+namespace api.infra.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
     partial class DatabaseContextModelSnapshot : ModelSnapshot
@@ -21,6 +21,112 @@ namespace api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("api.Domain.AuditoriaLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Acao")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("acao");
+
+                    b.Property<Guid>("AutorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("autor_id");
+
+                    b.Property<string>("AutorNome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("autor_nome");
+
+                    b.Property<string>("Detalhes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("detalhes");
+
+                    b.Property<Guid?>("EmpresaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("empresa_id");
+
+                    b.Property<string>("Entidade")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entidade");
+
+                    b.Property<Guid?>("EntidadeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entidade_id");
+
+                    b.Property<DateTime>("OcorridoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocorrido_em");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OcorridoEm");
+
+                    b.ToTable("auditoria_logs", (string)null);
+                });
+
+            modelBuilder.Entity("api.Domain.Avaliacao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("atualizado_em");
+
+                    b.Property<string>("Comentario")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("comentario");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<Guid?>("EmpresaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("empresa_id");
+
+                    b.Property<int>("Nota")
+                        .HasColumnType("integer")
+                        .HasColumnName("nota");
+
+                    b.Property<Guid?>("ProdutoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("produto_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId");
+
+                    b.HasIndex("ProdutoId");
+
+                    b.HasIndex("UsuarioId", "EmpresaId")
+                        .IsUnique()
+                        .HasFilter("empresa_id IS NOT NULL");
+
+                    b.HasIndex("UsuarioId", "ProdutoId")
+                        .IsUnique()
+                        .HasFilter("produto_id IS NOT NULL");
+
+                    b.ToTable("avaliacoes", (string)null);
+                });
 
             modelBuilder.Entity("api.Domain.CargoPermissao", b =>
                 {
@@ -190,6 +296,35 @@ namespace api.Migrations
                     b.HasIndex("EmpresaPaiId");
 
                     b.ToTable("empresas", (string)null);
+                });
+
+            modelBuilder.Entity("api.Domain.Favorito", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<Guid>("ProdutoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("produto_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProdutoId");
+
+                    b.HasIndex("UsuarioId", "ProdutoId")
+                        .IsUnique();
+
+                    b.ToTable("favoritos", (string)null);
                 });
 
             modelBuilder.Entity("api.Domain.Pedido", b =>
@@ -582,6 +717,27 @@ namespace api.Migrations
                     b.ToTable("usuario_permissoes", (string)null);
                 });
 
+            modelBuilder.Entity("api.Domain.Avaliacao", b =>
+                {
+                    b.HasOne("api.Domain.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("api.Domain.Produto", null)
+                        .WithMany()
+                        .HasForeignKey("ProdutoId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("api.domain.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("api.Domain.CargoPermissao", b =>
                 {
                     b.HasOne("api.domain.Permissao", "Permissao")
@@ -621,6 +777,21 @@ namespace api.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("EmpresaPai");
+                });
+
+            modelBuilder.Entity("api.Domain.Favorito", b =>
+                {
+                    b.HasOne("api.Domain.Produto", null)
+                        .WithMany()
+                        .HasForeignKey("ProdutoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("api.domain.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("api.Domain.Pedido", b =>

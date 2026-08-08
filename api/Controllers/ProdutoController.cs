@@ -15,26 +15,37 @@ namespace api.Controllers
     {
         private readonly IProdutoService _service;
         private readonly IUsuarioService _usuarioService;
+        private readonly IAuditoriaService _auditoriaService;
 
-        public ProdutoController(IProdutoService service, IUsuarioService usuarioService)
+        public ProdutoController(IProdutoService service, IUsuarioService usuarioService, IAuditoriaService auditoriaService)
         {
             _service = service;
             _usuarioService = usuarioService;
+            _auditoriaService = auditoriaService;
         }
 
         [HttpGet]
         [Authorize(Policy = "Produto.Read")]
-        public async Task<ActionResult<PagedResult<ProdutoDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] Guid? empresaId = null)
+        public async Task<ActionResult<PagedResult<ProdutoDto>>> GetAll(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] Guid? empresaId = null,
+            [FromQuery] string? nome = null,
+            [FromQuery] bool? disponivel = null,
+            [FromQuery] bool? freteGratis = null,
+            [FromQuery] decimal? precoMin = null,
+            [FromQuery] decimal? precoMax = null,
+            [FromQuery] string? orderBy = null)
         {
             try
             {
                 if (page < 1) page = 1;
                 if (pageSize < 1) pageSize = 10;
 
-                // Catálogo por loja: filtra pela loja vendedora quando empresaId é informado.
-                var produtos = empresaId.HasValue
-                    ? await _service.GetPagedByEmpresaAsync(empresaId.Value, page, pageSize)
-                    : await _service.GetPagedAsync(page, pageSize);
+                // empresaId filtra o catálogo pela loja vendedora; nome busca em nome/codigo.
+                // orderBy aceita: preco_asc, preco_desc, nome_asc (padrão: mais recentes).
+                var produtos = await _service.SearchPagedAsync(
+                    page, pageSize, empresaId, nome, disponivel, freteGratis, precoMin, precoMax, orderBy);
                 return Ok(produtos);
             }
             catch (Exception ex)
@@ -78,6 +89,7 @@ namespace api.Controllers
                     Variantes = request.Variantes
                 };
                 var produto = await _service.CreateAsync(entity);
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Criar", "Produto", produto.Id, usuario.EmpresaId);
                 return CreatedAtAction(nameof(GetProdutoById), new { id = produto.Id }, produto);
             }
             catch (Exception ex)
@@ -96,6 +108,7 @@ namespace api.Controllers
                 if (produto == null)
                     return NotFound(new { mensagem = "Produto não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Atualizar", "Produto", produto.Id, produto.EmpresaId);
                 return Ok(produto);
             }
             catch (Exception ex)
@@ -110,10 +123,12 @@ namespace api.Controllers
         {
             try
             {
+                var produto = await _service.GetByIdAsync(id);
                 var removido = await _service.DeleteAsync(id);
                 if (!removido)
                     return NotFound(new { mensagem = "Produto não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Excluir", "Produto", id, produto?.EmpresaId);
                 return NoContent();
             }
             catch (Exception ex)

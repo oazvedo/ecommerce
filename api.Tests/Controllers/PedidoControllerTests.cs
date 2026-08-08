@@ -125,32 +125,41 @@ namespace api.Tests.Controllers
         // POST /api/pedido
 
         [Fact]
-        public async Task Create_DeveRetornar201ComPedidoCriado()
+        public async Task Create_DeveRetornar201ComPedidosCriados()
         {
-            var dto = new PedidoDto { Id = Guid.NewGuid(), UsuarioId = _usuarioId };
-            var request = new CreatePedidoRequest
-            {
-                EmpresaId = Guid.NewGuid(),
-                contratacao = PedidoTipoContratacaoEnum.Mensal
-            };
-            _serviceMock.Setup(s => s.CreatePedido(_usuarioId, request)).ReturnsAsync(dto);
+            var dtos = new List<PedidoDto> { new() { Id = Guid.NewGuid(), UsuarioId = _usuarioId } };
+            var request = new CreatePedidoRequest { contratacao = PedidoTipoContratacaoEnum.Mensal };
+            _serviceMock.Setup(s => s.CreatePedido(_usuarioId, request)).ReturnsAsync(dtos);
 
             var result = await _controller.Create(request);
 
-            var created = Assert.IsType<CreatedAtActionResult>(result.Result);
-            Assert.Equal(dto, created.Value);
+            var created = Assert.IsType<ObjectResult>(result.Result);
+            Assert.Equal(201, created.StatusCode);
+            Assert.Equal(dtos, created.Value);
         }
 
         [Fact]
-        public async Task Create_QuandoSaldoInsuficiente_DeveRetornar404()
+        public async Task Create_QuandoProdutoNaoEncontrado_DeveRetornar404()
         {
-            var request = new CreatePedidoRequest { EmpresaId = Guid.NewGuid(), contratacao = PedidoTipoContratacaoEnum.Mensal };
+            var request = new CreatePedidoRequest { contratacao = PedidoTipoContratacaoEnum.Mensal };
             _serviceMock.Setup(s => s.CreatePedido(_usuarioId, request))
-                        .ThrowsAsync(new KeyNotFoundException("Saldo insuficiente"));
+                        .ThrowsAsync(new KeyNotFoundException("Produto não encontrado"));
 
             var result = await _controller.Create(request);
 
             Assert.IsType<NotFoundObjectResult>(result.Result);
+        }
+
+        [Fact]
+        public async Task Create_QuandoSaldoInsuficiente_DeveRetornar400()
+        {
+            var request = new CreatePedidoRequest { contratacao = PedidoTipoContratacaoEnum.Mensal };
+            _serviceMock.Setup(s => s.CreatePedido(_usuarioId, request))
+                        .ThrowsAsync(new InvalidOperationException("Saldo insuficiente na carteira."));
+
+            var result = await _controller.Create(request);
+
+            Assert.IsType<BadRequestObjectResult>(result.Result);
         }
 
         // PATCH /api/pedido/{id}/status
@@ -296,7 +305,8 @@ namespace api.Tests.Controllers
         public async Task Cancelar_QuandoSucesso_DeveRetornar200()
         {
             var id = Guid.NewGuid();
-            var dto = new PedidoDto { Id = id };
+            var dto = new PedidoDto { Id = id, UsuarioId = _usuarioId };
+            _serviceMock.Setup(s => s.GetPedidoById(id)).ReturnsAsync(dto);
             _serviceMock.Setup(s => s.CancelarPedido(id)).ReturnsAsync(dto);
 
             var result = await _controller.Cancelar(id);
@@ -307,8 +317,7 @@ namespace api.Tests.Controllers
         [Fact]
         public async Task Cancelar_QuandoNaoExiste_DeveRetornar404()
         {
-            _serviceMock.Setup(s => s.CancelarPedido(It.IsAny<Guid>()))
-                        .ReturnsAsync((PedidoDto?)null);
+            _serviceMock.Setup(s => s.GetPedidoById(It.IsAny<Guid>())).ReturnsAsync((PedidoDto?)null);
 
             var result = await _controller.Cancelar(Guid.NewGuid());
 
@@ -316,12 +325,28 @@ namespace api.Tests.Controllers
         }
 
         [Fact]
+        public async Task Cancelar_QuandoNaoEhDono_DeveRetornarForbid()
+        {
+            var id = Guid.NewGuid();
+            var dto = new PedidoDto { Id = id, UsuarioId = Guid.NewGuid() };
+            _serviceMock.Setup(s => s.GetPedidoById(id)).ReturnsAsync(dto);
+
+            var result = await _controller.Cancelar(id);
+
+            Assert.IsType<ForbidResult>(result);
+            _serviceMock.Verify(s => s.CancelarPedido(It.IsAny<Guid>()), Times.Never);
+        }
+
+        [Fact]
         public async Task Cancelar_QuandoPedidoJaCancelado_DeveRetornar400()
         {
-            _serviceMock.Setup(s => s.CancelarPedido(It.IsAny<Guid>()))
+            var id = Guid.NewGuid();
+            var dto = new PedidoDto { Id = id, UsuarioId = _usuarioId };
+            _serviceMock.Setup(s => s.GetPedidoById(id)).ReturnsAsync(dto);
+            _serviceMock.Setup(s => s.CancelarPedido(id))
                         .ThrowsAsync(new InvalidOperationException("Pedido já está cancelado."));
 
-            var result = await _controller.Cancelar(Guid.NewGuid());
+            var result = await _controller.Cancelar(id);
 
             var bad = Assert.IsType<BadRequestObjectResult>(result);
             Assert.NotNull(bad.Value);

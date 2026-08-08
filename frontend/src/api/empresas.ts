@@ -1,4 +1,5 @@
 import { apiFetch } from './client'
+import type { ProdutoPayload } from './produtos'
 import type { Empresa, Loja, PagedResult, Produto, Usuario } from '@/types'
 
 export const empresasApi = {
@@ -60,6 +61,14 @@ export const empresasApi = {
   getProdutos: (id: string, page = 1, pageSize = 20) =>
     apiFetch<PagedResult<Produto>>(`/empresa/${id}/produtos?page=${page}&pageSize=${pageSize}`),
 
+  // Cria um produto dentro da empresa (própria ou filial no escopo) — a loja
+  // vendedora é a empresa da rota, não a do usuário logado.
+  criarProduto: (empresaId: string, data: ProdutoPayload) =>
+    apiFetch<Produto>(`/empresa/${empresaId}/produto`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   getUsuarios: (id: string, page = 1, pageSize = 50) =>
     apiFetch<PagedResult<Usuario>>(`/empresa/${id}/usuarios?page=${page}&pageSize=${pageSize}`),
 
@@ -69,6 +78,13 @@ export const empresasApi = {
     data: { nome: string; email: string; password: string; cargo: string }
   ) =>
     apiFetch<Usuario>(`/empresa/${empresaId}/usuario`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // Onboarding self-service: cliente vira dono de loja sem intervenção de admin.
+  onboarding: (data: { nome: string; cnpj: string; telefone: string }) =>
+    apiFetch<Empresa>('/empresa/onboarding', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

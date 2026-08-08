@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BadgeCheck, PackageSearch, SlidersHorizontal, Sparkles, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,11 +6,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Navbar } from '@/components/Navbar'
 import { ProductCard } from '@/components/ProductCard'
 import { Pagination } from '@/components/Pagination'
-import { produtosApi } from '@/api/produtos'
+import { produtosApi, type ProdutoOrderBy } from '@/api/produtos'
 import type { Produto, PagedResult } from '@/types'
 import { cn } from '@/lib/utils'
 
 type CatalogFilter = 'all' | 'available' | 'freeShipping'
+type SortOption = ProdutoOrderBy | 'recentes'
 
 const EMPTY_PRODUCTS: Produto[] = []
 
@@ -20,6 +21,13 @@ const FILTERS: { value: CatalogFilter; label: string; icon: ReactNode }[] = [
   { value: 'freeShipping', label: 'Frete grátis', icon: <Truck className="h-3.5 w-3.5" /> },
 ]
 
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'recentes', label: 'Mais recentes' },
+  { value: 'preco_asc', label: 'Menor preço' },
+  { value: 'preco_desc', label: 'Maior preço' },
+  { value: 'nome_asc', label: 'Nome (A-Z)' },
+]
+
 export function CatalogPage() {
   const [searchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
@@ -27,41 +35,35 @@ export function CatalogPage() {
   const [result, setResult] = useState<PagedResult<Produto> | null>(null)
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState<CatalogFilter>('all')
+  const [sort, setSort] = useState<SortOption>('recentes')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => { setPage(1) }, [query])
+  useEffect(() => { setPage(1) }, [query, filter, sort])
 
   useEffect(() => {
     setLoading(true)
     setError(null)
     produtosApi
-      .list(page, 20)
+      .list(page, 20, {
+        nome: query || undefined,
+        disponivel: filter === 'available' ? true : undefined,
+        freteGratis: filter === 'freeShipping' ? true : undefined,
+        orderBy: sort === 'recentes' ? undefined : sort,
+      })
       .then(setResult)
       .catch(err => setError(err instanceof Error ? err.message : 'Erro ao carregar produtos'))
       .finally(() => setLoading(false))
-  }, [page])
+  }, [page, query, filter, sort])
 
-  const items = result?.items ?? EMPTY_PRODUCTS
-  const queryItems = useMemo(() => {
-    const normalizedQuery = query.toLowerCase()
-    return query
-      ? items.filter(
-          p =>
-            p.nome.toLowerCase().includes(normalizedQuery) ||
-            p.codigo.toLowerCase().includes(normalizedQuery)
-        )
-      : items
-  }, [items, query])
+  function cycleSort() {
+    const currentIndex = SORT_OPTIONS.findIndex(o => o.value === sort)
+    setSort(SORT_OPTIONS[(currentIndex + 1) % SORT_OPTIONS.length].value)
+  }
 
-  const filtered = useMemo(() => {
-    if (filter === 'available') return queryItems.filter(p => p.status)
-    if (filter === 'freeShipping') return queryItems.filter(p => p.freteGratis)
-    return queryItems
-  }, [filter, queryItems])
-
-  const availableCount = items.filter(p => p.status).length
-  const freeShippingCount = items.filter(p => p.freteGratis).length
+  const filtered = result?.items ?? EMPTY_PRODUCTS
+  const availableCount = filtered.filter(p => p.status).length
+  const freeShippingCount = filtered.filter(p => p.freteGratis).length
   const featured = filtered[0]
 
   return (
@@ -78,8 +80,8 @@ export function CatalogPage() {
                 <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                   {query ? (
                     <>
-                      <span className="font-semibold text-foreground">{filtered.length}</span>
-                      {' '}resultado{filtered.length !== 1 ? 's' : ''} para{' '}
+                      <span className="font-semibold text-foreground">{result?.totalCount ?? 0}</span>
+                      {' '}resultado{(result?.totalCount ?? 0) !== 1 ? 's' : ''} para{' '}
                       <span className="font-semibold text-primary">"{query}"</span>
                     </>
                   ) : (
@@ -140,9 +142,9 @@ export function CatalogPage() {
 
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold">Produtos</h2>
-          <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground">
+          <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground" onClick={cycleSort}>
             <SlidersHorizontal className="h-3.5 w-3.5" />
-            Mais recentes
+            {SORT_OPTIONS.find(o => o.value === sort)?.label}
           </Button>
         </div>
 
@@ -171,7 +173,7 @@ export function CatalogPage() {
                 <ProductCard key={p.id} produto={p} />
               ))}
             </div>
-            {!query && result && result.totalPages > 1 && (
+            {result && result.totalPages > 1 && (
               <Pagination page={page} totalPages={result.totalPages} onPageChange={setPage} />
             )}
           </>

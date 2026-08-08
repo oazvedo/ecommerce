@@ -1,5 +1,6 @@
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Empresa;
+using api.Application.DTOs.Produto;
 using api.application.dtos.usuario;
 using api.application.services.interfaces;
 using api.Application.DTOs.Usuario;
@@ -21,11 +22,15 @@ namespace api.Controllers
     {
         private readonly IEmpresaService _service;
         private readonly IUsuarioService _usuarioService;
+        private readonly IProdutoService _produtoService;
+        private readonly IAuditoriaService _auditoriaService;
 
-        public EmpresaController(IEmpresaService service, IUsuarioService usuarioService)
+        public EmpresaController(IEmpresaService service, IUsuarioService usuarioService, IProdutoService produtoService, IAuditoriaService auditoriaService)
         {
             _service = service;
             _usuarioService = usuarioService;
+            _produtoService = produtoService;
+            _auditoriaService = auditoriaService;
         }
 
         // Admin da plataforma acessa qualquer empresa; demais só a própria e as filiais diretas.
@@ -92,6 +97,45 @@ namespace api.Controllers
                     request.Status,
                     request.EmpresaPaiId));
 
+                await _auditoriaService.RegistrarAsync(usuarioId, usuarioNome ?? "", "Criar", "Empresa", empresa.Id);
+                return CreatedAtAction(nameof(GetById), new { id = empresa.Id }, empresa);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
+        // Onboarding self-service: qualquer cliente (ainda na empresa padrão) vira
+        // dono de loja sem depender de admin. Cria a empresa e promove o usuário a
+        // Diretor (gestor pleno) dela. O front deve chamar /api/auth/refresh depois
+        // pra renovar o token com o novo Cargo/EmpresaId.
+        [HttpPost("onboarding")]
+        [Authorize]
+        public async Task<ActionResult<EmpresaDto>> Onboarding(OnboardingLojaRequest request)
+        {
+            try
+            {
+                var usuarioId = User.GetId();
+                var usuario = await _usuarioService.GetByIdAsync(usuarioId);
+                if (usuario == null)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
+
+                if (usuario.EmpresaId != EmpresaSeed.DefaultEmpresaId)
+                    return BadRequest(new { mensagem = "Você já pertence a uma loja." });
+
+                var empresa = await _service.CreateAsync(new Empresa(
+                    request.Nome,
+                    request.Cnpj,
+                    usuario.Nome,
+                    usuarioId,
+                    request.Telefone,
+                    EmpresaTipo.Central,
+                    status: true));
+
+                await _usuarioService.PromoverParaLojistaAsync(usuarioId, empresa.Id);
+                await _auditoriaService.RegistrarAsync(usuarioId, usuario.Nome, "Criar", "Empresa", empresa.Id, empresa.Id, "OnboardingSelfService");
+
                 return CreatedAtAction(nameof(GetById), new { id = empresa.Id }, empresa);
             }
             catch (Exception ex)
@@ -124,6 +168,7 @@ namespace api.Controllers
                     request.Status,
                     paiId));
 
+                await _auditoriaService.RegistrarAsync(usuarioId, usuarioNome ?? "", "Criar", "Empresa", filial.Id, paiId, "Filial");
                 return CreatedAtAction(nameof(GetById), new { id = filial.Id }, filial);
             }
             catch (Exception ex)
@@ -145,6 +190,7 @@ namespace api.Controllers
                 if (empresa == null)
                     return NotFound(new { mensagem = "Empresa não encontrada." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Atualizar", "Empresa", id, id);
                 return Ok(empresa);
             }
             catch (Exception ex)
@@ -166,6 +212,7 @@ namespace api.Controllers
                 if (!removido)
                     return NotFound(new { mensagem = "Empresa não encontrada." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Excluir", "Empresa", id);
                 return NoContent();
             }
             catch (Exception ex)
@@ -292,6 +339,33 @@ namespace api.Controllers
             }
         }
 
+        // Cria um produto diretamente na empresa {id} (própria ou filial no escopo).
+        // A loja vendedora é a empresa da rota — não a do usuário logado.
+        [HttpPost("{id}/produto")]
+        [Authorize(Policy = "Produto.Create")]
+        public async Task<ActionResult<ProdutoDto>> CriarProduto(Guid id, CreateProdutoRequest request)
+        {
+            try
+            {
+                if (!await PodeAcessarAsync(id))
+                    return Forbid();
+
+                var entity = new Produto(request.Nome, request.Descricao, request.Preco, request.Codigo, id, request.Status)
+                {
+                    Estoque = request.Estoque,
+                    FreteGratis = request.FreteGratis,
+                    Variantes = request.Variantes
+                };
+                var produto = await _produtoService.CreateAsync(entity);
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Criar", "Produto", produto.Id, id);
+                return CreatedAtAction(nameof(GetProdutos), new { id }, produto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
         [HttpPatch("{id}/usuario/{usuarioId}")]
         [Authorize(Policy = "Empresa.Update")]
         public async Task<ActionResult> AdicionarUsuario(Guid id, Guid usuarioId)
@@ -305,6 +379,7 @@ namespace api.Controllers
                 if (!ok)
                     return NotFound(new { mensagem = "Empresa ou usuário não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "AdicionarUsuario", "Usuario", usuarioId, id);
                 return NoContent();
             }
             catch (Exception ex)
@@ -326,6 +401,7 @@ namespace api.Controllers
                 if (!ok)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "DesalocarUsuario", "Usuario", usuarioId, id);
                 return NoContent();
             }
             catch (Exception ex)

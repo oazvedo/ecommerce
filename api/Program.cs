@@ -55,6 +55,9 @@ builder.Services.AddScoped<IPedidoService, PedidoService>();
 builder.Services.AddScoped<IProdutoService, ProdutoService>();
 builder.Services.AddScoped<ICarteiraService, CarteiraService>();
 builder.Services.AddScoped<IEmpresaService, EmpresaService>();
+builder.Services.AddScoped<IAvaliacaoService, AvaliacaoService>();
+builder.Services.AddScoped<IFavoritoService, FavoritoService>();
+builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddHttpClient<IAbacatePayService, AbacatePayService>();
 // repositories
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -68,6 +71,10 @@ builder.Services.AddScoped<IEmpresaRepository, EmpresaRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<ICargoPermissaoRepository, CargoPermissaoRepository>();
 builder.Services.AddScoped<IPixRecargaRepository, PixRecargaRepository>();
+builder.Services.AddScoped<IAvaliacaoRepository, AvaliacaoRepository>();
+builder.Services.AddScoped<IFavoritoRepository, FavoritoRepository>();
+builder.Services.AddScoped<IRepositoryBase<AuditoriaLog>, AuditoriaLogRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();

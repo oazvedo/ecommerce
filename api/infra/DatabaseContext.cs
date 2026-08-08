@@ -26,6 +26,9 @@ namespace api.infra
         public DbSet<CargoPermissao> CargoPermissoes { get; set; }
         public DbSet<CarteiraTransacao> CarteiraTransacoes { get; set; }
         public DbSet<PixRecarga> PixRecargas { get; set; }
+        public DbSet<Avaliacao> Avaliacoes { get; set; }
+        public DbSet<AuditoriaLog> AuditoriaLogs { get; set; }
+        public DbSet<Favorito> Favoritos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -458,6 +461,61 @@ namespace api.infra
                     .HasForeignKey(p => p.CarteiraId)
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.HasIndex(p => p.AbacatePayId).IsUnique();
+            });
+
+            modelBuilder.Entity<Avaliacao>(entity =>
+            {
+                entity.ToTable("avaliacoes");
+                entity.HasKey(a => a.Id);
+                entity.Property(a => a.Id).HasColumnName("id").IsRequired();
+                entity.Property(a => a.ProdutoId).HasColumnName("produto_id").IsRequired(false);
+                entity.Property(a => a.EmpresaId).HasColumnName("empresa_id").IsRequired(false);
+                entity.Property(a => a.UsuarioId).HasColumnName("usuario_id").IsRequired();
+                entity.Property(a => a.Nota).HasColumnName("nota").IsRequired();
+                entity.Property(a => a.Comentario).HasColumnName("comentario").IsRequired(false).HasMaxLength(1000);
+                entity.Property(a => a.CriadoEm).HasColumnName("criado_em").IsRequired();
+                entity.Property(a => a.AtualizadoEm).HasColumnName("atualizado_em").IsRequired(false);
+
+                entity.HasOne<Produto>().WithMany().HasForeignKey(a => a.ProdutoId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<Empresa>().WithMany().HasForeignKey(a => a.EmpresaId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.Usuario).WithMany().HasForeignKey(a => a.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+
+                // Um usuario avalia o mesmo produto/loja uma vez só (reavaliar atualiza a nota existente).
+                entity.HasIndex(a => new { a.UsuarioId, a.ProdutoId }).IsUnique().HasFilter("produto_id IS NOT NULL");
+                entity.HasIndex(a => new { a.UsuarioId, a.EmpresaId }).IsUnique().HasFilter("empresa_id IS NOT NULL");
+            });
+
+            modelBuilder.Entity<AuditoriaLog>(entity =>
+            {
+                entity.ToTable("auditoria_logs");
+                entity.HasKey(a => a.Id);
+                entity.Property(a => a.Id).HasColumnName("id").IsRequired();
+                entity.Property(a => a.AutorId).HasColumnName("autor_id").IsRequired();
+                entity.Property(a => a.AutorNome).HasColumnName("autor_nome").IsRequired().HasMaxLength(150);
+                entity.Property(a => a.Acao).HasColumnName("acao").IsRequired().HasMaxLength(100);
+                entity.Property(a => a.Entidade).HasColumnName("entidade").IsRequired().HasMaxLength(100);
+                entity.Property(a => a.EntidadeId).HasColumnName("entidade_id").IsRequired(false);
+                entity.Property(a => a.EmpresaId).HasColumnName("empresa_id").IsRequired(false);
+                entity.Property(a => a.Detalhes).HasColumnName("detalhes").IsRequired(false).HasMaxLength(1000);
+                entity.Property(a => a.OcorridoEm).HasColumnName("ocorrido_em").IsRequired();
+
+                entity.HasIndex(a => a.OcorridoEm);
+            });
+
+            modelBuilder.Entity<Favorito>(entity =>
+            {
+                entity.ToTable("favoritos");
+                entity.HasKey(f => f.Id);
+                entity.Property(f => f.Id).HasColumnName("id").IsRequired();
+                entity.Property(f => f.UsuarioId).HasColumnName("usuario_id").IsRequired();
+                entity.Property(f => f.ProdutoId).HasColumnName("produto_id").IsRequired();
+                entity.Property(f => f.CriadoEm).HasColumnName("criado_em").IsRequired();
+
+                entity.HasOne<Usuario>().WithMany().HasForeignKey(f => f.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<Produto>().WithMany().HasForeignKey(f => f.ProdutoId).OnDelete(DeleteBehavior.Cascade);
+
+                // Um usuario favorita o mesmo produto uma unica vez.
+                entity.HasIndex(f => new { f.UsuarioId, f.ProdutoId }).IsUnique();
             });
         }
     }

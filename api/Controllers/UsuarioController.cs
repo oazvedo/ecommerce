@@ -2,6 +2,7 @@ using api.application.dtos.usuario;
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Usuario;
 using api.application.services.interfaces;
+using api.Application.Services.Interfaces;
 using api.domain;
 using api.domain.enums;
 using api.domain.interfaces;
@@ -18,10 +19,12 @@ namespace api.controllers
     public class UsuarioController : ControllerBase
     {
         private readonly IUsuarioService _service;
+        private readonly IAuditoriaService _auditoriaService;
 
-        public UsuarioController(IUsuarioService usuarioService)
+        public UsuarioController(IUsuarioService usuarioService, IAuditoriaService auditoriaService)
         {
             _service = usuarioService;
+            _auditoriaService = auditoriaService;
         }
 
         [HttpGet]
@@ -103,11 +106,20 @@ namespace api.controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Policy = "Usuario.Update")]
+        [Authorize]
         public async Task<IActionResult> UpdateUsuario(Guid id, UpdateUsuarioRequest request)
         {
             try
             {
+                // Qualquer autenticado edita o próprio perfil; editar outros exige Usuario.Update.
+                var podeGerenciar = User.HasPermissao("Usuario.Update");
+                if (id != User.GetId() && !podeGerenciar)
+                    return Forbid();
+
+                // Autoedição sem permissão de gestão nunca muda o próprio cargo.
+                if (!podeGerenciar)
+                    request.Cargo = null;
+
                 var existingUsuario = await _service.GetByIdAsync(id);
                 if (existingUsuario == null)
                     return NotFound();
@@ -137,6 +149,7 @@ namespace api.controllers
                 if (!atualizado)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "AtualizarStatus", "Usuario", id, usuario.EmpresaId, request.Status.ToString());
                 return NoContent();
             }
             catch (Exception ex)
@@ -146,15 +159,23 @@ namespace api.controllers
         }
 
         [HttpPut("{id}/password")]
-        [Authorize(Policy = "Usuario.PasswordUpdate")]
+        [Authorize]
         public async Task<IActionResult> UpdateUsuarioPassword(Guid id, UpdatePasswordRequest request)
         {
             try
             {
+                if (id != User.GetId() && !User.HasPermissao("Usuario.PasswordUpdate"))
+                    return Forbid();
+
+                var usuario = await _service.GetByIdAsync(id);
+                if (usuario == null)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
+
                 var atualizado = await _service.UpdatePasswordAsync(id, request.Password);
                 if (!atualizado)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "RedefinirSenha", "Usuario", id, usuario.EmpresaId);
                 return NoContent();
             }
             catch (Exception ex)
@@ -174,6 +195,7 @@ namespace api.controllers
                     return NotFound();
 
                 await _service.DeleteAsync(id);
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Excluir", "Usuario", id, existingUsuario.EmpresaId);
                 return NoContent();
             }
             catch (Exception ex)
@@ -183,11 +205,14 @@ namespace api.controllers
         }
 
         [HttpPatch("{id}/email")]
-        [Authorize(Policy = "Usuario.EmailUpdate")]
+        [Authorize]
         public async Task<IActionResult> UpdateUsuarioEmail(Guid id, UpdateUsuarioEmailRequest request)
         {
             try
             {
+                if (id != User.GetId() && !User.HasPermissao("Usuario.EmailUpdate"))
+                    return Forbid();
+
                 var existingUsuario = await _service.GetByIdAsync(id);
                 if (existingUsuario == null)
                     return NotFound();

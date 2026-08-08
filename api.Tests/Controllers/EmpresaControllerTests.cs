@@ -1,11 +1,13 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using api.application.services.interfaces;
 using api.Application.DTOs.Common;
 using api.Application.DTOs.Empresa;
 using api.Application.Services.Interfaces;
 using api.Controllers;
 using api.Domain;
 using api.Domain.Enums;
+using api.Domain.Enums.UsuarioEnums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -16,6 +18,9 @@ namespace api.Tests.Controllers
     public class EmpresaControllerTests
     {
         private readonly Mock<IEmpresaService> _serviceMock;
+        private readonly Mock<IUsuarioService> _usuarioServiceMock;
+        private readonly Mock<IProdutoService> _produtoServiceMock;
+        private readonly Mock<IAuditoriaService> _auditoriaServiceMock;
         private readonly EmpresaController _controller;
         private readonly Guid _usuarioId = Guid.NewGuid();
         private const string _usuarioNome = "Admin Teste";
@@ -23,12 +28,17 @@ namespace api.Tests.Controllers
         public EmpresaControllerTests()
         {
             _serviceMock = new Mock<IEmpresaService>();
-            _controller = new EmpresaController(_serviceMock.Object);
+            _usuarioServiceMock = new Mock<IUsuarioService>();
+            _produtoServiceMock = new Mock<IProdutoService>();
+            _auditoriaServiceMock = new Mock<IAuditoriaService>();
+            _controller = new EmpresaController(_serviceMock.Object, _usuarioServiceMock.Object, _produtoServiceMock.Object, _auditoriaServiceMock.Object);
 
+            // Cargo Administrador: pula a checagem de PodeGerenciarAsync (IsPlataformaAdmin) nos testes de CRUD abaixo.
             var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, _usuarioId.ToString()),
-                new(JwtRegisteredClaimNames.UniqueName, _usuarioNome)
+                new(JwtRegisteredClaimNames.UniqueName, _usuarioNome),
+                new("Cargo", UsuarioCargo.Administrador.ToString())
             };
             _controller.ControllerContext = new ControllerContext
             {
@@ -107,6 +117,52 @@ namespace api.Tests.Controllers
                 e.Nome == request.Nome &&
                 e.ResponsavelId == _usuarioId &&
                 e.Responsavel == _usuarioNome)), Times.Once);
+            _auditoriaServiceMock.Verify(a => a.RegistrarAsync(_usuarioId, _usuarioNome, "Criar", "Empresa", dto.Id, null, null), Times.Once);
+        }
+
+        // POST /api/empresa/onboarding
+
+        [Fact]
+        public async Task Onboarding_QuandoUsuarioNaEmpresaPadrao_DeveCriarEmpresaEPromoverUsuario()
+        {
+            var request = new OnboardingLojaRequest { Nome = "Minha Loja", Cnpj = "00.000.000/0001-00", Telefone = "(11) 0000-0000" };
+            var usuarioDto = new api.Application.DTOs.Usuario.UsuarioDto { Id = _usuarioId, Nome = _usuarioNome, EmpresaId = api.infra.EmpresaSeed.DefaultEmpresaId };
+            var empresaDto = new EmpresaDto { Id = Guid.NewGuid(), Nome = request.Nome };
+
+            _usuarioServiceMock.Setup(s => s.GetByIdAsync(_usuarioId)).ReturnsAsync(usuarioDto);
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<Empresa>())).ReturnsAsync(empresaDto);
+
+            var result = await _controller.Onboarding(request);
+
+            var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+            Assert.Equal(empresaDto, created.Value);
+            _serviceMock.Verify(s => s.CreateAsync(It.Is<Empresa>(e =>
+                e.Nome == request.Nome && e.Tipo == EmpresaTipo.Central && e.EmpresaPaiId == null)), Times.Once);
+            _usuarioServiceMock.Verify(s => s.PromoverParaLojistaAsync(_usuarioId, empresaDto.Id), Times.Once);
+        }
+
+        [Fact]
+        public async Task Onboarding_QuandoUsuarioJaTemLoja_DeveRetornar400()
+        {
+            var request = new OnboardingLojaRequest { Nome = "Minha Loja", Cnpj = "00.000.000/0001-00", Telefone = "(11) 0000-0000" };
+            var usuarioDto = new api.Application.DTOs.Usuario.UsuarioDto { Id = _usuarioId, Nome = _usuarioNome, EmpresaId = Guid.NewGuid() };
+            _usuarioServiceMock.Setup(s => s.GetByIdAsync(_usuarioId)).ReturnsAsync(usuarioDto);
+
+            var result = await _controller.Onboarding(request);
+
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+            _serviceMock.Verify(s => s.CreateAsync(It.IsAny<Empresa>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Onboarding_QuandoUsuarioNaoEncontrado_DeveRetornar404()
+        {
+            var request = new OnboardingLojaRequest { Nome = "Minha Loja", Cnpj = "00.000.000/0001-00", Telefone = "(11) 0000-0000" };
+            _usuarioServiceMock.Setup(s => s.GetByIdAsync(_usuarioId)).ReturnsAsync((api.Application.DTOs.Usuario.UsuarioDto?)null);
+
+            var result = await _controller.Onboarding(request);
+
+            Assert.IsType<NotFoundObjectResult>(result.Result);
         }
 
         // PUT /api/empresa/{id}
@@ -125,7 +181,7 @@ namespace api.Tests.Controllers
                 Tipo = EmpresaTipo.Filial,
                 Status = true
             };
-            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<Empresa>())).ReturnsAsync(dto);
+            _serviceMock.Setup(s => s.UpdateCamposAsync(dto.Id, request)).ReturnsAsync(dto);
 
             var result = await _controller.Update(dto.Id, request);
 
@@ -146,7 +202,7 @@ namespace api.Tests.Controllers
                 Tipo = EmpresaTipo.Filial,
                 Status = true
             };
-            _serviceMock.Setup(s => s.UpdateAsync(It.IsAny<Empresa>())).ReturnsAsync((EmpresaDto?)null);
+            _serviceMock.Setup(s => s.UpdateCamposAsync(It.IsAny<Guid>(), It.IsAny<UpdateEmpresaRequest>())).ReturnsAsync((EmpresaDto?)null);
 
             var result = await _controller.Update(Guid.NewGuid(), request);
 
@@ -156,20 +212,21 @@ namespace api.Tests.Controllers
         // DELETE /api/empresa/{id}
 
         [Fact]
-        public async Task Delete_QuandoExiste_DeveRetornar204()
+        public async Task Delete_QuandoExiste_DeveRetornar204ERegistrarAuditoria()
         {
             var id = Guid.NewGuid();
-            _serviceMock.Setup(s => s.DeleteAsync(id)).ReturnsAsync(true);
+            _serviceMock.Setup(s => s.DeleteComCascadeAsync(id)).ReturnsAsync(true);
 
             var result = await _controller.Delete(id);
 
             Assert.IsType<NoContentResult>(result);
+            _auditoriaServiceMock.Verify(a => a.RegistrarAsync(_usuarioId, _usuarioNome, "Excluir", "Empresa", id, null, null), Times.Once);
         }
 
         [Fact]
         public async Task Delete_QuandoNaoExiste_DeveRetornar404()
         {
-            _serviceMock.Setup(s => s.DeleteAsync(It.IsAny<Guid>())).ReturnsAsync(false);
+            _serviceMock.Setup(s => s.DeleteComCascadeAsync(It.IsAny<Guid>())).ReturnsAsync(false);
 
             var result = await _controller.Delete(Guid.NewGuid());
 
