@@ -106,6 +106,44 @@ namespace api.Controllers
             }
         }
 
+        // Onboarding self-service: qualquer cliente (ainda na empresa padrão) vira
+        // dono de loja sem depender de admin. Cria a empresa e promove o usuário a
+        // Diretor (gestor pleno) dela. O front deve chamar /api/auth/refresh depois
+        // pra renovar o token com o novo Cargo/EmpresaId.
+        [HttpPost("onboarding")]
+        [Authorize]
+        public async Task<ActionResult<EmpresaDto>> Onboarding(OnboardingLojaRequest request)
+        {
+            try
+            {
+                var usuarioId = User.GetId();
+                var usuario = await _usuarioService.GetByIdAsync(usuarioId);
+                if (usuario == null)
+                    return NotFound(new { mensagem = "Usuário não encontrado." });
+
+                if (usuario.EmpresaId != EmpresaSeed.DefaultEmpresaId)
+                    return BadRequest(new { mensagem = "Você já pertence a uma loja." });
+
+                var empresa = await _service.CreateAsync(new Empresa(
+                    request.Nome,
+                    request.Cnpj,
+                    usuario.Nome,
+                    usuarioId,
+                    request.Telefone,
+                    EmpresaTipo.Central,
+                    status: true));
+
+                await _usuarioService.PromoverParaLojistaAsync(usuarioId, empresa.Id);
+                await _auditoriaService.RegistrarAsync(usuarioId, usuario.Nome, "Criar", "Empresa", empresa.Id, empresa.Id, "OnboardingSelfService");
+
+                return CreatedAtAction(nameof(GetById), new { id = empresa.Id }, empresa);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
         // Cria uma filial vinculada a uma central. A central (via Empresa.Update) cria
         // filiais dentro do seu escopo; o admin da plataforma cria em qualquer central.
         [HttpPost("{paiId}/filial")]

@@ -23,5 +23,8 @@ namespace api.application.services.interfaces
         Task<bool> UpdatePasswordAsync(Guid id, string password);
         Task<bool> UpdateStatusAsync(Guid id, api.domain.enums.UsuarioStatus status);
         Task AtualizarFotoAsync(Guid id, string url);
+
+        /// <summary>Promove o usuario a dono/gestor (Diretor) de uma loja recem-criada por onboarding self-service.</summary>
+        Task<bool> PromoverParaLojistaAsync(Guid usuarioId, Guid novaEmpresaId);
     }
 }

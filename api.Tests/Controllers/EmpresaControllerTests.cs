@@ -120,6 +120,51 @@ namespace api.Tests.Controllers
             _auditoriaServiceMock.Verify(a => a.RegistrarAsync(_usuarioId, _usuarioNome, "Criar", "Empresa", dto.Id, null, null), Times.Once);
         }
 
+        // POST /api/empresa/onboarding
+
+        [Fact]
+        public async Task Onboarding_QuandoUsuarioNaEmpresaPadrao_DeveCriarEmpresaEPromoverUsuario()
+        {
+            var request = new OnboardingLojaRequest { Nome = "Minha Loja", Cnpj = "00.000.000/0001-00", Telefone = "(11) 0000-0000" };
+            var usuarioDto = new api.Application.DTOs.Usuario.UsuarioDto { Id = _usuarioId, Nome = _usuarioNome, EmpresaId = api.infra.EmpresaSeed.DefaultEmpresaId };
+            var empresaDto = new EmpresaDto { Id = Guid.NewGuid(), Nome = request.Nome };
+
+            _usuarioServiceMock.Setup(s => s.GetByIdAsync(_usuarioId)).ReturnsAsync(usuarioDto);
+            _serviceMock.Setup(s => s.CreateAsync(It.IsAny<Empresa>())).ReturnsAsync(empresaDto);
+
+            var result = await _controller.Onboarding(request);
+
+            var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+            Assert.Equal(empresaDto, created.Value);
+            _serviceMock.Verify(s => s.CreateAsync(It.Is<Empresa>(e =>
+                e.Nome == request.Nome && e.Tipo == EmpresaTipo.Central && e.EmpresaPaiId == null)), Times.Once);
+            _usuarioServiceMock.Verify(s => s.PromoverParaLojistaAsync(_usuarioId, empresaDto.Id), Times.Once);
+        }
+
+        [Fact]
+        public async Task Onboarding_QuandoUsuarioJaTemLoja_DeveRetornar400()
+        {
+            var request = new OnboardingLojaRequest { Nome = "Minha Loja", Cnpj = "00.000.000/0001-00", Telefone = "(11) 0000-0000" };
+            var usuarioDto = new api.Application.DTOs.Usuario.UsuarioDto { Id = _usuarioId, Nome = _usuarioNome, EmpresaId = Guid.NewGuid() };
+            _usuarioServiceMock.Setup(s => s.GetByIdAsync(_usuarioId)).ReturnsAsync(usuarioDto);
+
+            var result = await _controller.Onboarding(request);
+
+            Assert.IsType<BadRequestObjectResult>(result.Result);
+            _serviceMock.Verify(s => s.CreateAsync(It.IsAny<Empresa>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Onboarding_QuandoUsuarioNaoEncontrado_DeveRetornar404()
+        {
+            var request = new OnboardingLojaRequest { Nome = "Minha Loja", Cnpj = "00.000.000/0001-00", Telefone = "(11) 0000-0000" };
+            _usuarioServiceMock.Setup(s => s.GetByIdAsync(_usuarioId)).ReturnsAsync((api.Application.DTOs.Usuario.UsuarioDto?)null);
+
+            var result = await _controller.Onboarding(request);
+
+            Assert.IsType<NotFoundObjectResult>(result.Result);
+        }
+
         // PUT /api/empresa/{id}
 
         [Fact]
