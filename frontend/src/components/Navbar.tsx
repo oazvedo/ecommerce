@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
+import { Building2, Heart, Home, LayoutDashboard, LogOut, Moon, Package, Search, ShoppingCart, Sun, Wallet } from 'lucide-react'
 import { Building2, Home, LayoutDashboard, LogOut, Moon, Package, Search, Settings, ShoppingCart, Sun, Wallet } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -48,6 +49,7 @@ export function Navbar() {
   const navItems = [
     { to: '/', label: 'Início', icon: <Home className="h-3.5 w-3.5" /> },
     { to: '/meus-pedidos', label: 'Meus Pedidos', icon: <Package className="h-3.5 w-3.5" /> },
+    { to: '/favoritos', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" /> },
     { to: '/carteira', label: 'Carteira', icon: <Wallet className="h-3.5 w-3.5" /> },
     ...(isLojista || isAdmin
       ? [{ to: '/minha-empresa', label: 'Minha Loja', icon: <Building2 className="h-3.5 w-3.5" /> }]

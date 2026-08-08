@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
+import { FavoritosProvider } from '@/context/FavoritosContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
@@ -12,6 +13,7 @@ import { CheckoutPage } from '@/pages/CheckoutPage'
 import { MyOrdersPage } from '@/pages/MyOrdersPage'
 import { OrderDetailPage } from '@/pages/OrderDetailPage'
 import { WalletPage } from '@/pages/WalletPage'
+import { FavoritosPage } from '@/pages/FavoritosPage'
 import { ContaPage } from '@/pages/ContaPage'
 import { AdminOverviewPage } from '@/pages/admin/AdminOverviewPage'
 import { EmpresasPage } from '@/pages/admin/EmpresasPage'
@@ -27,6 +29,7 @@ import { MinhaEmpresaPage } from '@/pages/MinhaEmpresaPage'
 function App() {
   return (
     <AuthProvider>
+      <FavoritosProvider>
       <CartProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -188,6 +191,7 @@ function App() {
         </Routes>
         <Toaster position="top-right" />
       </CartProvider>
+      </FavoritosProvider>
     </AuthProvider>
   )
 }
