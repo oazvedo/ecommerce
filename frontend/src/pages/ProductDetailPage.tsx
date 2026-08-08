@@ -21,6 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Navbar } from '@/components/Navbar'
 import { StarRating } from '@/components/StarRating'
 import { AvaliacoesSection } from '@/components/AvaliacoesSection'
+import { FavoritoButton } from '@/components/FavoritoButton'
 import { produtosApi } from '@/api/produtos'
 import { empresasApi } from '@/api/empresas'
 import { useCart } from '@/context/CartContext'
@@ -137,6 +138,9 @@ export function ProductDetailPage() {
                   <Badge className="border-white/20 bg-white/90 px-2.5 py-0.5 text-xs font-semibold text-zinc-800 hover:bg-white">
                     {produto.status ? 'Disponível' : 'Pausado'}
                   </Badge>
+                </div>
+                <div className="absolute right-4 top-4">
+                  <FavoritoButton produtoId={produto.id} size="md" />
                 </div>
                 {!produto.imagemUrl && (
                   <span className="text-6xl font-black uppercase tracking-tight text-white/25 select-none md:text-7xl">
