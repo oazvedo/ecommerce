@@ -27,6 +27,20 @@ namespace api.Application.DTOs.Empresa
         public Guid? EmpresaPaiId { get; set; }
     }
 
+    // Onboarding self-service: cliente vira lojista cadastrando a propria loja,
+    // sem tipo/status/empresa_pai_id (sempre Central, ativa, independente).
+    public class OnboardingLojaRequest
+    {
+        [JsonPropertyName("nome")]
+        public string Nome { get; set; } = null!;
+
+        [JsonPropertyName("cnpj")]
+        public string Cnpj { get; set; } = null!;
+
+        [JsonPropertyName("telefone")]
+        public string Telefone { get; set; } = null!;
+    }
+
     public class UpdateEmpresaRequest
     {
         [JsonPropertyName("nome")]

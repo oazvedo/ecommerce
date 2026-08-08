@@ -8,6 +8,7 @@ using api.application.services.interfaces;
 using api.Application.DTOs.Usuario;
 using api.domain;
 using api.domain.interfaces;
+using api.Domain.Enums.UsuarioEnums;
 
 namespace api.application.services
 {
@@ -142,6 +143,18 @@ namespace api.application.services
             var usuario = await _repository.GetByIdAsync(id);
             if (usuario == null) return false;
             usuario.UpdateStatus(status);
+            await _repository.UpdateAsync(usuario);
+            return true;
+        }
+
+        public async Task<bool> PromoverParaLojistaAsync(Guid usuarioId, Guid novaEmpresaId)
+        {
+            var usuario = await _repository.GetByIdAsync(usuarioId);
+            if (usuario == null) return false;
+
+            usuario.Cargo = UsuarioCargo.Diretor;
+            usuario.EmpresaId = novaEmpresaId;
+            usuario.AtualizadoEm = DateTime.UtcNow;
             await _repository.UpdateAsync(usuario);
             return true;
         }

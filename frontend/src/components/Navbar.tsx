@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
+import { Building2, Home, LayoutDashboard, LogOut, Moon, Package, Search, ShoppingCart, Sparkles, Sun, Wallet } from 'lucide-react'
 import { Building2, Heart, Home, LayoutDashboard, LogOut, Moon, Package, Search, ShoppingCart, Sun, Wallet } from 'lucide-react'
 import { Building2, Home, LayoutDashboard, LogOut, Moon, Package, Search, Settings, ShoppingCart, Sun, Wallet } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -184,6 +185,15 @@ export function Navbar() {
                     <DropdownMenuItem onClick={() => navigate('/minha-empresa')} className="cursor-pointer">
                       <Building2 className="mr-2 h-4 w-4" />
                       Minha Loja
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {!isLojista && !isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/quero-vender')} className="cursor-pointer">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Quero vender
                     </DropdownMenuItem>
                   </>
                 )}

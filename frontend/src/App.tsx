@@ -25,6 +25,7 @@ import { CarteirasPage } from '@/pages/admin/CarteirasPage'
 import { PedidosAdminPage } from '@/pages/admin/PedidosAdminPage'
 import { PermissoesCargoPage } from '@/pages/admin/PermissoesCargoPage'
 import { MinhaEmpresaPage } from '@/pages/MinhaEmpresaPage'
+import { QueroVenderPage } from '@/pages/QueroVenderPage'
 
 function App() {
   return (
@@ -91,6 +92,10 @@ function App() {
             }
           />
           <Route
+            path="/quero-vender"
+            element={
+              <ProtectedRoute>
+                <QueroVenderPage />
             path="/minha-conta"
             element={
               <ProtectedRoute>
