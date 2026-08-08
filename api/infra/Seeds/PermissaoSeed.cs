@@ -44,7 +44,10 @@ namespace api.infra
             "Avaliacao.Read",
             "Avaliacao.Create",
             // auditoria
-            "Auditoria.Read"
+            "Auditoria.Read",
+            // favoritos
+            "Favorito.Read",
+            "Favorito.Manage"
         };
 
         public static async Task SeedAsync(DatabaseContext context)

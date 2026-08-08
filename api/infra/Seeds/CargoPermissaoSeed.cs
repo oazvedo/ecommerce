@@ -18,7 +18,8 @@ namespace api.infra
                 "Carteira.Read",
                 "Empresa.Read", "Empresa.Update",
                 "Avaliacao.Read", "Avaliacao.Create",
-                "Auditoria.Read"
+                "Auditoria.Read",
+                "Favorito.Read", "Favorito.Manage"
             ],
             [UsuarioCargo.Gerente] =
             [
@@ -27,7 +28,8 @@ namespace api.infra
                 "Produto.Read", "Produto.Create", "Produto.Update",
                 "Carteira.Read",
                 "Empresa.Read",
-                "Avaliacao.Read", "Avaliacao.Create"
+                "Avaliacao.Read", "Avaliacao.Create",
+                "Favorito.Read", "Favorito.Manage"
             ],
             [UsuarioCargo.Operador] =
             [
@@ -35,7 +37,8 @@ namespace api.infra
                 "Produto.Read",
                 "Carteira.Read",
                 "Empresa.Read",
-                "Avaliacao.Read", "Avaliacao.Create"
+                "Avaliacao.Read", "Avaliacao.Create",
+                "Favorito.Read", "Favorito.Manage"
             ],
             // Cliente do marketplace: compra e vê a própria carteira/pedidos.
             // Sem Empresa.Read — não pertence a uma loja vendedora.
@@ -44,7 +47,8 @@ namespace api.infra
                 "Pedido.Read", "Pedido.Create",
                 "Produto.Read",
                 "Carteira.Read",
-                "Avaliacao.Read", "Avaliacao.Create"
+                "Avaliacao.Read", "Avaliacao.Create",
+                "Favorito.Read", "Favorito.Manage"
             ]
         };
 

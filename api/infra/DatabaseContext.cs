@@ -28,6 +28,7 @@ namespace api.infra
         public DbSet<PixRecarga> PixRecargas { get; set; }
         public DbSet<Avaliacao> Avaliacoes { get; set; }
         public DbSet<AuditoriaLog> AuditoriaLogs { get; set; }
+        public DbSet<Favorito> Favoritos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -499,6 +500,22 @@ namespace api.infra
                 entity.Property(a => a.OcorridoEm).HasColumnName("ocorrido_em").IsRequired();
 
                 entity.HasIndex(a => a.OcorridoEm);
+            });
+
+            modelBuilder.Entity<Favorito>(entity =>
+            {
+                entity.ToTable("favoritos");
+                entity.HasKey(f => f.Id);
+                entity.Property(f => f.Id).HasColumnName("id").IsRequired();
+                entity.Property(f => f.UsuarioId).HasColumnName("usuario_id").IsRequired();
+                entity.Property(f => f.ProdutoId).HasColumnName("produto_id").IsRequired();
+                entity.Property(f => f.CriadoEm).HasColumnName("criado_em").IsRequired();
+
+                entity.HasOne<Usuario>().WithMany().HasForeignKey(f => f.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<Produto>().WithMany().HasForeignKey(f => f.ProdutoId).OnDelete(DeleteBehavior.Cascade);
+
+                // Um usuario favorita o mesmo produto uma unica vez.
+                entity.HasIndex(f => new { f.UsuarioId, f.ProdutoId }).IsUnique();
             });
         }
     }
