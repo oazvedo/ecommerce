@@ -48,13 +48,33 @@ namespace api.Tests.Controllers
                 TotalCount = 1,
                 Items = new List<ProdutoDto> { new() { Id = Guid.NewGuid() } }
             };
-            _serviceMock.Setup(s => s.GetPagedAsync(1, 10)).ReturnsAsync(paged);
+            _serviceMock
+                .Setup(s => s.SearchPagedAsync(1, 10, null, null, null, null, null, null, null))
+                .ReturnsAsync(paged);
 
             var result = await _controller.GetAll(1, 10);
 
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             var value = Assert.IsType<PagedResult<ProdutoDto>>(ok.Value);
             Assert.Single(value.Items);
+        }
+
+        [Fact]
+        public async Task GetAll_ComFiltros_DeveRepassarParaOServico()
+        {
+            var empresaId = Guid.NewGuid();
+            var paged = new PagedResult<ProdutoDto> { Page = 1, PageSize = 10, TotalCount = 0, Items = new List<ProdutoDto>() };
+            _serviceMock
+                .Setup(s => s.SearchPagedAsync(1, 10, empresaId, "tenis", true, false, 50m, 200m, "preco_asc"))
+                .ReturnsAsync(paged);
+
+            var result = await _controller.GetAll(
+                1, 10, empresaId, nome: "tenis", disponivel: true, freteGratis: false,
+                precoMin: 50m, precoMax: 200m, orderBy: "preco_asc");
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            Assert.Same(paged, ok.Value);
+            _serviceMock.VerifyAll();
         }
 
         // GET /api/produto/{id}
