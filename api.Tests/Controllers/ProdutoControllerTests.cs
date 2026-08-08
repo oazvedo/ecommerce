@@ -18,13 +18,15 @@ namespace api.Tests.Controllers
     {
         private readonly Mock<IProdutoService> _serviceMock;
         private readonly Mock<IUsuarioService> _usuarioServiceMock;
+        private readonly Mock<IAuditoriaService> _auditoriaServiceMock;
         private readonly ProdutoController _controller;
 
         public ProdutoControllerTests()
         {
             _serviceMock = new Mock<IProdutoService>();
             _usuarioServiceMock = new Mock<IUsuarioService>();
-            _controller = new ProdutoController(_serviceMock.Object, _usuarioServiceMock.Object);
+            _auditoriaServiceMock = new Mock<IAuditoriaService>();
+            _controller = new ProdutoController(_serviceMock.Object, _usuarioServiceMock.Object, _auditoriaServiceMock.Object);
         }
 
         private void AutenticarComo(Guid usuarioId)
@@ -125,6 +127,7 @@ namespace api.Tests.Controllers
             Assert.Equal(dto, created.Value);
             Assert.NotNull(produtoCriado);
             Assert.Equal(empresaId, produtoCriado!.EmpresaId);
+            _auditoriaServiceMock.Verify(a => a.RegistrarAsync(usuarioId, It.IsAny<string>(), "Criar", "Produto", dto.Id, empresaId, null), Times.Once);
         }
 
         [Fact]
@@ -144,9 +147,12 @@ namespace api.Tests.Controllers
         // PUT /api/produto/{id}
 
         [Fact]
-        public async Task Update_QuandoExiste_DeveRetornar200()
+        public async Task Update_QuandoExiste_DeveRetornar200ERegistrarAuditoria()
         {
-            var dto = new ProdutoDto { Id = Guid.NewGuid() };
+            var usuarioId = Guid.NewGuid();
+            var empresaId = Guid.NewGuid();
+            AutenticarComo(usuarioId);
+            var dto = new ProdutoDto { Id = Guid.NewGuid(), EmpresaId = empresaId };
             var request = new UpdateProdutoRequest { Nome = "Produto A", Descricao = "Desc", Preco = 10m, Codigo = "COD001", Status = true };
             _serviceMock.Setup(s => s.UpdateAsync(dto.Id, request)).ReturnsAsync(dto);
 
@@ -154,6 +160,7 @@ namespace api.Tests.Controllers
 
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             Assert.Equal(dto, ok.Value);
+            _auditoriaServiceMock.Verify(a => a.RegistrarAsync(usuarioId, It.IsAny<string>(), "Atualizar", "Produto", dto.Id, empresaId, null), Times.Once);
         }
 
         [Fact]
@@ -170,14 +177,19 @@ namespace api.Tests.Controllers
         // DELETE /api/produto/{id}
 
         [Fact]
-        public async Task Delete_QuandoExiste_DeveRetornar204()
+        public async Task Delete_QuandoExiste_DeveRetornar204ERegistrarAuditoria()
         {
             var id = Guid.NewGuid();
+            var usuarioId = Guid.NewGuid();
+            var empresaId = Guid.NewGuid();
+            AutenticarComo(usuarioId);
+            _serviceMock.Setup(s => s.GetByIdAsync(id)).ReturnsAsync(new ProdutoDto { Id = id, EmpresaId = empresaId });
             _serviceMock.Setup(s => s.DeleteAsync(id)).ReturnsAsync(true);
 
             var result = await _controller.Delete(id);
 
             Assert.IsType<NoContentResult>(result.Result);
+            _auditoriaServiceMock.Verify(a => a.RegistrarAsync(usuarioId, It.IsAny<string>(), "Excluir", "Produto", id, empresaId, null), Times.Once);
         }
 
         [Fact]

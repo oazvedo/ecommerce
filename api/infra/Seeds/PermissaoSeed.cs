@@ -42,7 +42,9 @@ namespace api.infra
             "Empresa.Delete",
             // avaliacoes
             "Avaliacao.Read",
-            "Avaliacao.Create"
+            "Avaliacao.Create",
+            // auditoria
+            "Auditoria.Read"
         };
 
         public static async Task SeedAsync(DatabaseContext context)

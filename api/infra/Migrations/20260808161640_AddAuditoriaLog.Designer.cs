@@ -2,18 +2,21 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using api.infra;
 
 #nullable disable
 
-namespace api.infra.Migrations
+namespace api.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260808161640_AddAuditoriaLog")]
+    partial class AddAuditoriaLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -73,59 +76,6 @@ namespace api.infra.Migrations
                     b.HasIndex("OcorridoEm");
 
                     b.ToTable("auditoria_logs", (string)null);
-                });
-
-            modelBuilder.Entity("api.Domain.Avaliacao", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("atualizado_em");
-
-                    b.Property<string>("Comentario")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("comentario");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criado_em");
-
-                    b.Property<Guid?>("EmpresaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("empresa_id");
-
-                    b.Property<int>("Nota")
-                        .HasColumnType("integer")
-                        .HasColumnName("nota");
-
-                    b.Property<Guid?>("ProdutoId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("produto_id");
-
-                    b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("usuario_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmpresaId");
-
-                    b.HasIndex("ProdutoId");
-
-                    b.HasIndex("UsuarioId", "EmpresaId")
-                        .IsUnique()
-                        .HasFilter("empresa_id IS NOT NULL");
-
-                    b.HasIndex("UsuarioId", "ProdutoId")
-                        .IsUnique()
-                        .HasFilter("produto_id IS NOT NULL");
-
-                    b.ToTable("avaliacoes", (string)null);
                 });
 
             modelBuilder.Entity("api.Domain.CargoPermissao", b =>
@@ -686,27 +636,6 @@ namespace api.infra.Migrations
                     b.HasIndex("PermissaoId");
 
                     b.ToTable("usuario_permissoes", (string)null);
-                });
-
-            modelBuilder.Entity("api.Domain.Avaliacao", b =>
-                {
-                    b.HasOne("api.Domain.Empresa", null)
-                        .WithMany()
-                        .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("api.Domain.Produto", null)
-                        .WithMany()
-                        .HasForeignKey("ProdutoId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("api.domain.Usuario", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("api.Domain.CargoPermissao", b =>

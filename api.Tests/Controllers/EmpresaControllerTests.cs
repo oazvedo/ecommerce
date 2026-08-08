@@ -20,6 +20,7 @@ namespace api.Tests.Controllers
         private readonly Mock<IEmpresaService> _serviceMock;
         private readonly Mock<IUsuarioService> _usuarioServiceMock;
         private readonly Mock<IProdutoService> _produtoServiceMock;
+        private readonly Mock<IAuditoriaService> _auditoriaServiceMock;
         private readonly EmpresaController _controller;
         private readonly Guid _usuarioId = Guid.NewGuid();
         private const string _usuarioNome = "Admin Teste";
@@ -29,7 +30,8 @@ namespace api.Tests.Controllers
             _serviceMock = new Mock<IEmpresaService>();
             _usuarioServiceMock = new Mock<IUsuarioService>();
             _produtoServiceMock = new Mock<IProdutoService>();
-            _controller = new EmpresaController(_serviceMock.Object, _usuarioServiceMock.Object, _produtoServiceMock.Object);
+            _auditoriaServiceMock = new Mock<IAuditoriaService>();
+            _controller = new EmpresaController(_serviceMock.Object, _usuarioServiceMock.Object, _produtoServiceMock.Object, _auditoriaServiceMock.Object);
 
             // Cargo Administrador: pula a checagem de PodeGerenciarAsync (IsPlataformaAdmin) nos testes de CRUD abaixo.
             var claims = new List<Claim>
@@ -115,6 +117,7 @@ namespace api.Tests.Controllers
                 e.Nome == request.Nome &&
                 e.ResponsavelId == _usuarioId &&
                 e.Responsavel == _usuarioNome)), Times.Once);
+            _auditoriaServiceMock.Verify(a => a.RegistrarAsync(_usuarioId, _usuarioNome, "Criar", "Empresa", dto.Id, null, null), Times.Once);
         }
 
         // PUT /api/empresa/{id}
@@ -164,7 +167,7 @@ namespace api.Tests.Controllers
         // DELETE /api/empresa/{id}
 
         [Fact]
-        public async Task Delete_QuandoExiste_DeveRetornar204()
+        public async Task Delete_QuandoExiste_DeveRetornar204ERegistrarAuditoria()
         {
             var id = Guid.NewGuid();
             _serviceMock.Setup(s => s.DeleteComCascadeAsync(id)).ReturnsAsync(true);
@@ -172,6 +175,7 @@ namespace api.Tests.Controllers
             var result = await _controller.Delete(id);
 
             Assert.IsType<NoContentResult>(result);
+            _auditoriaServiceMock.Verify(a => a.RegistrarAsync(_usuarioId, _usuarioNome, "Excluir", "Empresa", id, null, null), Times.Once);
         }
 
         [Fact]
