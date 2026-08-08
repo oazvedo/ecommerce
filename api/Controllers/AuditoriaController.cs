@@ -25,6 +25,7 @@ namespace api.Controllers
             {
                 if (page < 1) page = 1;
                 if (pageSize < 1) pageSize = 20;
+                if (pageSize > 100) pageSize = 100;
 
                 var logs = await _service.GetPagedAsync(page, pageSize);
                 return Ok(logs);

@@ -341,7 +341,7 @@ namespace api.Controllers
                 if (!ok)
                     return NotFound(new { mensagem = "Empresa ou usuário não encontrado." });
 
-                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "AdicionarUsuario", "Empresa", usuarioId, id);
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "AdicionarUsuario", "Usuario", usuarioId, id);
                 return NoContent();
             }
             catch (Exception ex)
@@ -363,7 +363,7 @@ namespace api.Controllers
                 if (!ok)
                     return NotFound(new { mensagem = "Usuário não encontrado." });
 
-                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "DesalocarUsuario", "Empresa", usuarioId, id);
+                await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "DesalocarUsuario", "Usuario", usuarioId, id);
                 return NoContent();
             }
             catch (Exception ex)
