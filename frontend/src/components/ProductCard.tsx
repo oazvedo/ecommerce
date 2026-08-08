@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { StarRating } from '@/components/StarRating'
+import { FavoritoButton } from '@/components/FavoritoButton'
 import type { Produto } from '@/types'
 import { useCart } from '@/context/CartContext'
 import { resolveImageUrl } from '@/api/upload'
@@ -70,9 +71,12 @@ export function ProductCard({ produto }: { produto: Produto }) {
             <Badge className="border-white/20 bg-white/90 px-2 py-0 text-[10px] font-bold text-zinc-800 hover:bg-white">
               {produto.status ? 'Disponível' : 'Pausado'}
             </Badge>
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 text-white backdrop-blur">
-              <Package className="h-3.5 w-3.5" />
-            </span>
+            <div className="flex items-center gap-1.5">
+              <FavoritoButton produtoId={produto.id} />
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15 text-white backdrop-blur">
+                <Package className="h-3.5 w-3.5" />
+              </span>
+            </div>
           </div>
 
           {!produto.imagemUrl && (

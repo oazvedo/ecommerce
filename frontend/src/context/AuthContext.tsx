@@ -27,6 +27,7 @@ interface AuthContextValue {
   register: (data: { nome: string; email: string; password: string }) => Promise<void>
   logout: () => Promise<void>
   refreshSession: () => Promise<void>
+  refreshUsuario: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -105,6 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession()
   }, [clearSession])
 
+  const refreshUsuario = useCallback(async () => {
+    if (!user) return
+    const profile = await usuariosApi.get(user.sub)
+    setUsuario(profile)
+  }, [user])
+
   const hasPermission = useCallback(
     (perm: string) => {
       if (!user) return false
@@ -125,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{ user, usuario, isAuthenticated: !!user, isLoading, isAdmin, isLojista, role, cargo, empresaId, hasPermission, login, register, logout, refreshSession: async () => { await doRefresh() } }}
+      value={{ user, usuario, isAuthenticated: !!user, isLoading, isAdmin, isLojista, role, cargo, empresaId, hasPermission, login, register, logout, refreshUsuario }}
     >
       {children}
     </AuthContext.Provider>
