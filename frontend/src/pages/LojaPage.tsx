@@ -6,10 +6,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Navbar } from '@/components/Navbar'
 import { ProductCard } from '@/components/ProductCard'
 import { Pagination } from '@/components/Pagination'
+import { StarRating } from '@/components/StarRating'
+import { AvaliacoesSection } from '@/components/AvaliacoesSection'
 import { produtosApi } from '@/api/produtos'
 import { empresasApi } from '@/api/empresas'
+import { avaliacoesApi } from '@/api/avaliacoes'
 import { resolveImageUrl } from '@/api/upload'
-import type { Loja, Produto, PagedResult } from '@/types'
+import type { Loja, Produto, PagedResult, AvaliacaoResumo } from '@/types'
 
 const EMPTY: Produto[] = []
 
@@ -21,6 +24,7 @@ export function LojaPage() {
   const { id } = useParams<{ id: string }>()
 
   const [loja, setLoja] = useState<Loja | null>(null)
+  const [resumo, setResumo] = useState<AvaliacaoResumo | null>(null)
   const [result, setResult] = useState<PagedResult<Produto> | null>(null)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -31,6 +35,7 @@ export function LojaPage() {
   useEffect(() => {
     if (!id) return
     empresasApi.getVitrine(id).then(setLoja).catch(() => setLoja(null))
+    avaliacoesApi.resumoByEmpresa(id).then(setResumo).catch(() => setResumo(null))
   }, [id])
 
   useEffect(() => {
@@ -38,7 +43,7 @@ export function LojaPage() {
     setLoading(true)
     setError(null)
     produtosApi
-      .list(page, 20, id)
+      .list(page, 20, { empresaId: id })
       .then(setResult)
       .catch(err => setError(err instanceof Error ? err.message : 'Erro ao carregar produtos'))
       .finally(() => setLoading(false))
@@ -78,6 +83,11 @@ export function LojaPage() {
             <p className="mt-0.5 text-sm text-muted-foreground">
               {result?.totalCount ?? 0} produto{(result?.totalCount ?? 0) !== 1 ? 's' : ''}
             </p>
+            {resumo && (
+              <div className="mt-1.5">
+                <StarRating nota={resumo.media} total={resumo.total} />
+              </div>
+            )}
           </div>
         </section>
 
@@ -102,6 +112,12 @@ export function LojaPage() {
               <Pagination page={page} totalPages={result.totalPages} onPageChange={setPage} />
             )}
           </>
+        )}
+
+        {id && (
+          <div className="mt-6">
+            <AvaliacoesSection alvo={{ empresaId: id }} />
+          </div>
         )}
       </main>
     </div>

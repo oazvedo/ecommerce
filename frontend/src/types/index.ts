@@ -32,6 +32,25 @@ export interface Produto {
   estoque: number
   freteGratis: boolean
   variantes: string | null
+  notaMedia: number
+  totalAvaliacoes: number
+}
+
+export interface Avaliacao {
+  id: string
+  produtoId: string | null
+  empresaId: string | null
+  usuarioId: string
+  usuarioNome: string
+  nota: number
+  comentario: string | null
+  criadoEm: string
+  atualizadoEm: string | null
+}
+
+export interface AvaliacaoResumo {
+  media: number
+  total: number
 }
 
 export interface PedidoItem {
