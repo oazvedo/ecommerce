@@ -93,6 +93,14 @@ function App() {
             }
           />
           <Route
+            path="/favoritos"
+            element={
+              <ProtectedRoute>
+                <FavoritosPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/quero-vender"
             element={
               <ProtectedRoute>
