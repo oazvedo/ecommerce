@@ -20,13 +20,29 @@ const CARGO_META: Record<Cargo, { icon: React.ElementType; color: string; bg: st
   Administrador: { icon: ShieldCheck, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', description: 'Acesso total (imutável)' },
 }
 
-const GRUPOS: Record<string, string[]> = {
-  Empresa:   ['Empresa.Read', 'Empresa.Create', 'Empresa.Update', 'Empresa.Delete'],
-  Usuário:   ['Usuario.Read', 'Usuario.Create', 'Usuario.Update', 'Usuario.Delete', 'Usuario.EmailUpdate', 'Usuario.PasswordUpdate'],
-  Permissão: ['Permissao.Read', 'Permissao.Assign', 'Permissao.Remove', 'Permissao.RemoveAll'],
-  Produto:   ['Produto.Read', 'Produto.Create', 'Produto.Update', 'Produto.Delete'],
-  Pedido:    ['Pedido.Read', 'Pedido.Create', 'Pedido.Update', 'Pedido.Delete', 'Pedido.UpdateAdmin'],
-  Carteira:  ['Carteira.Read', 'Carteira.Create', 'Carteira.Update', 'Carteira.Delete'],
+// Rótulo de exibição do grupo (recurso). Grupos sem entrada aqui usam o nome
+// do recurso (o prefixo antes do ".") como veio da API — nenhum recurso novo
+// precisa de alteração neste arquivo para aparecer na tela.
+const GRUPO_LABEL: Record<string, string> = {
+  Empresa: 'Empresa',
+  Usuario: 'Usuário',
+  Permissao: 'Permissão',
+  Produto: 'Produto',
+  Pedido: 'Pedido',
+  Carteira: 'Carteira',
+  Avaliacao: 'Avaliação',
+  Auditoria: 'Auditoria',
+  Favorito: 'Favorito',
+}
+
+function groupPermissoes(permissoes: Permissao[]): Record<string, Permissao[]> {
+  const grupos: Record<string, Permissao[]> = {}
+  for (const perm of permissoes) {
+    const recurso = perm.nome.split('.')[0]
+    const label = GRUPO_LABEL[recurso] ?? recurso
+    ;(grupos[label] ??= []).push(perm)
+  }
+  return grupos
 }
 
 const ACAO_LABEL: Record<string, string> = {
@@ -195,9 +211,7 @@ export function PermissoesCargoPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {Object.entries(GRUPOS).map(([grupo, permNames]) => {
-                    const perms = allPermissoes.filter(p => permNames.includes(p.nome))
-                    if (perms.length === 0) return null
+                  {Object.entries(groupPermissoes(allPermissoes)).map(([grupo, perms]) => {
                     const activeCount = perms.filter(p => currentPerms.has(p.id)).length
                     return (
                       <div key={grupo} className="px-5 py-4">

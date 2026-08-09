@@ -1,54 +1,49 @@
+using System.Reflection;
 using api.domain;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.infra
 {
     public static class PermissaoSeed
     {
-        public static readonly string[] PermissionNames =
+        // Descoberto por reflexão a partir dos [Authorize(Policy = "Recurso.Acao")]
+        // presentes nas Controllers. Basta anotar um endpoint com uma nova policy
+        // que ela passa a existir aqui automaticamente, sem precisar editar este arquivo.
+        public static readonly string[] PermissionNames = DiscoverPermissionNames();
+
+        public static string[] DiscoverPermissionNames(Assembly? assembly = null)
         {
-            // usuarios
-            "Usuario.Read",
-            "Usuario.Create",
-            "Usuario.Update",
-            "Usuario.Delete",
-            "Usuario.EmailUpdate",
-            "Usuario.PasswordUpdate",
-            //permissoes
-            "Permissao.Read",
-            "Permissao.Assign",
-            "Permissao.Remove",
-            "Permissao.RemoveAll",
-            //pedidos
-            "Pedido.Read",
-            "Pedido.Create",
-            "Pedido.Update",
-            "Pedido.Delete",
-            "Pedido.UpdateAdmin",
-            //produtos
-            "Produto.Read",
-            "Produto.Create",
-            "Produto.Update",
-            "Produto.Delete",
-            // carteiras
-            "Carteira.Read",
-            "Carteira.Create",
-            "Carteira.Update",
-            "Carteira.Delete",
-            // empresas
-            "Empresa.Read",
-            "Empresa.Create",
-            "Empresa.Update",
-            "Empresa.Delete",
-            // avaliacoes
-            "Avaliacao.Read",
-            "Avaliacao.Create",
-            // auditoria
-            "Auditoria.Read",
-            // favoritos
-            "Favorito.Read",
-            "Favorito.Manage"
-        };
+            assembly ??= Assembly.GetExecutingAssembly();
+
+            var policies = new HashSet<string>(StringComparer.Ordinal);
+
+            var controllerTypes = assembly.GetTypes()
+                .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract);
+
+            foreach (var controllerType in controllerTypes)
+            {
+                CollectPolicies(controllerType.GetCustomAttributes<AuthorizeAttribute>(inherit: true), policies);
+
+                foreach (var method in controllerType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+                {
+                    CollectPolicies(method.GetCustomAttributes<AuthorizeAttribute>(inherit: true), policies);
+                }
+            }
+
+            return [.. policies.OrderBy(p => p, StringComparer.Ordinal)];
+        }
+
+        private static void CollectPolicies(IEnumerable<AuthorizeAttribute> attributes, HashSet<string> policies)
+        {
+            foreach (var attr in attributes)
+            {
+                // Policies no formato "Recurso.Acao" são permissões; outras (ex.: roles) são ignoradas.
+                if (!string.IsNullOrWhiteSpace(attr.Policy) && attr.Policy.Contains('.'))
+                    policies.Add(attr.Policy);
+            }
+        }
 
         public static async Task SeedAsync(DatabaseContext context)
         {
