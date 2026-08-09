@@ -406,6 +406,11 @@ namespace api.infra
                     .HasColumnName("variantes")
                     .IsRequired(false);
 
+                entity.Property(u => u.Categoria)
+                    .HasColumnName("categoria")
+                    .IsRequired(false)
+                    .HasMaxLength(100);
+
                 entity.Property(u => u.EmpresaId)
                     .HasColumnName("empresa_id")
                     .IsRequired();

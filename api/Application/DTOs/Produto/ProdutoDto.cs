@@ -15,6 +15,7 @@ namespace api.Application.DTOs.Produto
         public int Estoque { get; set; }
         public bool FreteGratis { get; set; }
         public string? Variantes { get; set; }
+        public string? Categoria { get; set; }
         public double NotaMedia { get; set; }
         public int TotalAvaliacoes { get; set; }
     }

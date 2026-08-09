@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { Produto } from '@/types'
-import type { ProdutoPayload } from '@/api/produtos'
+import { produtosApi, type ProdutoPayload } from '@/api/produtos'
 import { resolveImageUrl } from '@/api/upload'
 import { ImageUpload } from '@/components/ImageUpload'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,7 @@ const EMPTY_FORM: ProdutoPayload = {
   estoque: 0,
   freteGratis: false,
   variantes: null,
+  categoria: null,
 }
 
 function toPayload(p: Produto): ProdutoPayload {
@@ -36,6 +37,7 @@ function toPayload(p: Produto): ProdutoPayload {
     estoque: p.estoque,
     freteGratis: p.freteGratis,
     variantes: p.variantes,
+    categoria: p.categoria,
   }
 }
 
@@ -56,11 +58,14 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onCreate, onUpd
   // Produto já persistido nesta sessão do modal — habilita o upload de foto
   // tanto ao editar um produto existente quanto logo após criar um novo.
   const [savedProduto, setSavedProduto] = useState<Produto | null>(null)
+  const [categorias, setCategorias] = useState<string[]>([])
 
   useEffect(() => {
     if (!open) return
     setForm(produto ? toPayload(produto) : EMPTY_FORM)
     setSavedProduto(produto)
+    // Sugestões de categorias já usadas, pra lojista reaproveitar em vez de criar variações.
+    produtosApi.categorias().then(setCategorias).catch(() => {})
   }, [open, produto])
 
   const isNewlyCreated = !produto && !!savedProduto
@@ -151,6 +156,18 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onCreate, onUpd
                 onChange={e => setForm(f => ({ ...f, variantes: e.target.value || null }))}
               />
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Categoria</Label>
+            <Input
+              list="categorias-produto"
+              placeholder="Ex: Eletrônicos"
+              value={form.categoria ?? ''}
+              onChange={e => setForm(f => ({ ...f, categoria: e.target.value || null }))}
+            />
+            <datalist id="categorias-produto">
+              {categorias.map(c => <option key={c} value={c} />)}
+            </datalist>
           </div>
           <div className="flex items-center justify-between">
             <Label>Ativo</Label>
