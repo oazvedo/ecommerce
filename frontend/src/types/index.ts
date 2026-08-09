@@ -32,9 +32,17 @@ export interface Produto {
   estoque: number
   freteGratis: boolean
   variantes: string | null
-  categoria: string | null
+  categoriaId: string | null
+  categoriaNome: string | null
   notaMedia: number
   totalAvaliacoes: number
+}
+
+export interface CategoriaProduto {
+  id: string
+  nome: string
+  ativo: boolean
+  criadoEm: string
 }
 
 export interface Avaliacao {

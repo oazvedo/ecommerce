@@ -14,7 +14,8 @@ import { Navbar } from '@/components/Navbar'
 import { ProductCard } from '@/components/ProductCard'
 import { Pagination } from '@/components/Pagination'
 import { produtosApi, type ProdutoOrderBy } from '@/api/produtos'
-import type { Produto, PagedResult } from '@/types'
+import { categoriasApi } from '@/api/categorias'
+import type { Produto, PagedResult, CategoriaProduto } from '@/types'
 import { cn } from '@/lib/utils'
 
 type CatalogFilter = 'all' | 'available' | 'freeShipping'
@@ -44,12 +45,12 @@ export function CatalogPage() {
   const [filter, setFilter] = useState<CatalogFilter>('all')
   const [sort, setSort] = useState<SortOption>('recentes')
   const [categoria, setCategoria] = useState<string>('all')
-  const [categorias, setCategorias] = useState<string[]>([])
+  const [categorias, setCategorias] = useState<CategoriaProduto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    produtosApi.categorias().then(setCategorias).catch(() => {})
+    categoriasApi.list(1, 200, true).then(r => setCategorias(r.items)).catch(() => {})
   }, [])
 
   useEffect(() => { setPage(1) }, [query, filter, sort, categoria])
@@ -63,7 +64,7 @@ export function CatalogPage() {
         disponivel: filter === 'available' ? true : undefined,
         freteGratis: filter === 'freeShipping' ? true : undefined,
         orderBy: sort === 'recentes' ? undefined : sort,
-        categoria: categoria === 'all' ? undefined : categoria,
+        categoriaId: categoria === 'all' ? undefined : categoria,
       })
       .then(setResult)
       .catch(err => setError(err instanceof Error ? err.message : 'Erro ao carregar produtos'))
@@ -163,7 +164,7 @@ export function CatalogPage() {
                 <SelectContent>
                   <SelectItem value="all">Todas categorias</SelectItem>
                   {categorias.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
