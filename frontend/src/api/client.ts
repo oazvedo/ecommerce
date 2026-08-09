@@ -71,3 +71,33 @@ export async function apiFetch<T>(
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
+
+export async function apiFetchBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) }
+  if (_accessToken) headers['Authorization'] = `Bearer ${_accessToken}`
+
+  let res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+
+  if (res.status === 401 && _onRefresh) {
+    try {
+      if (!_refreshPromise) {
+        _refreshPromise = _onRefresh().finally(() => {
+          _refreshPromise = null
+        })
+      }
+      const newToken = await _refreshPromise
+      headers['Authorization'] = `Bearer ${newToken}`
+      res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+    } catch {
+      _onSessionExpired?.()
+      throw new ApiError(401, 'Sessão expirada. Faça login novamente.')
+    }
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new ApiError(res.status, (body as { mensagem?: string }).mensagem ?? 'Erro desconhecido')
+  }
+
+  return res.blob()
+}

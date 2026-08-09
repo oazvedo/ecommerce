@@ -22,7 +22,9 @@ namespace api.Application.Services
             ImagemUrl = entity.ImagemUrl,
             Estoque = entity.Estoque,
             FreteGratis = entity.FreteGratis,
-            Variantes = entity.Variantes
+            Variantes = entity.Variantes,
+            CategoriaId = entity.CategoriaId,
+            CategoriaNome = entity.CategoriaProduto?.Nome
         };
 
         public async Task AdicionarAsync(Guid usuarioId, Guid produtoId)

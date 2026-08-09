@@ -10,6 +10,7 @@ export interface ProdutoPayload {
   estoque: number
   freteGratis: boolean
   variantes: string | null
+  categoriaId: string | null
 }
 
 export type ProdutoOrderBy = 'preco_asc' | 'preco_desc' | 'nome_asc'
@@ -22,6 +23,7 @@ export interface ProdutoListFilters {
   precoMin?: number
   precoMax?: number
   orderBy?: ProdutoOrderBy
+  categoriaId?: string
 }
 
 export const produtosApi = {
@@ -37,6 +39,7 @@ export const produtosApi = {
     if (filters.precoMin !== undefined) q.set('precoMin', String(filters.precoMin))
     if (filters.precoMax !== undefined) q.set('precoMax', String(filters.precoMax))
     if (filters.orderBy) q.set('orderBy', filters.orderBy)
+    if (filters.categoriaId) q.set('categoriaId', filters.categoriaId)
     return apiFetch<PagedResult<Produto>>(`/produto?${q}`)
   },
 

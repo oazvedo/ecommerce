@@ -24,6 +24,7 @@ import { ProdutosAdminPage } from '@/pages/admin/ProdutosAdminPage'
 import { CarteirasPage } from '@/pages/admin/CarteirasPage'
 import { PedidosAdminPage } from '@/pages/admin/PedidosAdminPage'
 import { PermissoesCargoPage } from '@/pages/admin/PermissoesCargoPage'
+import { CategoriasPage } from '@/pages/admin/CategoriasPage'
 import { MinhaEmpresaPage } from '@/pages/MinhaEmpresaPage'
 import { QueroVenderPage } from '@/pages/QueroVenderPage'
 
@@ -88,6 +89,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <WalletPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/favoritos"
+            element={
+              <ProtectedRoute>
+                <FavoritosPage />
               </ProtectedRoute>
             }
           />
@@ -193,6 +202,14 @@ function App() {
             element={
               <ProtectedRoute adminOnly>
                 <PermissoesCargoPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/categorias"
+            element={
+              <ProtectedRoute adminOnly>
+                <CategoriasPage />
               </ProtectedRoute>
             }
           />

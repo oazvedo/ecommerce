@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using api.infra;
@@ -11,9 +12,11 @@ using api.infra;
 namespace api.infra.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260809192128_AddCategoriaProduto")]
+    partial class AddCategoriaProduto
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -117,7 +120,13 @@ namespace api.infra.Migrations
 
                     b.HasIndex("ProdutoId");
 
-                    b.HasIndex("UsuarioId");
+                    b.HasIndex("UsuarioId", "EmpresaId")
+                        .IsUnique()
+                        .HasFilter("empresa_id IS NOT NULL");
+
+                    b.HasIndex("UsuarioId", "ProdutoId")
+                        .IsUnique()
+                        .HasFilter("produto_id IS NOT NULL");
 
                     b.ToTable("avaliacoes", (string)null);
                 });
@@ -211,37 +220,6 @@ namespace api.infra.Migrations
                     b.HasIndex("CarteiraId");
 
                     b.ToTable("carteira_transacoes", (string)null);
-                });
-
-            modelBuilder.Entity("api.Domain.CategoriaProduto", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<bool>("Ativo")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("ativo");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("criado_em");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("nome");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Nome")
-                        .IsUnique();
-
-                    b.ToTable("categorias_produto", (string)null);
                 });
 
             modelBuilder.Entity("api.Domain.Empresa", b =>
@@ -534,10 +512,11 @@ namespace api.infra.Migrations
                         .HasColumnName("atualizado_em")
                         .HasJsonPropertyName("atualizado_em");
 
-                    b.Property<Guid?>("CategoriaId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("categoria_id")
-                        .HasJsonPropertyName("categoria_id");
+                    b.Property<string>("Categoria")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("categoria")
+                        .HasJsonPropertyName("categoria");
 
                     b.Property<string>("Codigo")
                         .IsRequired()
@@ -598,8 +577,6 @@ namespace api.infra.Migrations
                         .HasColumnName("variantes");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CategoriaId");
 
                     b.HasIndex("EmpresaId");
 
@@ -872,18 +849,11 @@ namespace api.infra.Migrations
 
             modelBuilder.Entity("api.Domain.Produto", b =>
                 {
-                    b.HasOne("api.Domain.CategoriaProduto", "CategoriaProduto")
-                        .WithMany()
-                        .HasForeignKey("CategoriaId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("api.Domain.Empresa", "Empresa")
                         .WithMany("Produtos")
                         .HasForeignKey("EmpresaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("CategoriaProduto");
 
                     b.Navigation("Empresa");
                 });

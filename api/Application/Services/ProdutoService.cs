@@ -32,7 +32,9 @@ namespace api.Application.Services
             ImagemUrl = entity.ImagemUrl,
             Estoque = entity.Estoque,
             FreteGratis = entity.FreteGratis,
-            Variantes = entity.Variantes
+            Variantes = entity.Variantes,
+            CategoriaId = entity.CategoriaId,
+            CategoriaNome = entity.CategoriaProduto?.Nome
         };
 
         public async Task<ProdutoDto?> UpdateAsync(Guid id, UpdateProdutoRequest request)
@@ -40,7 +42,7 @@ namespace api.Application.Services
             var produto = await _repository.GetByIdAsync(id);
             if (produto == null) return null;
 
-            produto.AtualizarProduto(request.Nome, request.Descricao, request.Status, request.Codigo, request.Preco, request.Estoque, request.FreteGratis, request.Variantes);
+            produto.AtualizarProduto(request.Nome, request.Descricao, request.Status, request.Codigo, request.Preco, request.Estoque, request.FreteGratis, request.Variantes, request.CategoriaId);
             await _repository.UpdateAsync(produto);
             return ToDto(produto);
         }
@@ -56,10 +58,10 @@ namespace api.Application.Services
 
         public async Task<PagedResult<ProdutoDto>> SearchPagedAsync(
             int page, int pageSize, Guid? empresaId, string? nome, bool? disponivel, bool? freteGratis,
-            decimal? precoMin, decimal? precoMax, string? orderBy)
+            decimal? precoMin, decimal? precoMax, string? orderBy, Guid? categoriaId)
         {
             var (produtos, totalCount) = await _produtoRepository.SearchPagedAsync(
-                page, pageSize, empresaId, nome, disponivel, freteGratis, precoMin, precoMax, orderBy);
+                page, pageSize, empresaId, nome, disponivel, freteGratis, precoMin, precoMax, orderBy, categoriaId);
             var itens = produtos.ToList();
 
             // Uma unica query agregada pra pagina inteira, evitando N+1 (ver GetResumoByProdutosAsync).

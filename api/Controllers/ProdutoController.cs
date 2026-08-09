@@ -35,7 +35,8 @@ namespace api.Controllers
             [FromQuery] bool? freteGratis = null,
             [FromQuery] decimal? precoMin = null,
             [FromQuery] decimal? precoMax = null,
-            [FromQuery] string? orderBy = null)
+            [FromQuery] string? orderBy = null,
+            [FromQuery] Guid? categoriaId = null)
         {
             try
             {
@@ -45,7 +46,7 @@ namespace api.Controllers
                 // empresaId filtra o catálogo pela loja vendedora; nome busca em nome/codigo.
                 // orderBy aceita: preco_asc, preco_desc, nome_asc (padrão: mais recentes).
                 var produtos = await _service.SearchPagedAsync(
-                    page, pageSize, empresaId, nome, disponivel, freteGratis, precoMin, precoMax, orderBy);
+                    page, pageSize, empresaId, nome, disponivel, freteGratis, precoMin, precoMax, orderBy, categoriaId);
                 return Ok(produtos);
             }
             catch (Exception ex)
@@ -86,7 +87,8 @@ namespace api.Controllers
                 {
                     Estoque = request.Estoque,
                     FreteGratis = request.FreteGratis,
-                    Variantes = request.Variantes
+                    Variantes = request.Variantes,
+                    CategoriaId = request.CategoriaId
                 };
                 var produto = await _service.CreateAsync(entity);
                 await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Criar", "Produto", produto.Id, usuario.EmpresaId);

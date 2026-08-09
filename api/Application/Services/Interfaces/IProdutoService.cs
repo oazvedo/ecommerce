@@ -11,6 +11,6 @@ namespace api.Application.Services.Interfaces
         Task AtualizarImagemAsync(Guid id, string url);
         Task<PagedResult<ProdutoDto>> SearchPagedAsync(
             int page, int pageSize, Guid? empresaId, string? nome, bool? disponivel, bool? freteGratis,
-            decimal? precoMin, decimal? precoMax, string? orderBy);
+            decimal? precoMin, decimal? precoMax, string? orderBy, Guid? categoriaId);
     }
 }

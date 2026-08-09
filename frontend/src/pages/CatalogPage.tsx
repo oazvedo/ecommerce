@@ -3,11 +3,19 @@ import { useSearchParams } from 'react-router-dom'
 import { BadgeCheck, PackageSearch, SlidersHorizontal, Sparkles, Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Navbar } from '@/components/Navbar'
 import { ProductCard } from '@/components/ProductCard'
 import { Pagination } from '@/components/Pagination'
 import { produtosApi, type ProdutoOrderBy } from '@/api/produtos'
-import type { Produto, PagedResult } from '@/types'
+import { categoriasApi } from '@/api/categorias'
+import type { Produto, PagedResult, CategoriaProduto } from '@/types'
 import { cn } from '@/lib/utils'
 
 type CatalogFilter = 'all' | 'available' | 'freeShipping'
@@ -36,10 +44,16 @@ export function CatalogPage() {
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState<CatalogFilter>('all')
   const [sort, setSort] = useState<SortOption>('recentes')
+  const [categoria, setCategoria] = useState<string>('all')
+  const [categorias, setCategorias] = useState<CategoriaProduto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => { setPage(1) }, [query, filter, sort])
+  useEffect(() => {
+    categoriasApi.list(1, 200, true).then(r => setCategorias(r.items)).catch(() => {})
+  }, [])
+
+  useEffect(() => { setPage(1) }, [query, filter, sort, categoria])
 
   useEffect(() => {
     setLoading(true)
@@ -50,11 +64,12 @@ export function CatalogPage() {
         disponivel: filter === 'available' ? true : undefined,
         freteGratis: filter === 'freeShipping' ? true : undefined,
         orderBy: sort === 'recentes' ? undefined : sort,
+        categoriaId: categoria === 'all' ? undefined : categoria,
       })
       .then(setResult)
       .catch(err => setError(err instanceof Error ? err.message : 'Erro ao carregar produtos'))
       .finally(() => setLoading(false))
-  }, [page, query, filter, sort])
+  }, [page, query, filter, sort, categoria])
 
   function cycleSort() {
     const currentIndex = SORT_OPTIONS.findIndex(o => o.value === sort)
@@ -142,10 +157,23 @@ export function CatalogPage() {
 
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold">Produtos</h2>
-          <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground" onClick={cycleSort}>
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            {SORT_OPTIONS.find(o => o.value === sort)?.label}
-          </Button>
+          <div className="flex items-center gap-2">
+            {categorias.length > 0 && (
+              <Select value={categoria} onValueChange={v => setCategoria(v ?? 'all')}>
+                <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas categorias</SelectItem>
+                  {categorias.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground" onClick={cycleSort}>
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {SORT_OPTIONS.find(o => o.value === sort)?.label}
+            </Button>
+          </div>
         </div>
 
         {loading ? (

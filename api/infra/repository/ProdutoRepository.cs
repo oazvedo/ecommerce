@@ -8,11 +8,14 @@ namespace api.infra.repository
     {
         public ProdutoRepository(DatabaseContext context) : base(context) {}
 
+        public override async Task<Produto?> GetByIdAsync(Guid id)
+            => await _dbSet.Include(p => p.CategoriaProduto).FirstOrDefaultAsync(p => p.Id == id);
+
         public async Task<(IEnumerable<Produto> Items, int TotalCount)> SearchPagedAsync(
             int page, int pageSize, Guid? empresaId, string? nome, bool? disponivel, bool? freteGratis,
-            decimal? precoMin, decimal? precoMax, string? orderBy)
+            decimal? precoMin, decimal? precoMax, string? orderBy, Guid? categoriaId)
         {
-            var query = _dbSet.AsNoTracking();
+            IQueryable<Produto> query = _dbSet.AsNoTracking().Include(p => p.CategoriaProduto);
 
             if (empresaId.HasValue)
                 query = query.Where(p => p.EmpresaId == empresaId.Value);
@@ -31,6 +34,9 @@ namespace api.infra.repository
 
             if (precoMax.HasValue)
                 query = query.Where(p => p.Preco <= precoMax.Value);
+
+            if (categoriaId.HasValue)
+                query = query.Where(p => p.CategoriaId == categoriaId.Value);
 
             query = orderBy switch
             {

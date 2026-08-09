@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import type { Produto } from '@/types'
+import type { CategoriaProduto, Produto } from '@/types'
 import type { ProdutoPayload } from '@/api/produtos'
+import { categoriasApi } from '@/api/categorias'
 import { resolveImageUrl } from '@/api/upload'
 import { ImageUpload } from '@/components/ImageUpload'
 import { Button } from '@/components/ui/button'
@@ -9,11 +10,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+
+const SEM_CATEGORIA = 'sem-categoria'
 
 const EMPTY_FORM: ProdutoPayload = {
   nome: '',
@@ -24,6 +34,7 @@ const EMPTY_FORM: ProdutoPayload = {
   estoque: 0,
   freteGratis: false,
   variantes: null,
+  categoriaId: null,
 }
 
 function toPayload(p: Produto): ProdutoPayload {
@@ -36,6 +47,7 @@ function toPayload(p: Produto): ProdutoPayload {
     estoque: p.estoque,
     freteGratis: p.freteGratis,
     variantes: p.variantes,
+    categoriaId: p.categoriaId,
   }
 }
 
@@ -56,11 +68,14 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onCreate, onUpd
   // Produto já persistido nesta sessão do modal — habilita o upload de foto
   // tanto ao editar um produto existente quanto logo após criar um novo.
   const [savedProduto, setSavedProduto] = useState<Produto | null>(null)
+  const [categorias, setCategorias] = useState<CategoriaProduto[]>([])
 
   useEffect(() => {
     if (!open) return
     setForm(produto ? toPayload(produto) : EMPTY_FORM)
     setSavedProduto(produto)
+    // Categorias cadastradas pelo admin — lojista só escolhe entre as ativas.
+    categoriasApi.list(1, 200, true).then(r => setCategorias(r.items)).catch(() => {})
   }, [open, produto])
 
   const isNewlyCreated = !produto && !!savedProduto
@@ -151,6 +166,21 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onCreate, onUpd
                 onChange={e => setForm(f => ({ ...f, variantes: e.target.value || null }))}
               />
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Categoria</Label>
+            <Select
+              value={form.categoriaId ?? SEM_CATEGORIA}
+              onValueChange={v => setForm(f => ({ ...f, categoriaId: v === SEM_CATEGORIA ? null : v ?? null }))}
+            >
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
+                {categorias.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center justify-between">
             <Label>Ativo</Label>

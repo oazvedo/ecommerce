@@ -51,7 +51,7 @@ namespace api.Tests.Controllers
                 Items = new List<ProdutoDto> { new() { Id = Guid.NewGuid() } }
             };
             _serviceMock
-                .Setup(s => s.SearchPagedAsync(1, 10, null, null, null, null, null, null, null))
+                .Setup(s => s.SearchPagedAsync(1, 10, null, null, null, null, null, null, null, null))
                 .ReturnsAsync(paged);
 
             var result = await _controller.GetAll(1, 10);
@@ -67,7 +67,7 @@ namespace api.Tests.Controllers
             var empresaId = Guid.NewGuid();
             var paged = new PagedResult<ProdutoDto> { Page = 1, PageSize = 10, TotalCount = 0, Items = new List<ProdutoDto>() };
             _serviceMock
-                .Setup(s => s.SearchPagedAsync(1, 10, empresaId, "tenis", true, false, 50m, 200m, "preco_asc"))
+                .Setup(s => s.SearchPagedAsync(1, 10, empresaId, "tenis", true, false, 50m, 200m, "preco_asc", null))
                 .ReturnsAsync(paged);
 
             var result = await _controller.GetAll(
@@ -77,6 +77,21 @@ namespace api.Tests.Controllers
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             Assert.Same(paged, ok.Value);
             _serviceMock.VerifyAll();
+        }
+
+        [Fact]
+        public async Task GetAll_ComCategoria_DeveRepassarParaOServico()
+        {
+            var categoriaId = Guid.NewGuid();
+            var paged = new PagedResult<ProdutoDto> { Page = 1, PageSize = 10, TotalCount = 0, Items = new List<ProdutoDto>() };
+            _serviceMock
+                .Setup(s => s.SearchPagedAsync(1, 10, null, null, null, null, null, null, null, categoriaId))
+                .ReturnsAsync(paged);
+
+            var result = await _controller.GetAll(1, 10, categoriaId: categoriaId);
+
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            Assert.Same(paged, ok.Value);
         }
 
         // GET /api/produto/{id}

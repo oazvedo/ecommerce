@@ -126,5 +126,29 @@ namespace api.Tests.Services
 
             Assert.False(result);
         }
+
+        [Fact]
+        public async Task UpdateAsync_ComRequest_DeveAtualizarCategoria()
+        {
+            var produto = CriarProduto();
+            var categoriaId = Guid.NewGuid();
+            _repoMock.Setup(r => r.GetByIdAsync(produto.Id)).ReturnsAsync(produto);
+            _repoMock.Setup(r => r.UpdateAsync(produto)).ReturnsAsync(produto);
+            var request = new UpdateProdutoRequest
+            {
+                Nome = produto.Nome,
+                Descricao = produto.Descricao,
+                Codigo = produto.Codigo,
+                Preco = produto.Preco,
+                Status = true,
+                CategoriaId = categoriaId
+            };
+
+            var result = await _service.UpdateAsync(produto.Id, request);
+
+            Assert.NotNull(result);
+            Assert.Equal(categoriaId, result!.CategoriaId);
+            Assert.Equal(categoriaId, produto.CategoriaId);
+        }
     }
 }

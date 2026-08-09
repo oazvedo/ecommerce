@@ -1,4 +1,4 @@
-import { apiFetch } from './client'
+import { apiFetch, apiFetchBlob } from './client'
 import type { Pedido, PagedResult, PedidoStatus, PedidoContratacao, FormaPagamento, RelatorioVendas } from '@/types'
 
 type PedidoItemApi = Partial<Pedido['itens'][number]> & {
@@ -110,4 +110,7 @@ export const pedidosApi = {
     apiFetch<RelatorioVendas>(
       `/pedido/relatorio?data_inicio=${data_inicio}&data_fim=${data_fim}`
     ),
+
+  relatorioCsv: (data_inicio: string, data_fim: string) =>
+    apiFetchBlob(`/pedido/relatorio/csv?data_inicio=${data_inicio}&data_fim=${data_fim}`),
 }
