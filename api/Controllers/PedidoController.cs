@@ -38,6 +38,23 @@ namespace api.Controllers
             }
         }
 
+        [HttpGet("relatorio/csv")]
+        [Authorize(Policy = "Pedido.Read")]
+        public async Task<IActionResult> GetRelatorioCsv([FromQuery] RelatorioPedidoRequest request)
+        {
+            try
+            {
+                var pedidos = await _service.GetPedidosByPeriodo(request.DataInicio, request.DataFim);
+                var csv = PedidoCsvExporter.ToCsv(pedidos);
+                var fileName = $"relatorio-pedidos-{request.DataInicio:yyyy-MM-dd}-a-{request.DataFim:yyyy-MM-dd}.csv";
+                return File(csv, "text/csv", fileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { mensagem = ex.Message });
+            }
+        }
+
         [HttpGet]
         [Authorize(Policy = "Pedido.Read")]
         public async Task<ActionResult<PagedResult<PedidoDto>>> GetAll([FromQuery] PedidoFiltroRequest filtro)

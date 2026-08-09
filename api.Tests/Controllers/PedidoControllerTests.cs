@@ -404,5 +404,40 @@ namespace api.Tests.Controllers
             Assert.Equal(0, value.TotalVendas);
             Assert.Equal(0m, value.TotalValorVendas);
         }
+
+        // GET /api/pedido/relatorio/csv
+
+        [Fact]
+        public async Task GetRelatorioCsv_DeveRetornarArquivoCsv()
+        {
+            var request = new RelatorioPedidoRequest
+            {
+                DataInicio = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                DataFim = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc)
+            };
+            var pedidos = new List<PedidoDto> { new() { Id = Guid.NewGuid(), ValorTotal = 100m, UsuarioNome = "Cliente A" } };
+            _serviceMock.Setup(s => s.GetPedidosByPeriodo(request.DataInicio, request.DataFim))
+                        .ReturnsAsync(pedidos);
+
+            var result = await _controller.GetRelatorioCsv(request);
+
+            var file = Assert.IsType<FileContentResult>(result);
+            Assert.Equal("text/csv", file.ContentType);
+            var content = System.Text.Encoding.UTF8.GetString(file.FileContents);
+            Assert.Contains("Cliente A", content);
+        }
+
+        [Fact]
+        public async Task GetRelatorioCsv_QuandoServicoFalha_DeveRetornar500()
+        {
+            var request = new RelatorioPedidoRequest { DataInicio = DateTime.UtcNow.AddDays(-1), DataFim = DateTime.UtcNow };
+            _serviceMock.Setup(s => s.GetPedidosByPeriodo(request.DataInicio, request.DataFim))
+                        .ThrowsAsync(new InvalidOperationException("falha"));
+
+            var result = await _controller.GetRelatorioCsv(request);
+
+            var status = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(500, status.StatusCode);
+        }
     }
 }
