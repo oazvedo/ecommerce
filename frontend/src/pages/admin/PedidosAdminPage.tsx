@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MoreHorizontal, Trash2, ExternalLink, RefreshCw } from 'lucide-react'
+import { MoreHorizontal, Trash2, ExternalLink, RefreshCw, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -56,6 +57,15 @@ const ALL_STATUSES: { value: PedidoStatus; label: string }[] = [
   { value: 'Cancelado', label: 'Cancelado' },
 ]
 
+function primeiroDiaDoMes() {
+  const hoje = new Date()
+  return new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10)
+}
+
+function hojeISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 export function PedidosAdminPage() {
   const navigate = useNavigate()
   const [result, setResult] = useState<PagedResult<Pedido> | null>(null)
@@ -64,6 +74,9 @@ export function PedidosAdminPage() {
   const [page, setPage] = useState(1)
   const [deleteTarget, setDeleteTarget] = useState<Pedido | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [dataInicio, setDataInicio] = useState(primeiroDiaDoMes)
+  const [dataFim, setDataFim] = useState(hojeISO)
+  const [exportando, setExportando] = useState(false)
 
   useEffect(() => { setPage(1) }, [status])
 
@@ -86,6 +99,23 @@ export function PedidosAdminPage() {
       toast.success('Status atualizado.')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erro ao atualizar status')
+    }
+  }
+
+  async function handleExportarCsv() {
+    setExportando(true)
+    try {
+      const blob = await pedidosApi.relatorioCsv(dataInicio, dataFim)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `relatorio-pedidos-${dataInicio}-a-${dataFim}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao exportar relatório')
+    } finally {
+      setExportando(false)
     }
   }
 
@@ -118,15 +148,35 @@ export function PedidosAdminPage() {
               {result ? `${result.totalCount} pedido(s)` : ''}
             </p>
           </div>
-          <div className="w-48">
-            <Select value={status} onValueChange={v => setStatus(v ?? 'all')}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map(o => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              type="date"
+              value={dataInicio}
+              onChange={e => setDataInicio(e.target.value)}
+              className="w-40"
+              aria-label="Data início"
+            />
+            <Input
+              type="date"
+              value={dataFim}
+              onChange={e => setDataFim(e.target.value)}
+              className="w-40"
+              aria-label="Data fim"
+            />
+            <Button variant="outline" onClick={handleExportarCsv} disabled={exportando}>
+              <Download className="mr-2 h-4 w-4" />
+              {exportando ? 'Exportando...' : 'Exportar CSV'}
+            </Button>
+            <div className="w-48">
+              <Select value={status} onValueChange={v => setStatus(v ?? 'all')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(o => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
