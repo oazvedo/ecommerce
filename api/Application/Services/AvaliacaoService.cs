@@ -27,16 +27,16 @@ namespace api.Application.Services
                 throw new InvalidOperationException("Informe produtoId OU empresaId, nunca os dois nem nenhum.");
 
             // Reavaliar (mesmo usuario + mesmo alvo) atualiza a avaliacao existente em vez de duplicar.
-            var existente = request.ProdutoId.HasValue
-                ? await repository.GetByUsuarioEProdutoAsync(usuarioId, request.ProdutoId.Value)
-                : await repository.GetByUsuarioEEmpresaAsync(usuarioId, request.EmpresaId!.Value);
+            // var existente = request.ProdutoId.HasValue
+            //     ? await repository.GetByUsuarioEProdutoAsync(usuarioId, request.ProdutoId.Value)
+            //     : await repository.GetByUsuarioEEmpresaAsync(usuarioId, request.EmpresaId!.Value);
 
-            if (existente != null)
-            {
-                existente.AtualizarConteudo(request.Nota, request.Comentario);
-                await repository.UpdateAsync(existente);
-                return ToDto(existente);
-            }
+            // if (existente != null)
+            // {
+            //     existente.AtualizarConteudo(request.Nota, request.Comentario);
+            //     await repository.UpdateAsync(existente);
+            //     return ToDto(existente);
+            // }
 
             var nova = new Avaliacao(request.ProdutoId, request.EmpresaId, usuarioId, request.Nota, request.Comentario);
             await repository.AddAsync(nova);

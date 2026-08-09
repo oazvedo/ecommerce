@@ -99,7 +99,12 @@ export function AvaliacoesSection({ alvo }: { alvo: AvaliacaoAlvo }) {
           avaliacoes.map(a => (
             <div key={a.id} className="rounded-lg border border-border bg-background p-3">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold">{a.usuarioNome}</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-sm font-semibold">{a.usuarioNome}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {a.criadoEm ? new Date(a.criadoEm).toLocaleDateString() : '—'}
+                  </span>
+                </div>
                 <div className="flex items-center gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star

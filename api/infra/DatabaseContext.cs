@@ -485,9 +485,8 @@ namespace api.infra
                 entity.HasOne<Empresa>().WithMany().HasForeignKey(a => a.EmpresaId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(a => a.Usuario).WithMany().HasForeignKey(a => a.UsuarioId).OnDelete(DeleteBehavior.Cascade);
 
-                // Um usuario avalia o mesmo produto/loja uma vez só (reavaliar atualiza a nota existente).
-                entity.HasIndex(a => new { a.UsuarioId, a.ProdutoId }).IsUnique().HasFilter("produto_id IS NOT NULL");
-                entity.HasIndex(a => new { a.UsuarioId, a.EmpresaId }).IsUnique().HasFilter("empresa_id IS NOT NULL");
+                // entity.HasIndex(a => new { a.UsuarioId, a.ProdutoId }).IsUnique().HasFilter("produto_id IS NOT NULL");
+                // entity.HasIndex(a => new { a.UsuarioId, a.EmpresaId }).IsUnique().HasFilter("empresa_id IS NOT NULL");
             });
 
             modelBuilder.Entity<AuditoriaLog>(entity =>
