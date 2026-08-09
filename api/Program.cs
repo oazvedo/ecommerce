@@ -23,6 +23,8 @@ using api.Domain;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using api.Application.Handlers.Relatorio;
 using api.Mcp;
+using api.infra.HealthChecks;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -78,6 +80,10 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // handlers
 builder.Services.AddScoped<RelatorioPedidosHandler>();
+
+// health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"]);
 
 // masstransit + rabbitmq
 builder.Services.AddMassTransit(x =>
@@ -172,6 +178,13 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
+    {
+        Title = "Central de Pedidos API",
+        Version = "v1",
+        Description = "API do marketplace Central de Pedidos: usuários, empresas, produtos, pedidos, carteira e permissões."
+    });
+
     var securityScheme = new Microsoft.OpenApi.OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -235,5 +248,14 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapMcp("/mcp");
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
 
 app.Run();
