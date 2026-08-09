@@ -131,6 +131,7 @@ namespace api.Tests.Services
         public async Task UpdateAsync_ComRequest_DeveAtualizarCategoria()
         {
             var produto = CriarProduto();
+            var categoriaId = Guid.NewGuid();
             _repoMock.Setup(r => r.GetByIdAsync(produto.Id)).ReturnsAsync(produto);
             _repoMock.Setup(r => r.UpdateAsync(produto)).ReturnsAsync(produto);
             var request = new UpdateProdutoRequest
@@ -140,24 +141,14 @@ namespace api.Tests.Services
                 Codigo = produto.Codigo,
                 Preco = produto.Preco,
                 Status = true,
-                Categoria = "Eletrônicos"
+                CategoriaId = categoriaId
             };
 
             var result = await _service.UpdateAsync(produto.Id, request);
 
             Assert.NotNull(result);
-            Assert.Equal("Eletrônicos", result!.Categoria);
-            Assert.Equal("Eletrônicos", produto.Categoria);
-        }
-
-        [Fact]
-        public async Task GetCategoriasDistintasAsync_DeveRepassarDoRepositorio()
-        {
-            _repoMock.Setup(r => r.GetCategoriasDistintasAsync()).ReturnsAsync(["Eletrônicos", "Roupas"]);
-
-            var result = await _service.GetCategoriasDistintasAsync();
-
-            Assert.Equal(["Eletrônicos", "Roupas"], result);
+            Assert.Equal(categoriaId, result!.CategoriaId);
+            Assert.Equal(categoriaId, produto.CategoriaId);
         }
     }
 }

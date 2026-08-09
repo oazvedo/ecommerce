@@ -8,11 +8,14 @@ namespace api.infra.repository
     {
         public ProdutoRepository(DatabaseContext context) : base(context) {}
 
+        public override async Task<Produto?> GetByIdAsync(Guid id)
+            => await _dbSet.Include(p => p.CategoriaProduto).FirstOrDefaultAsync(p => p.Id == id);
+
         public async Task<(IEnumerable<Produto> Items, int TotalCount)> SearchPagedAsync(
             int page, int pageSize, Guid? empresaId, string? nome, bool? disponivel, bool? freteGratis,
-            decimal? precoMin, decimal? precoMax, string? orderBy, string? categoria)
+            decimal? precoMin, decimal? precoMax, string? orderBy, Guid? categoriaId)
         {
-            var query = _dbSet.AsNoTracking();
+            IQueryable<Produto> query = _dbSet.AsNoTracking().Include(p => p.CategoriaProduto);
 
             if (empresaId.HasValue)
                 query = query.Where(p => p.EmpresaId == empresaId.Value);
@@ -32,8 +35,8 @@ namespace api.infra.repository
             if (precoMax.HasValue)
                 query = query.Where(p => p.Preco <= precoMax.Value);
 
-            if (!string.IsNullOrWhiteSpace(categoria))
-                query = query.Where(p => p.Categoria != null && EF.Functions.ILike(p.Categoria, categoria));
+            if (categoriaId.HasValue)
+                query = query.Where(p => p.CategoriaId == categoriaId.Value);
 
             query = orderBy switch
             {
@@ -50,16 +53,6 @@ namespace api.infra.repository
                 .ToListAsync();
 
             return (items, totalCount);
-        }
-
-        public async Task<IEnumerable<string>> GetCategoriasDistintasAsync()
-        {
-            return await _dbSet.AsNoTracking()
-                .Where(p => p.Categoria != null && p.Categoria != "")
-                .Select(p => p.Categoria!)
-                .Distinct()
-                .OrderBy(c => c)
-                .ToListAsync();
         }
 
         public async Task<bool> TryDecrementarEstoqueAsync(Guid produtoId, int quantidade)

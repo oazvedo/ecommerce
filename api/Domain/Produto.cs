@@ -40,10 +40,11 @@ namespace api.Domain
         public bool FreteGratis { get; set; }
         public string? Variantes { get; set; }
 
-        [JsonPropertyName("categoria")]
-        public string? Categoria { get; set; }
+        [JsonPropertyName("categoria_id")]
+        public Guid? CategoriaId { get; set; }
 
         public Empresa? Empresa { get; set; }
+        public CategoriaProduto? CategoriaProduto { get; set; }
 
         [SetsRequiredMembers]
         public Produto(string nome, string descricao, decimal preco, string codigo, Guid empresaId, bool status = true)
@@ -70,7 +71,7 @@ namespace api.Domain
             CriadoEm = DateTime.UtcNow;
         }
 
-        public void AtualizarProduto(string nome, string descricao, bool status, string codigo, decimal preco, int estoque, bool freteGratis, string? variantes, string? categoria)
+        public void AtualizarProduto(string nome, string descricao, bool status, string codigo, decimal preco, int estoque, bool freteGratis, string? variantes, Guid? categoriaId)
         {
             Nome = nome;
             Descricao = descricao;
@@ -80,7 +81,7 @@ namespace api.Domain
             Estoque = estoque;
             FreteGratis = freteGratis;
             Variantes = variantes;
-            Categoria = categoria;
+            CategoriaId = categoriaId;
             AtualizadoEm = DateTime.UtcNow;
             ValidarProduto();
         }
