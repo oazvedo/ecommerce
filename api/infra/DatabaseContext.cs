@@ -29,6 +29,7 @@ namespace api.infra
         public DbSet<Avaliacao> Avaliacoes { get; set; }
         public DbSet<AuditoriaLog> AuditoriaLogs { get; set; }
         public DbSet<Favorito> Favoritos { get; set; }
+        public DbSet<CategoriaProduto> CategoriasProduto { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -406,10 +407,9 @@ namespace api.infra
                     .HasColumnName("variantes")
                     .IsRequired(false);
 
-                entity.Property(u => u.Categoria)
-                    .HasColumnName("categoria")
-                    .IsRequired(false)
-                    .HasMaxLength(100);
+                entity.Property(u => u.CategoriaId)
+                    .HasColumnName("categoria_id")
+                    .IsRequired(false);
 
                 entity.Property(u => u.EmpresaId)
                     .HasColumnName("empresa_id")
@@ -419,6 +419,23 @@ namespace api.infra
                     .WithMany(e => e.Produtos)
                     .HasForeignKey(u => u.EmpresaId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(u => u.CategoriaProduto)
+                    .WithMany()
+                    .HasForeignKey(u => u.CategoriaId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<CategoriaProduto>(entity =>
+            {
+                entity.ToTable("categorias_produto");
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Id).HasColumnName("id").IsRequired();
+                entity.Property(c => c.Nome).HasColumnName("nome").IsRequired().HasMaxLength(100);
+                entity.Property(c => c.Ativo).HasColumnName("ativo").IsRequired().HasDefaultValue(true);
+                entity.Property(c => c.CriadoEm).HasColumnName("criado_em").IsRequired();
+
+                entity.HasIndex(c => c.Nome).IsUnique();
             });
 
             modelBuilder.Entity<CargoPermissao>(entity =>

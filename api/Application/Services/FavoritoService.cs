@@ -23,7 +23,8 @@ namespace api.Application.Services
             Estoque = entity.Estoque,
             FreteGratis = entity.FreteGratis,
             Variantes = entity.Variantes,
-            Categoria = entity.Categoria
+            CategoriaId = entity.CategoriaId,
+            CategoriaNome = entity.CategoriaProduto?.Nome
         };
 
         public async Task AdicionarAsync(Guid usuarioId, Guid produtoId)

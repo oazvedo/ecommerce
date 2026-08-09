@@ -82,29 +82,16 @@ namespace api.Tests.Controllers
         [Fact]
         public async Task GetAll_ComCategoria_DeveRepassarParaOServico()
         {
+            var categoriaId = Guid.NewGuid();
             var paged = new PagedResult<ProdutoDto> { Page = 1, PageSize = 10, TotalCount = 0, Items = new List<ProdutoDto>() };
             _serviceMock
-                .Setup(s => s.SearchPagedAsync(1, 10, null, null, null, null, null, null, null, "Eletrônicos"))
+                .Setup(s => s.SearchPagedAsync(1, 10, null, null, null, null, null, null, null, categoriaId))
                 .ReturnsAsync(paged);
 
-            var result = await _controller.GetAll(1, 10, categoria: "Eletrônicos");
+            var result = await _controller.GetAll(1, 10, categoriaId: categoriaId);
 
             var ok = Assert.IsType<OkObjectResult>(result.Result);
             Assert.Same(paged, ok.Value);
-        }
-
-        // GET /api/produto/categorias
-
-        [Fact]
-        public async Task GetCategorias_DeveRetornar200ComListaDoServico()
-        {
-            _serviceMock.Setup(s => s.GetCategoriasDistintasAsync()).ReturnsAsync(["Eletrônicos", "Roupas"]);
-
-            var result = await _controller.GetCategorias();
-
-            var ok = Assert.IsType<OkObjectResult>(result.Result);
-            var value = Assert.IsAssignableFrom<IEnumerable<string>>(ok.Value);
-            Assert.Equal(["Eletrônicos", "Roupas"], value);
         }
 
         // GET /api/produto/{id}

@@ -35,7 +35,7 @@ namespace api.infra.repository
             var query = db.Favoritos.AsNoTracking()
                 .Where(f => f.UsuarioId == usuarioId)
                 .OrderByDescending(f => f.CriadoEm)
-                .Join(db.Produtos, f => f.ProdutoId, p => p.Id, (f, p) => p);
+                .Join(db.Produtos.Include(p => p.CategoriaProduto), f => f.ProdutoId, p => p.Id, (f, p) => p);
 
             var totalCount = await query.CountAsync();
             var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();

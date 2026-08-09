@@ -36,7 +36,7 @@ namespace api.Controllers
             [FromQuery] decimal? precoMin = null,
             [FromQuery] decimal? precoMax = null,
             [FromQuery] string? orderBy = null,
-            [FromQuery] string? categoria = null)
+            [FromQuery] Guid? categoriaId = null)
         {
             try
             {
@@ -46,23 +46,8 @@ namespace api.Controllers
                 // empresaId filtra o catálogo pela loja vendedora; nome busca em nome/codigo.
                 // orderBy aceita: preco_asc, preco_desc, nome_asc (padrão: mais recentes).
                 var produtos = await _service.SearchPagedAsync(
-                    page, pageSize, empresaId, nome, disponivel, freteGratis, precoMin, precoMax, orderBy, categoria);
+                    page, pageSize, empresaId, nome, disponivel, freteGratis, precoMin, precoMax, orderBy, categoriaId);
                 return Ok(produtos);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { mensagem = ex.Message });
-            }
-        }
-
-        [HttpGet("categorias")]
-        [Authorize(Policy = "Produto.Read")]
-        public async Task<ActionResult<IEnumerable<string>>> GetCategorias()
-        {
-            try
-            {
-                var categorias = await _service.GetCategoriasDistintasAsync();
-                return Ok(categorias);
             }
             catch (Exception ex)
             {
@@ -103,7 +88,7 @@ namespace api.Controllers
                     Estoque = request.Estoque,
                     FreteGratis = request.FreteGratis,
                     Variantes = request.Variantes,
-                    Categoria = request.Categoria
+                    CategoriaId = request.CategoriaId
                 };
                 var produto = await _service.CreateAsync(entity);
                 await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Criar", "Produto", produto.Id, usuario.EmpresaId);

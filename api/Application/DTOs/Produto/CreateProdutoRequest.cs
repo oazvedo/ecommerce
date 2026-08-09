@@ -28,8 +28,8 @@ namespace api.Application.DTOs.Produto
         [JsonPropertyName("variantes")]
         public string? Variantes { get; set; }
 
-        [JsonPropertyName("categoria")]
-        public string? Categoria { get; set; }
+        [JsonPropertyName("categoriaId")]
+        public Guid? CategoriaId { get; set; }
     }
 
     public class UpdateProdutoRequest
@@ -58,7 +58,7 @@ namespace api.Application.DTOs.Produto
         [JsonPropertyName("variantes")]
         public string? Variantes { get; set; }
 
-        [JsonPropertyName("categoria")]
-        public string? Categoria { get; set; }
+        [JsonPropertyName("categoriaId")]
+        public Guid? CategoriaId { get; set; }
     }
 }
