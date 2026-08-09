@@ -40,6 +40,9 @@ namespace api.Domain
         public bool FreteGratis { get; set; }
         public string? Variantes { get; set; }
 
+        [JsonPropertyName("categoria")]
+        public string? Categoria { get; set; }
+
         public Empresa? Empresa { get; set; }
 
         [SetsRequiredMembers]
@@ -67,7 +70,7 @@ namespace api.Domain
             CriadoEm = DateTime.UtcNow;
         }
 
-        public void AtualizarProduto(string nome, string descricao, bool status, string codigo, decimal preco, int estoque, bool freteGratis, string? variantes)
+        public void AtualizarProduto(string nome, string descricao, bool status, string codigo, decimal preco, int estoque, bool freteGratis, string? variantes, string? categoria)
         {
             Nome = nome;
             Descricao = descricao;
@@ -77,6 +80,7 @@ namespace api.Domain
             Estoque = estoque;
             FreteGratis = freteGratis;
             Variantes = variantes;
+            Categoria = categoria;
             AtualizadoEm = DateTime.UtcNow;
             ValidarProduto();
         }

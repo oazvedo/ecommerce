@@ -126,5 +126,38 @@ namespace api.Tests.Services
 
             Assert.False(result);
         }
+
+        [Fact]
+        public async Task UpdateAsync_ComRequest_DeveAtualizarCategoria()
+        {
+            var produto = CriarProduto();
+            _repoMock.Setup(r => r.GetByIdAsync(produto.Id)).ReturnsAsync(produto);
+            _repoMock.Setup(r => r.UpdateAsync(produto)).ReturnsAsync(produto);
+            var request = new UpdateProdutoRequest
+            {
+                Nome = produto.Nome,
+                Descricao = produto.Descricao,
+                Codigo = produto.Codigo,
+                Preco = produto.Preco,
+                Status = true,
+                Categoria = "Eletrônicos"
+            };
+
+            var result = await _service.UpdateAsync(produto.Id, request);
+
+            Assert.NotNull(result);
+            Assert.Equal("Eletrônicos", result!.Categoria);
+            Assert.Equal("Eletrônicos", produto.Categoria);
+        }
+
+        [Fact]
+        public async Task GetCategoriasDistintasAsync_DeveRepassarDoRepositorio()
+        {
+            _repoMock.Setup(r => r.GetCategoriasDistintasAsync()).ReturnsAsync(["Eletrônicos", "Roupas"]);
+
+            var result = await _service.GetCategoriasDistintasAsync();
+
+            Assert.Equal(["Eletrônicos", "Roupas"], result);
+        }
     }
 }

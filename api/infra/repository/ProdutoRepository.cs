@@ -10,7 +10,7 @@ namespace api.infra.repository
 
         public async Task<(IEnumerable<Produto> Items, int TotalCount)> SearchPagedAsync(
             int page, int pageSize, Guid? empresaId, string? nome, bool? disponivel, bool? freteGratis,
-            decimal? precoMin, decimal? precoMax, string? orderBy)
+            decimal? precoMin, decimal? precoMax, string? orderBy, string? categoria)
         {
             var query = _dbSet.AsNoTracking();
 
@@ -32,6 +32,9 @@ namespace api.infra.repository
             if (precoMax.HasValue)
                 query = query.Where(p => p.Preco <= precoMax.Value);
 
+            if (!string.IsNullOrWhiteSpace(categoria))
+                query = query.Where(p => p.Categoria != null && EF.Functions.ILike(p.Categoria, categoria));
+
             query = orderBy switch
             {
                 "preco_asc" => query.OrderBy(p => p.Preco),
@@ -47,6 +50,16 @@ namespace api.infra.repository
                 .ToListAsync();
 
             return (items, totalCount);
+        }
+
+        public async Task<IEnumerable<string>> GetCategoriasDistintasAsync()
+        {
+            return await _dbSet.AsNoTracking()
+                .Where(p => p.Categoria != null && p.Categoria != "")
+                .Select(p => p.Categoria!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
         }
 
         public async Task<bool> TryDecrementarEstoqueAsync(Guid produtoId, int quantidade)

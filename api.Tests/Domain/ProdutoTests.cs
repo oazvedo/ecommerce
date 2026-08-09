@@ -35,13 +35,14 @@ namespace api.Tests.Domain
         {
             var produto = new Produto("Produto A", "Descricao A", 99.99m, "COD001", Guid.NewGuid());
 
-            produto.AtualizarProduto("Produto B", "Descricao B", true, "COD002", 199.99m, 5, false, null);
+            produto.AtualizarProduto("Produto B", "Descricao B", true, "COD002", 199.99m, 5, false, null, "Categoria B");
 
             Assert.Equal("Produto B", produto.Nome);
             Assert.Equal("Descricao B", produto.Descricao);
             Assert.Equal("COD002", produto.Codigo);
             Assert.Equal(199.99m, produto.Preco);
             Assert.Equal(5, produto.Estoque);
+            Assert.Equal("Categoria B", produto.Categoria);
             Assert.NotNull(produto.AtualizadoEm);
         }
 
@@ -55,7 +56,7 @@ namespace api.Tests.Domain
         {
             var produto = new Produto("Produto A", "Descricao A", 99.99m, "COD001", Guid.NewGuid());
 
-            Assert.Throws<InvalidOperationException>(() => produto.AtualizarProduto(nome, descricao, true, codigo, preco, 5, false, null));
+            Assert.Throws<InvalidOperationException>(() => produto.AtualizarProduto(nome, descricao, true, codigo, preco, 5, false, null, null));
         }
     }
 }

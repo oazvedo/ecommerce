@@ -7,12 +7,14 @@ namespace api.Domain.Interfaces
     {
         Task<(IEnumerable<Produto> Items, int TotalCount)> SearchPagedAsync(
             int page, int pageSize, Guid? empresaId, string? nome, bool? disponivel, bool? freteGratis,
-            decimal? precoMin, decimal? precoMax, string? orderBy);
+            decimal? precoMin, decimal? precoMax, string? orderBy, string? categoria);
 
         /// <summary>
         /// Baixa atômica de estoque: decrementa só se houver saldo suficiente.
         /// Retorna false se o estoque for insuficiente (protege contra oversell concorrente).
         /// </summary>
         Task<bool> TryDecrementarEstoqueAsync(Guid produtoId, int quantidade);
+
+        Task<IEnumerable<string>> GetCategoriasDistintasAsync();
     }
 }
