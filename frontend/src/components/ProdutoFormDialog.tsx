@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import type { CategoriaProduto, Produto } from '@/types'
+import type {
+  CategoriaProduto,
+  Produto,
+  ProdutoContratacaoPermitida,
+  ProdutoTipo,
+} from '@/types'
+import { MAX_PARCELAS_LIMITE } from '@/types'
 import type { ProdutoPayload } from '@/api/produtos'
 import { categoriasApi } from '@/api/categorias'
 import { resolveImageUrl } from '@/api/upload'
@@ -25,6 +31,17 @@ import {
 
 const SEM_CATEGORIA = 'sem-categoria'
 
+const TIPOS: { value: ProdutoTipo; label: string }[] = [
+  { value: 'Fisico', label: 'Físico (bem)' },
+  { value: 'Servico', label: 'Serviço (assinatura)' },
+]
+
+const CONTRATACOES: { value: ProdutoContratacaoPermitida; label: string }[] = [
+  { value: 'Ambas', label: 'Mensal e anual' },
+  { value: 'Mensal', label: 'Somente mensal' },
+  { value: 'Anual', label: 'Somente anual' },
+]
+
 const EMPTY_FORM: ProdutoPayload = {
   nome: '',
   descricao: '',
@@ -35,6 +52,9 @@ const EMPTY_FORM: ProdutoPayload = {
   freteGratis: false,
   variantes: null,
   categoriaId: null,
+  tipo: 'Fisico',
+  contratacaoPermitida: 'Ambas',
+  maxParcelas: 1,
 }
 
 function toPayload(p: Produto): ProdutoPayload {
@@ -48,6 +68,9 @@ function toPayload(p: Produto): ProdutoPayload {
     freteGratis: p.freteGratis,
     variantes: p.variantes,
     categoriaId: p.categoriaId,
+    tipo: p.tipo,
+    contratacaoPermitida: p.contratacaoPermitida,
+    maxParcelas: p.maxParcelas,
   }
 }
 
@@ -125,8 +148,8 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onCreate, onUpd
             </div>
           )}
           <div className="space-y-1.5">
-            <Label>Nome</Label>
-            <Input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
+            <Label htmlFor="produto-nome">Nome</Label>
+            <Input id="produto-nome" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} />
           </div>
           <div className="space-y-1.5">
             <Label>Descrição</Label>
@@ -134,8 +157,8 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onCreate, onUpd
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Código</Label>
-              <Input value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))} />
+              <Label htmlFor="produto-codigo">Código</Label>
+              <Input id="produto-codigo" value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label>Preço (R$)</Label>
@@ -193,6 +216,73 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onCreate, onUpd
               </SelectContent>
             </Select>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Tipo</Label>
+              <Select
+                value={form.tipo}
+                onValueChange={v =>
+                  setForm(f => ({
+                    ...f,
+                    tipo: (v as ProdutoTipo | null) ?? 'Fisico',
+                    // Contratacao so faz sentido pra servico recorrente; um bem
+                    // fisico volta ao valor neutro pra nao gravar restricao invisivel.
+                    contratacaoPermitida: v === 'Servico' ? f.contratacaoPermitida : 'Ambas',
+                  }))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {v => TIPOS.find(t => t.value === v)?.label ?? 'Físico (bem)'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOS.map(t => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="maxParcelas">Máx. parcelas</Label>
+              <Input
+                id="maxParcelas"
+                type="number"
+                min="0"
+                max={MAX_PARCELAS_LIMITE}
+                value={form.maxParcelas}
+                onChange={e => {
+                  const n = parseInt(e.target.value) || 0
+                  setForm(f => ({ ...f, maxParcelas: Math.min(Math.max(n, 0), MAX_PARCELAS_LIMITE) }))
+                }}
+              />
+              <p className="text-xs text-muted-foreground">0 ou 1 = somente à vista.</p>
+            </div>
+          </div>
+
+          {form.tipo === 'Servico' && (
+            <div className="space-y-1.5">
+              <Label>Contratação permitida</Label>
+              <Select
+                value={form.contratacaoPermitida}
+                onValueChange={v =>
+                  setForm(f => ({ ...f, contratacaoPermitida: (v as ProdutoContratacaoPermitida | null) ?? 'Ambas' }))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {v => CONTRATACOES.find(c => c.value === v)?.label ?? 'Mensal e anual'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {CONTRATACOES.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <Label>Ativo</Label>
             <Switch checked={form.status} onCheckedChange={v => setForm(f => ({ ...f, status: v }))} />

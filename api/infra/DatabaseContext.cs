@@ -411,6 +411,26 @@ namespace api.infra
                     .HasColumnName("categoria_id")
                     .IsRequired(false);
 
+                entity.Property(u => u.Tipo)
+                    .HasColumnName("tipo")
+                    .IsRequired()
+                    .HasDefaultValue(ProdutoTipoEnum.Fisico)
+                    .HasConversion<int>();
+
+                entity.Property(u => u.ContratacaoPermitida)
+                    .HasColumnName("contratacao_permitida")
+                    .IsRequired()
+                    .HasDefaultValue(ProdutoContratacaoPermitidaEnum.Ambas)
+                    .HasConversion<int>();
+
+                entity.Property(u => u.MaxParcelas)
+                    .HasColumnName("max_parcelas")
+                    .IsRequired()
+                    .HasDefaultValue(1)
+                    // Sem sentinela, o CLR default (0 = "somente a vista") seria
+                    // confundido com "nao informado" e o default do banco (1) entraria no lugar.
+                    .HasSentinel(-1);
+
                 entity.Property(u => u.EmpresaId)
                     .HasColumnName("empresa_id")
                     .IsRequired();

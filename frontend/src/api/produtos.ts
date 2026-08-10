@@ -1,5 +1,10 @@
 import { apiFetch } from './client'
-import type { Produto, PagedResult } from '@/types'
+import type {
+  Produto,
+  PagedResult,
+  ProdutoContratacaoPermitida,
+  ProdutoTipo,
+} from '@/types'
 
 export interface ProdutoPayload {
   nome: string
@@ -11,6 +16,10 @@ export interface ProdutoPayload {
   freteGratis: boolean
   variantes: string | null
   categoriaId: string | null
+  tipo: ProdutoTipo
+  contratacaoPermitida: ProdutoContratacaoPermitida
+  /** 0 ou 1 = somente a vista. */
+  maxParcelas: number
 }
 
 export type ProdutoOrderBy = 'preco_asc' | 'preco_desc' | 'nome_asc'

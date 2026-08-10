@@ -1,11 +1,18 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+using api.Domain.Enums;
 using Newtonsoft.Json;
 
 namespace api.Domain
 {
     public class Produto
     {
+        /// <summary>
+        /// Teto absoluto de parcelas aceito pela plataforma — a loja escolhe
+        /// qualquer valor entre 0 (a vista) e este limite.
+        /// </summary>
+        public const int MaxParcelasLimite = 24;
+
         [JsonPropertyName("id")]
         public Guid Id { get; set; }
 
@@ -40,6 +47,19 @@ namespace api.Domain
         public bool FreteGratis { get; set; }
         public string? Variantes { get; set; }
 
+        [JsonPropertyName("tipo")]
+        public ProdutoTipoEnum Tipo { get; set; } = ProdutoTipoEnum.Fisico;
+
+        [JsonPropertyName("contratacao_permitida")]
+        public ProdutoContratacaoPermitidaEnum ContratacaoPermitida { get; set; } = ProdutoContratacaoPermitidaEnum.Ambas;
+
+        /// <summary>
+        /// Numero maximo de parcelas que a loja aceita para este produto.
+        /// 0 ou 1 significam "somente a vista".
+        /// </summary>
+        [JsonPropertyName("max_parcelas")]
+        public int MaxParcelas { get; set; } = 1;
+
         [JsonPropertyName("categoria_id")]
         public Guid? CategoriaId { get; set; }
 
@@ -71,7 +91,7 @@ namespace api.Domain
             CriadoEm = DateTime.UtcNow;
         }
 
-        public void AtualizarProduto(string nome, string descricao, bool status, string codigo, decimal preco, int estoque, bool freteGratis, string? variantes, Guid? categoriaId)
+        public void AtualizarProduto(string nome, string descricao, bool status, string codigo, decimal preco, int estoque, bool freteGratis, string? variantes, Guid? categoriaId, ProdutoTipoEnum tipo, ProdutoContratacaoPermitidaEnum contratacaoPermitida, int maxParcelas)
         {
             Nome = nome;
             Descricao = descricao;
@@ -82,6 +102,9 @@ namespace api.Domain
             FreteGratis = freteGratis;
             Variantes = variantes;
             CategoriaId = categoriaId;
+            Tipo = tipo;
+            ContratacaoPermitida = contratacaoPermitida;
+            MaxParcelas = maxParcelas;
             AtualizadoEm = DateTime.UtcNow;
             ValidarProduto();
         }
@@ -99,6 +122,15 @@ namespace api.Domain
 
             if (this.Preco <= 0)
                 throw new InvalidOperationException("Valor do produto deve ser maior que zero");
+
+            if (!Enum.IsDefined(Tipo))
+                throw new InvalidOperationException("Tipo do produto invalido.");
+
+            if (!Enum.IsDefined(ContratacaoPermitida))
+                throw new InvalidOperationException("Contratacao permitida invalida.");
+
+            if (MaxParcelas < 0 || MaxParcelas > MaxParcelasLimite)
+                throw new InvalidOperationException($"Numero maximo de parcelas deve estar entre 0 e {MaxParcelasLimite}.");
         }
     }
 }

@@ -1,6 +1,7 @@
 using api.Application.Services;
 using api.Application.DTOs.Produto;
 using api.Domain;
+using api.Domain.Enums;
 using api.Domain.Interfaces;
 using Moq;
 using Xunit;
@@ -149,6 +150,50 @@ namespace api.Tests.Services
             Assert.NotNull(result);
             Assert.Equal(categoriaId, result!.CategoriaId);
             Assert.Equal(categoriaId, produto.CategoriaId);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ComRequest_DeveAtualizarTipoERegrasDeContratacao()
+        {
+            var produto = CriarProduto();
+            _repoMock.Setup(r => r.GetByIdAsync(produto.Id)).ReturnsAsync(produto);
+            _repoMock.Setup(r => r.UpdateAsync(produto)).ReturnsAsync(produto);
+            var request = new UpdateProdutoRequest
+            {
+                Nome = produto.Nome,
+                Descricao = produto.Descricao,
+                Codigo = produto.Codigo,
+                Preco = produto.Preco,
+                Status = true,
+                Tipo = ProdutoTipoEnum.Servico,
+                ContratacaoPermitida = ProdutoContratacaoPermitidaEnum.Mensal,
+                MaxParcelas = 6
+            };
+
+            var result = await _service.UpdateAsync(produto.Id, request);
+
+            Assert.NotNull(result);
+            Assert.Equal(ProdutoTipoEnum.Servico, result!.Tipo);
+            Assert.Equal(ProdutoContratacaoPermitidaEnum.Mensal, result.ContratacaoPermitida);
+            Assert.Equal(6, result.MaxParcelas);
+        }
+
+        [Fact]
+        public async Task UpdateAsync_ComMaxParcelasInvalido_DeveLancarInvalidOperationException()
+        {
+            var produto = CriarProduto();
+            _repoMock.Setup(r => r.GetByIdAsync(produto.Id)).ReturnsAsync(produto);
+            var request = new UpdateProdutoRequest
+            {
+                Nome = produto.Nome,
+                Descricao = produto.Descricao,
+                Codigo = produto.Codigo,
+                Preco = produto.Preco,
+                Status = true,
+                MaxParcelas = Produto.MaxParcelasLimite + 1
+            };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _service.UpdateAsync(produto.Id, request));
         }
     }
 }

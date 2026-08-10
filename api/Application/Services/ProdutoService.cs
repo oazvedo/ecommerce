@@ -34,7 +34,10 @@ namespace api.Application.Services
             FreteGratis = entity.FreteGratis,
             Variantes = entity.Variantes,
             CategoriaId = entity.CategoriaId,
-            CategoriaNome = entity.CategoriaProduto?.Nome
+            CategoriaNome = entity.CategoriaProduto?.Nome,
+            Tipo = entity.Tipo,
+            ContratacaoPermitida = entity.ContratacaoPermitida,
+            MaxParcelas = entity.MaxParcelas
         };
 
         public async Task<ProdutoDto?> UpdateAsync(Guid id, UpdateProdutoRequest request)
@@ -42,7 +45,7 @@ namespace api.Application.Services
             var produto = await _repository.GetByIdAsync(id);
             if (produto == null) return null;
 
-            produto.AtualizarProduto(request.Nome, request.Descricao, request.Status, request.Codigo, request.Preco, request.Estoque, request.FreteGratis, request.Variantes, request.CategoriaId);
+            produto.AtualizarProduto(request.Nome, request.Descricao, request.Status, request.Codigo, request.Preco, request.Estoque, request.FreteGratis, request.Variantes, request.CategoriaId, request.Tipo, request.ContratacaoPermitida, request.MaxParcelas);
             await _repository.UpdateAsync(produto);
             return ToDto(produto);
         }

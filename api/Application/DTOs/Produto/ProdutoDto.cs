@@ -1,3 +1,5 @@
+using api.Domain.Enums;
+
 namespace api.Application.DTOs.Produto
 {
     public class ProdutoDto
@@ -17,6 +19,9 @@ namespace api.Application.DTOs.Produto
         public string? Variantes { get; set; }
         public Guid? CategoriaId { get; set; }
         public string? CategoriaNome { get; set; }
+        public ProdutoTipoEnum Tipo { get; set; }
+        public ProdutoContratacaoPermitidaEnum ContratacaoPermitida { get; set; }
+        public int MaxParcelas { get; set; }
         public double NotaMedia { get; set; }
         public int TotalAvaliacoes { get; set; }
     }

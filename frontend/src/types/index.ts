@@ -18,6 +18,15 @@ export interface Usuario {
   atualizado_em: string | null
 }
 
+/** Fisico = bem entregue uma vez; Servico = assinatura/recorrente. */
+export type ProdutoTipo = 'Fisico' | 'Servico'
+
+/** Contratacoes que a loja aceita para o produto. */
+export type ProdutoContratacaoPermitida = 'Mensal' | 'Anual' | 'Ambas'
+
+/** Teto de parcelas aceito pela plataforma (espelha Produto.MaxParcelasLimite na API). */
+export const MAX_PARCELAS_LIMITE = 24
+
 export interface Produto {
   id: string
   nome: string
@@ -36,6 +45,10 @@ export interface Produto {
   categoriaNome: string | null
   notaMedia: number
   totalAvaliacoes: number
+  tipo: ProdutoTipo
+  contratacaoPermitida: ProdutoContratacaoPermitida
+  /** 0 ou 1 = somente a vista. */
+  maxParcelas: number
 }
 
 export interface CategoriaProduto {
