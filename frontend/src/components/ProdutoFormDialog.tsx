@@ -173,7 +173,18 @@ export function ProdutoFormDialog({ open, onOpenChange, produto, onCreate, onUpd
               value={form.categoriaId ?? SEM_CATEGORIA}
               onValueChange={v => setForm(f => ({ ...f, categoriaId: v === SEM_CATEGORIA ? null : v ?? null }))}
             >
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full">
+                {/* Base UI renderiza o próprio value (o id) por padrão — mapeamos para o nome. */}
+                <SelectValue>
+                  {v =>
+                    v === SEM_CATEGORIA
+                      ? 'Sem categoria'
+                      // Enquanto as categorias carregam (ou se a do produto estiver inativa),
+                      // cai no nome que já veio com o produto.
+                      : categorias.find(c => c.id === v)?.nome ?? produto?.categoriaNome ?? 'Sem categoria'
+                  }
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value={SEM_CATEGORIA}>Sem categoria</SelectItem>
                 {categorias.map(c => (
