@@ -308,11 +308,22 @@ Policy: `Usuario.Delete`
   "preco": 99.90,
   "empresaId": "uuid",
   "criadoEm": "2024-01-15T10:00:00Z",
-  "atualizadoEm": null
+  "atualizadoEm": null,
+  "tipo": "Fisico",
+  "contratacaoPermitida": "Ambas",
+  "maxParcelas": 1
 }
 ```
 
 > `status: true` = active/available for purchase. Filter out `false` items on the catalog page.
+
+**Product configuration** (set by the seller, enforced on order creation by issue #53):
+
+| Field | Values | Meaning |
+|---|---|---|
+| `tipo` | `Fisico`, `Servico` | Physical good vs. subscription/recurring service. |
+| `contratacaoPermitida` | `Mensal`, `Anual`, `Ambas` | Which `contratacao` values the product accepts on an order. |
+| `maxParcelas` | `0`–`24` | Max installments the store allows; `0` or `1` means cash only (à vista). |
 
 ---
 
@@ -343,11 +354,21 @@ Policy: `Produto.Create` — `empresaId` is derived from the authenticated user'
   "descricao": "Descrição do produto",
   "preco": 99.90,
   "codigo": "COD-001",
-  "status": true
+  "status": true,
+  "estoque": 10,
+  "freteGratis": false,
+  "variantes": null,
+  "categoriaId": null,
+  "tipo": "Fisico",
+  "contratacaoPermitida": "Ambas",
+  "maxParcelas": 1
 }
 ```
 
+> `tipo`, `contratacaoPermitida` and `maxParcelas` are optional — they default to `Fisico` / `Ambas` / `1`.
+
 **Response `201`** — created produto object.  
+**Response `400`** `{ "mensagem": "..." }` — invalid fields (e.g. `maxParcelas` outside `0`–`24`).  
 **Response `404`** `{ "mensagem": "Usuário não encontrado." }`
 
 ---
@@ -358,6 +379,7 @@ Policy: `Produto.Update`
 **Request** — same shape as `POST /produto`.
 
 **Response `200`** — updated produto object.  
+**Response `400`** `{ "mensagem": "..." }` — invalid fields.  
 **Response `404`** `{ "mensagem": "Produto não encontrado." }`
 
 ---

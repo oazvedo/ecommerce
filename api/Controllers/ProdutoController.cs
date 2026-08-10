@@ -88,11 +88,21 @@ namespace api.Controllers
                     Estoque = request.Estoque,
                     FreteGratis = request.FreteGratis,
                     Variantes = request.Variantes,
-                    CategoriaId = request.CategoriaId
+                    CategoriaId = request.CategoriaId,
+                    Tipo = request.Tipo,
+                    ContratacaoPermitida = request.ContratacaoPermitida,
+                    MaxParcelas = request.MaxParcelas
                 };
+                // Os campos acima sao atribuidos depois do construtor, que ja rodou
+                // ValidarProduto — revalida pra rejeitar tipo/contratacao/parcelas invalidos.
+                entity.ValidarProduto();
                 var produto = await _service.CreateAsync(entity);
                 await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Criar", "Produto", produto.Id, usuario.EmpresaId);
                 return CreatedAtAction(nameof(GetProdutoById), new { id = produto.Id }, produto);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
             }
             catch (Exception ex)
             {
@@ -112,6 +122,10 @@ namespace api.Controllers
 
                 await _auditoriaService.RegistrarAsync(User.GetId(), User.GetNome() ?? "", "Atualizar", "Produto", produto.Id, produto.EmpresaId);
                 return Ok(produto);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { mensagem = ex.Message });
             }
             catch (Exception ex)
             {
