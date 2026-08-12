@@ -26,17 +26,22 @@ import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { pedidosApi } from '@/api/pedidos'
 import { carteiraApi } from '@/api/carteira'
-import type { Carteira } from '@/types'
+import type { Carteira, CartItem } from '@/types'
 import type { PedidoContratacao } from '@/types'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 type FormaPagamento = 'Carteira' | 'Parcelado'
 
-const PARCELAS_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-
 function formatBRL(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function gerarOpcoesParcelas(items: CartItem[]) {
+  if (items.length === 0) return []
+  const maxParcelas = Math.min(...items.map(i => i.produto.maxParcelas))
+  if (maxParcelas <= 1) return []
+  return Array.from({ length: maxParcelas - 1 }, (_, i) => i + 2)
 }
 
 export function CheckoutPage() {
@@ -61,6 +66,13 @@ export function CheckoutPage() {
   useEffect(() => {
     if (contratacao === 'Anual') setFormaPagamento('Carteira')
   }, [contratacao])
+
+  useEffect(() => {
+    const maxParcelas = gerarOpcoesParcelas(items)
+    if (maxParcelas.length > 0 && parcelas > Math.max(...maxParcelas)) {
+      setParcelas(Math.max(...maxParcelas))
+    }
+  }, [items])
 
   const saldo = carteira?.saldo ?? 0
   const saldoSuficiente = saldo >= total
@@ -293,7 +305,7 @@ export function CheckoutPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {PARCELAS_OPTIONS.map(n => (
+                            {gerarOpcoesParcelas(items).map((n: number) => (
                               <SelectItem key={n} value={String(n)}>
                                 {n}× de {formatBRL(total / n)}
                               </SelectItem>
