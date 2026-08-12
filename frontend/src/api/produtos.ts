@@ -16,7 +16,6 @@ export interface ProdutoPayload {
   freteGratis: boolean
   variantes: string | null
   categoriaId: string | null
-  parcelasMaximas: number | null
   tipo: ProdutoTipo
   contratacaoPermitida: ProdutoContratacaoPermitida
   /** 0 ou 1 = somente a vista. */

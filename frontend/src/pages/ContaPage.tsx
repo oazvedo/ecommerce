@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import { KeyRound } from 'lucide-react'
-import { Navbar } from '@/components/Navbar'
 import { ImageUpload } from '@/components/ImageUpload'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,7 +30,6 @@ export function ContaPage() {
   if (!usuario) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <main className="mx-auto max-w-2xl px-4 py-16 text-center text-muted-foreground">
           Carregando...
         </main>
@@ -76,8 +74,6 @@ export function ContaPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <main className="mx-auto max-w-2xl space-y-6 px-4 py-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">Conta</p>

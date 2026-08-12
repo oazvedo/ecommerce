@@ -18,7 +18,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Navbar } from '@/components/Navbar'
 import { StarRating } from '@/components/StarRating'
 import { AvaliacoesSection } from '@/components/AvaliacoesSection'
 import { FavoritoButton } from '@/components/FavoritoButton'
@@ -88,7 +87,6 @@ export function ProductDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <main className="mx-auto max-w-6xl px-4 py-6">
           <Skeleton className="h-[520px] w-full rounded-xl" />
         </main>
@@ -99,7 +97,6 @@ export function ProductDetailPage() {
   if (!produto) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <main className="mx-auto max-w-4xl px-4 py-16 text-center text-muted-foreground">
           Produto não encontrado.
         </main>
@@ -113,8 +110,6 @@ export function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-5">
           <ArrowLeft className="h-4 w-4" />

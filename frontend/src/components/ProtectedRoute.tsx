@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { MainLayout } from './MainLayout'
 import type { Role } from '@/context/AuthContext'
 
 export function ProtectedRoute({
@@ -24,5 +25,5 @@ export function ProtectedRoute({
   if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/" replace />
   if (requirePermission && !hasPermission(requirePermission)) return <Navigate to="/" replace />
 
-  return <>{children}</>
+  return <MainLayout>{children}</MainLayout>
 }

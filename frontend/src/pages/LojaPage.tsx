@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, PackageSearch, Store } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Navbar } from '@/components/Navbar'
 import { ProductCard } from '@/components/ProductCard'
 import { Pagination } from '@/components/Pagination'
 import { StarRating } from '@/components/StarRating'
@@ -54,8 +53,6 @@ export function LojaPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <main className="mx-auto max-w-7xl px-4 py-6">
         <Button variant="ghost" size="sm" asChild className="mb-5">
           <Link to="/">

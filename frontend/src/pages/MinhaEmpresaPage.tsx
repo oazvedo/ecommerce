@@ -5,7 +5,6 @@ import { empresasApi } from '@/api/empresas'
 import { usuariosApi } from '@/api/usuarios'
 import { produtosApi } from '@/api/produtos'
 import type { Empresa, Usuario, Produto, PagedResult } from '@/types'
-import { Navbar } from '@/components/Navbar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -320,7 +319,6 @@ export function MinhaEmpresaPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <main className="mx-auto max-w-3xl px-4 py-8 space-y-6">
         {isFilialView && (
           <Button variant="ghost" size="sm" asChild className="-ml-2">

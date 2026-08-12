@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Navbar } from '@/components/Navbar'
 import { pedidosApi } from '@/api/pedidos'
 import type { Pedido, PedidoStatus } from '@/types'
 import { cn } from '@/lib/utils'
@@ -111,7 +110,6 @@ export function OrderDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <main className="mx-auto max-w-2xl px-4 py-8 space-y-4">
           <Skeleton className="h-10 w-28 rounded-lg" />
           <Skeleton className="h-48 rounded-xl" />
@@ -124,7 +122,6 @@ export function OrderDetailPage() {
   if (!pedido) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <main className="mx-auto max-w-2xl px-4 py-16 text-center text-muted-foreground">
           Pedido não encontrado.
         </main>
@@ -134,7 +131,6 @@ export function OrderDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <main className="mx-auto max-w-2xl px-4 py-6 space-y-4">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-1 h-4 w-4" />

@@ -21,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Navbar } from '@/components/Navbar'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { pedidosApi } from '@/api/pedidos'
@@ -110,36 +109,30 @@ export function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="mx-auto max-w-2xl px-4 py-16 text-center text-muted-foreground">
-          <p className="text-lg">Seu carrinho está vazio.</p>
-          <Button className="mt-4" onClick={() => navigate('/')}>Explorar Produtos</Button>
-        </main>
-      </div>
+      <main className="mx-auto max-w-2xl px-4 py-16 text-center text-muted-foreground">
+        <p className="text-lg">Seu carrinho está vazio.</p>
+        <Button className="mt-4" onClick={() => navigate('/')}>Explorar Produtos</Button>
+      </main>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="mx-auto max-w-6xl px-4 py-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-5">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
+    <main className="mx-auto max-w-6xl px-4 py-6">
+      <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-5">
+        <ArrowLeft className="h-4 w-4" />
+        Voltar
+      </Button>
 
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Finalizar Pedido</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {items.length} item{items.length !== 1 ? 's' : ''} no carrinho
-          </p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Finalizar Pedido</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {items.length} item{items.length !== 1 ? 's' : ''} no carrinho
+        </p>
+      </div>
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
-
-          {/* ── Coluna esquerda ── */}
-          <div className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+        {/* ── Coluna esquerda ── */}
+        <div className="space-y-5">
 
             {/* Itens */}
             <Card>
@@ -331,10 +324,10 @@ export function CheckoutPage() {
                 </CardContent>
               </Card>
             )}
-          </div>
+        </div>
 
-          {/* ── Coluna direita (sticky) ── */}
-          <aside className="h-fit space-y-4 lg:sticky lg:top-28">
+        {/* ── Coluna direita (sticky) ── */}
+        <aside className="h-fit space-y-4 lg:sticky lg:top-28">
 
             {/* Saldo — para Anual */}
             {!isMensal && (
@@ -423,7 +416,6 @@ export function CheckoutPage() {
             </Button>
           </aside>
         </div>
-      </main>
-    </div>
+    </main>
   )
 }

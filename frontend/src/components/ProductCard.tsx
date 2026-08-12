@@ -95,7 +95,7 @@ export function ProductCard({ produto }: { produto: Produto }) {
         </div>
       </Link>
 
-      <CardContent className="flex flex-1 flex-col p-4">
+      <CardContent className="flex flex-1 flex-col p-3 sm:p-4">
         <Link to={`/produto/${produto.id}`}>
           <p className="line-clamp-2 text-base font-semibold leading-tight transition-colors hover:text-primary">
             {produto.nome}
@@ -127,12 +127,12 @@ export function ProductCard({ produto }: { produto: Produto }) {
           </div>
         )}
 
-        <p className="mt-3 text-xl font-black tracking-tight">
+        <p className="mt-3 text-lg font-black tracking-tight sm:text-xl">
           {produto.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
         </p>
       </CardContent>
 
-      <CardFooter className="border-t bg-muted/30 p-3">
+      <CardFooter className="border-t bg-muted/30 p-2 sm:p-3">
         <Button
           size="lg"
           className="h-10 w-full font-semibold"
@@ -140,7 +140,8 @@ export function ProductCard({ produto }: { produto: Produto }) {
           onClick={handleAdd}
         >
           <ShoppingCart className="h-4 w-4" />
-          {outOfStock ? 'Indisponível' : 'Adicionar ao carrinho'}
+          <span className="sm:hidden">{outOfStock ? 'Indisponível' : 'Adicionar'}</span>
+          <span className="hidden sm:inline">{outOfStock ? 'Indisponível' : 'Adicionar ao carrinho'}</span>
         </Button>
       </CardFooter>
     </Card>
