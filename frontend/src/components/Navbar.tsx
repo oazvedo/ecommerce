@@ -1,6 +1,6 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
-import { Building2, Heart, Home, LayoutDashboard, LogOut, Moon, Package, Search, Settings, ShoppingCart, Sparkles, Sun, Wallet } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState, type FormEvent } from 'react'
+import { Building2, LayoutDashboard, LogOut, Moon, Package, Search, Settings, ShoppingCart, Sparkles, Sun, Wallet } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import {
@@ -20,11 +20,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { CartSheet } from './CartSheet'
 
 export function Navbar() {
-  const { user, usuario, logout, isLojista, isAdmin } = useAuth()
+  const { user, usuario, logout, isAdmin, isLojista } = useAuth()
   const { totalItems } = useCart()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
-  const location = useLocation()
   const [query, setQuery] = useState('')
 
   async function handleLogout() {
@@ -45,26 +44,13 @@ export function Navbar() {
       .join('')
       .toUpperCase() ?? 'U'
 
-  const navItems = [
-    { to: '/', label: 'Início', icon: <Home className="h-3.5 w-3.5" /> },
-    { to: '/meus-pedidos', label: 'Meus Pedidos', icon: <Package className="h-3.5 w-3.5" /> },
-    { to: '/favoritos', label: 'Favoritos', icon: <Heart className="h-3.5 w-3.5" /> },
-    { to: '/carteira', label: 'Carteira', icon: <Wallet className="h-3.5 w-3.5" /> },
-    ...(isLojista || isAdmin
-      ? [{ to: '/minha-empresa', label: 'Minha Loja', icon: <Building2 className="h-3.5 w-3.5" /> }]
-      : []),
-    ...(isAdmin
-      ? [{ to: '/admin', label: 'Admin', icon: <LayoutDashboard className="h-3.5 w-3.5" /> }]
-      : []),
-  ]
-
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/90 shadow-sm shadow-foreground/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
-      <div className="mx-auto max-w-7xl px-4 py-3">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto max-w-full px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
           <Link
             to="/"
-            className="group flex shrink-0 items-center gap-2 rounded-xl px-1 py-1 transition-colors hover:text-primary"
+            className="group flex shrink-0 items-center gap-2 rounded-xl px-2 py-1 transition-colors hover:text-primary"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
               <Package className="h-5 w-5" />
@@ -72,22 +58,9 @@ export function Navbar() {
             <span className="hidden text-lg font-black tracking-tight sm:inline">Fluxus</span>
           </Link>
 
-          <nav className="hidden items-center gap-1 rounded-xl border border-border bg-card/70 p-1 lg:flex">
-            {navItems.map(item => (
-              <NavLinkItem
-                key={item.to}
-                to={item.to}
-                active={isActiveRoute(location.pathname, item.to)}
-              >
-                {item.icon}
-                {item.label}
-              </NavLinkItem>
-            ))}
-          </nav>
-
           <form
             onSubmit={handleSearch}
-            className="ml-auto flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 shadow-sm transition-colors focus-within:border-primary/50 focus-within:ring-3 focus-within:ring-primary/15 lg:max-w-md xl:max-w-xl"
+            className="hidden h-10 min-w-0 items-center gap-2 rounded-xl border border-border bg-card px-3 shadow-sm transition-colors focus-within:border-primary/50 focus-within:ring-3 focus-within:ring-primary/15 lg:flex lg:w-80 xl:w-96"
           >
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
@@ -106,7 +79,7 @@ export function Navbar() {
             </button>
           </form>
 
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1 lg:gap-2">
             <button
               onClick={toggleTheme}
               className={cn(
@@ -182,7 +155,7 @@ export function Navbar() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/minha-empresa')} className="cursor-pointer">
                       <Building2 className="mr-2 h-4 w-4" />
-                      Minha Loja
+                      Minha Empresa
                     </DropdownMenuItem>
                   </>
                 )}
@@ -213,48 +186,7 @@ export function Navbar() {
             </DropdownMenu>
           </div>
         </div>
-
-        <nav className="mt-3 flex gap-1 overflow-x-auto lg:hidden">
-          {navItems.map(item => (
-            <NavLinkItem
-              key={item.to}
-              to={item.to}
-              active={isActiveRoute(location.pathname, item.to)}
-            >
-              {item.icon}
-              {item.label}
-            </NavLinkItem>
-          ))}
-        </nav>
       </div>
     </header>
-  )
-}
-
-function isActiveRoute(pathname: string, to: string) {
-  return to === '/' ? pathname === '/' : pathname.startsWith(to)
-}
-
-function NavLinkItem({
-  to,
-  active,
-  children,
-}: {
-  to: string
-  active: boolean
-  children: ReactNode
-}) {
-  return (
-    <Link
-      to={to}
-      className={cn(
-        'flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors',
-        active
-          ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-          : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-      )}
-    >
-      {children}
-    </Link>
   )
 }

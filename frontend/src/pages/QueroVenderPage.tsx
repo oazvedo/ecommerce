@@ -4,7 +4,6 @@ import { Store, Sparkles, Package, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Navbar } from '@/components/Navbar'
 import { empresasApi } from '@/api/empresas'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from 'sonner'
@@ -48,8 +47,6 @@ export function QueroVenderPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <main className="mx-auto max-w-3xl px-4 py-10">
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
           <div className="flex items-center gap-2 text-primary">

@@ -32,8 +32,8 @@ function App() {
   return (
     <AuthProvider>
       <FavoritosProvider>
-      <CartProvider>
-        <Routes>
+        <CartProvider>
+          <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route
@@ -215,8 +215,8 @@ function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        <Toaster position="top-right" />
-      </CartProvider>
+          <Toaster position="top-right" />
+        </CartProvider>
       </FavoritosProvider>
     </AuthProvider>
   )

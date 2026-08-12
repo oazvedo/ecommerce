@@ -36,9 +36,6 @@ export interface ProdutoListFilters {
 }
 
 export const produtosApi = {
-  // empresaId filtra o catálogo pela loja vendedora (Fase 4 — catálogo por loja).
-  // nome busca por nome/código; disponivel e freteGratis filtram por status/frete;
-  // precoMin/precoMax filtram por faixa de preço; orderBy ordena o resultado.
   list: (page = 1, pageSize = 12, filters: ProdutoListFilters = {}) => {
     const q = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
     if (filters.empresaId) q.set('empresaId', filters.empresaId)

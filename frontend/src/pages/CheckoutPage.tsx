@@ -21,22 +21,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Navbar } from '@/components/Navbar'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import { pedidosApi } from '@/api/pedidos'
 import { carteiraApi } from '@/api/carteira'
-import type { Carteira } from '@/types'
+import type { Carteira, CartItem } from '@/types'
 import type { PedidoContratacao } from '@/types'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 type FormaPagamento = 'Carteira' | 'Parcelado'
 
-const PARCELAS_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-
 function formatBRL(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function gerarOpcoesParcelas(items: CartItem[]) {
+  if (items.length === 0) return []
+  const maxParcelas = Math.min(...items.map(i => i.produto.maxParcelas))
+  if (maxParcelas <= 1) return []
+  return Array.from({ length: maxParcelas - 1 }, (_, i) => i + 2)
 }
 
 export function CheckoutPage() {
@@ -61,6 +65,13 @@ export function CheckoutPage() {
   useEffect(() => {
     if (contratacao === 'Anual') setFormaPagamento('Carteira')
   }, [contratacao])
+
+  useEffect(() => {
+    const maxParcelas = gerarOpcoesParcelas(items)
+    if (maxParcelas.length > 0 && parcelas > Math.max(...maxParcelas)) {
+      setParcelas(Math.max(...maxParcelas))
+    }
+  }, [items])
 
   const saldo = carteira?.saldo ?? 0
   const saldoSuficiente = saldo >= total
@@ -98,36 +109,30 @@ export function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="mx-auto max-w-2xl px-4 py-16 text-center text-muted-foreground">
-          <p className="text-lg">Seu carrinho está vazio.</p>
-          <Button className="mt-4" onClick={() => navigate('/')}>Explorar Produtos</Button>
-        </main>
-      </div>
+      <main className="mx-auto max-w-2xl px-4 py-16 text-center text-muted-foreground">
+        <p className="text-lg">Seu carrinho está vazio.</p>
+        <Button className="mt-4" onClick={() => navigate('/')}>Explorar Produtos</Button>
+      </main>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="mx-auto max-w-6xl px-4 py-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-5">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
+    <main className="mx-auto max-w-6xl px-4 py-6">
+      <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="mb-5">
+        <ArrowLeft className="h-4 w-4" />
+        Voltar
+      </Button>
 
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Finalizar Pedido</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {items.length} item{items.length !== 1 ? 's' : ''} no carrinho
-          </p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Finalizar Pedido</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {items.length} item{items.length !== 1 ? 's' : ''} no carrinho
+        </p>
+      </div>
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
-
-          {/* ── Coluna esquerda ── */}
-          <div className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+        {/* ── Coluna esquerda ── */}
+        <div className="space-y-5">
 
             {/* Itens */}
             <Card>
@@ -293,7 +298,7 @@ export function CheckoutPage() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {PARCELAS_OPTIONS.map(n => (
+                            {gerarOpcoesParcelas(items).map((n: number) => (
                               <SelectItem key={n} value={String(n)}>
                                 {n}× de {formatBRL(total / n)}
                               </SelectItem>
@@ -319,10 +324,10 @@ export function CheckoutPage() {
                 </CardContent>
               </Card>
             )}
-          </div>
+        </div>
 
-          {/* ── Coluna direita (sticky) ── */}
-          <aside className="h-fit space-y-4 lg:sticky lg:top-28">
+        {/* ── Coluna direita (sticky) ── */}
+        <aside className="h-fit space-y-4 lg:sticky lg:top-28">
 
             {/* Saldo — para Anual */}
             {!isMensal && (
@@ -411,7 +416,6 @@ export function CheckoutPage() {
             </Button>
           </aside>
         </div>
-      </main>
-    </div>
+    </main>
   )
 }

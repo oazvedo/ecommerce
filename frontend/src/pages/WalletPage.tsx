@@ -28,7 +28,6 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Navbar } from '@/components/Navbar'
 import { carteiraApi } from '@/api/carteira'
 import type { Carteira, CarteiraTransacao, PixRecargaResponse } from '@/types'
 import { toast } from 'sonner'
@@ -128,8 +127,6 @@ export function WalletPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-
       <main className="mx-auto max-w-5xl px-4 py-6">
         <section className="mb-5 rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
